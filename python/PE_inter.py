@@ -1,0 +1,95 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy.interpolate import PchipInterpolator
+
+# =====================================================================
+# CONFIGURACIÓN DE RUTAS
+# =====================================================================
+BASE_PATH = '/home/oem/Desktop/Unipamplona/Trabajo de grado/Códigos/datos/'
+CSV_PATH = BASE_PATH + 'wpd_datasets.csv'
+OUTPUT_DAT = BASE_PATH + 'templates_SE_pchip.dat'
+OUTPUT_FIG = BASE_PATH + 'templates_visualizacion.png'
+
+N_GRID = 5000
+PE_MIN, PE_MAX = 0.0, 300.0
+
+def generar_templates():
+    # Cargar CSV (saltamos las dos primeras filas que son encabezados de texto)
+    df = pd.read_csv(CSV_PATH, header=None, skiprows=2)
+    x_grid = np.linspace(PE_MIN, PE_MAX, N_GRID)
+    
+    templates_interp = {}
+    colores = ['#E63946', '#F4A261', '#2A9D8F', '#457B9D', '#1D3557', '#6D597A']
+    
+    fig, ax = plt.subplots(figsize=(10, 6.5))
+    
+    for k in range(1, 7):
+        idx_x = 2 * (k - 1)
+        idx_y = idx_x + 1
+        
+        # Extraer datos
+        xs = pd.to_numeric(df[idx_x], errors='coerce').values
+        ys = pd.to_numeric(df[idx_y], errors='coerce').values
+        mask = ~np.isnan(xs) & ~np.isnan(ys) & (ys > 0)
+        xs, ys = xs[mask], ys[mask]
+        
+        # Eliminar duplicados en X
+        _, uniq = np.unique(xs, return_index=True)
+        xs, ys = xs[uniq], ys[uniq]
+        
+        # Ordenar
+        sort_idx = np.argsort(xs)
+        xs, ys = xs[sort_idx], ys[sort_idx]
+
+        # Interpolación PCHIP en espacio logarítmico
+        min_log_val = -30.0
+        ys_log = np.log10(ys)
+        interp_func = PchipInterpolator(xs, ys_log)
+        
+        y_log_grid = np.where((x_grid >= xs.min()) & (x_grid <= xs.max()), 
+                               interp_func(x_grid), 
+                               min_log_val)
+        y_grid = np.power(10.0, y_log_grid)
+        integral = np.trapz(y_grid, x_grid)   # o simpson
+        if integral > 0:
+            y_grid = y_grid / integral         # ahora ∫ T_k(S) dS = 1
+        templates_interp[k] = y_grid
+
+        # Gráfico
+        ax.scatter(xs, ys, color=colores[k-1], s=15, alpha=0.3, label='_nolegend_')
+        ax.plot(x_grid, y_grid, color=colores[k-1], lw=1.8, label=f'Template {k}SE')
+        ax.fill_between(x_grid, 1e-30, y_grid, color=colores[k-1], alpha=0.05)
+
+    # ============================================================
+    # Guardar archivo para Fortran (CORREGIDO)
+    with open(OUTPUT_DAT, 'w') as f:
+        f.write('# Templates de respuesta RED-100 (Interpolacion PCHIP)\n')
+        f.write('# Bloques: N_puntos\n')
+        for k in range(1, 7):
+            f.write(f'{N_GRID}\n')   # <-- Solo N, sin k
+            for i in range(N_GRID):
+                f.write(f'{x_grid[i]:.6E} {templates_interp[k][i]:.6E}\n')
+    # ============================================================
+
+    # Decoración del gráfico
+    ax.set_yscale('log')
+    ax.set_xlim(0, 250)
+    ax.set_ylim(1e-8, 2.0)
+    ax.set_xlabel('Visible Energy S2 [PE]', fontsize=12)
+    ax.set_ylabel('Normalized Response [arb. units]', fontsize=12)
+    ax.set_title('RED-100 SE Response Templates (Pchip Smoothing)', pad=15)
+    ax.grid(True, which='major', ls='-', alpha=0.2)
+    ax.legend(loc='upper right', ncol=2)
+    
+    plt.tight_layout()
+    plt.savefig(OUTPUT_FIG, dpi=300)
+    print(f'✅ Archivo de datos: {OUTPUT_DAT}')
+    print(f'✅ Gráfica generada: {OUTPUT_FIG}')
+    plt.show()
+
+if __name__ == "__main__":
+    generar_templates()

@@ -1,0 +1,79 @@
+program CEvNS_quenched
+  implicit none
+  integer, parameter :: dp = kind(1.0d0)
+  real(dp), parameter :: pi = 3.14159265358979323846d0
+  real(dp), parameter :: GF = 1.1663787d-11          ! Fermi constant [MeV^{-2}]
+  real(dp), parameter :: conv = 3.89379d-22          ! 1 MeV^{-2} to cm^2
+  real(dp), parameter :: MeV2keV = 1000.0d0
+  real(dp), parameter :: amu = 931.4940954d0         ! atomic mass unit [MeV/c^2]
+
+  ! Germanium parameters
+  integer, parameter :: Z = 32
+  real(dp), parameter :: A_avg = 72.6d0              ! average mass number
+  real(dp), parameter :: M = A_avg * amu             ! nuclear mass [MeV]
+  real(dp), parameter :: sin2th = 0.23857d0          ! weak mixing angle at low energy
+  real(dp), parameter :: N_avg = 41.0d0               ! effective neutron number (approx)
+
+  ! Lindhard parameters for Ge (from CONUS+ paper)
+  real(dp), parameter :: k_lind = 0.162d0
+  real(dp), parameter :: alpha = 11.5d0 * Z**(-7.0d0/3.0d0)   ! converts T_N [keV] to epsilon
+
+  ! Neutrino energies to consider (MeV)
+  integer, parameter :: nE = 4
+  real(dp), dimension(nE), parameter :: Enu_list = [3.0d0, 5.0d0, 8.0d0, 10.0d0]
+
+  ! Output directory (ensure it ends with '/')
+  character(len=*), parameter :: outdir = '/home/oem/Desktop/Unipamplona/Trabajo de grado/Códigos/datos/'
+
+  integer :: i, j, npoints
+  real(dp) :: Enu, Tmax, Tmin, T, dT, Eer, dsdT, dsddE_q, dsddE_1
+  real(dp) :: QF, dQF_dT, Qw, prefactor
+  character(len=200) :: filename
+  integer :: u
+
+  Qw = N_avg - (1.0d0 - 4.0d0*sin2th) * Z
+  print *, 'Weak charge Qw =', Qw
+
+  do i = 1, nE
+     Enu = Enu_list(i)
+     Tmax = 2.0d0 * Enu**2 / (M + 2.0d0*Enu)
+     Tmin = 1.0d-5
+     npoints = 1000
+     dT = (Tmax - Tmin) / real(npoints-1, dp)
+
+     ! Generar nombre de archivo sin espacios usando F0.1
+     write(filename, '(A,A,F0.1,A)') trim(outdir), 'dsig_dEer_Enu', Enu, '.dat'
+     open(newunit=u, file=filename, status='replace')
+     write(u, '(A)') '# Eer [MeV]   dsigma/dEer (Lindhard) [cm^2/MeV]   dsigma/dEer (QF=1) [cm^2/MeV]'
+
+     prefactor = GF**2 / pi * Qw**2 * M
+
+     do j = 0, npoints-1
+        T = Tmin + j * dT
+        dsdT = prefactor * (1.0d0 - (M*T)/(2.0d0*Enu**2) - T/Enu)
+        call quenching_Ge(T, QF, dQF_dT)
+        Eer = QF * T
+        dsddE_q = dsdT / (QF + T * dQF_dT) * conv
+        dsddE_1 = dsdT * conv
+        write(u, '(3ES15.6E3)')  Eer, dsddE_q, dsddE_1
+     end do
+
+     close(u)
+     print *, 'Archivo generado: ', trim(filename)
+  end do
+
+contains
+
+  subroutine quenching_Ge(T, QF, dQF_dT)
+    real(dp), intent(in) :: T
+    real(dp), intent(out) :: QF, dQF_dT
+    real(dp) :: T_keV, eps, g, dg
+    T_keV = T * MeV2keV
+    eps = alpha * T_keV
+    g = 3.0d0 * eps**0.15d0 + 0.7d0 * eps**0.6d0 + eps
+    dg = 0.45d0 * eps**(-0.85d0) + 0.42d0 * eps**(-0.4d0) + 1.0d0
+    QF = (k_lind * g) / (1.0d0 + k_lind * g)
+    dQF_dT = (k_lind * dg * alpha / (1.0d0 + k_lind * g)**2) * MeV2keV
+  end subroutine quenching_Ge
+
+end program CEvNS_quenched

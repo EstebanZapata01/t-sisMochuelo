@@ -1,0 +1,101 @@
+!=======================================================================
+! Módulo: mod_tnr_to_e (NEST 218 V/cm - lectura robusta y dinámica)
+!=======================================================================
+module mod_tnr_to_e
+  use constants
+  implicit none
+  
+  ! Arreglos dinámicos que se dimensionarán en tiempo de ejecución
+  real(dp), allocatable, dimension(:) :: T_dense, Qy_dense
+  integer :: n_puntos_actual = 0
+  logical :: nest_inicializado = .false.
+
+contains
+
+  !---------------------------------------------------------------------
+  subroutine inicializar_nest()
+    integer :: u_in, iostat, i
+    character(len=500) :: linea
+    real(dp) :: T_temp, Qy_temp
+    character(len=200) :: archivo_datos
+
+    archivo_datos = '/home/oem/Desktop/Unipamplona/Trabajo de grado/Códigos/datos/nest_180V_dense.txt'
+
+    open(newunit=u_in, file=trim(archivo_datos), status='old', iostat=iostat)
+    if (iostat /= 0) then
+       print *, "ERROR: No se encontró ", trim(archivo_datos)
+       stop
+    end if
+
+    ! ---- 1ª pasada: contar líneas de datos (ignorando comentarios) ----
+    n_puntos_actual = 0
+    do
+       read(u_in, '(A)', iostat=iostat) linea
+       if (iostat /= 0) exit                ! fin de archivo
+       linea = adjustl(linea)
+       if (linea(1:1) == '#' .or. len_trim(linea) == 0) cycle  ! ignorar comentarios/vacías
+       n_puntos_actual = n_puntos_actual + 1
+    end do
+    rewind(u_in)
+
+    ! Reservar memoria exacta
+    allocate(T_dense(n_puntos_actual), Qy_dense(n_puntos_actual))
+
+    ! ---- 2ª pasada: leer los datos ----
+    i = 0
+    do
+       read(u_in, '(A)', iostat=iostat) linea
+       if (iostat /= 0) exit
+       linea = adjustl(linea)
+       if (linea(1:1) == '#' .or. len_trim(linea) == 0) cycle
+       i = i + 1
+       read(linea, *) T_temp, Qy_temp
+       T_dense(i) = T_temp
+       Qy_dense(i) = Qy_temp
+    end do
+    close(u_in)
+
+    nest_inicializado = .true.
+    print *, "Módulo NEST (218 V/cm): cargados ", n_puntos_actual, " puntos exitosamente."
+  end subroutine inicializar_nest
+
+  !---------------------------------------------------------------------
+  function obtener_electrones_creados(T_req) result(n_creados)
+    real(dp), intent(in) :: T_req
+    real(dp) :: n_creados, Qy_calc, pendiente
+    integer :: izq, der, medio
+
+    if (.not. nest_inicializado) then
+       print *, "ERROR: Debes llamar a inicializar_nest() al principio."
+       stop
+    end if
+
+    if (T_req <= T_dense(1)) then
+       Qy_calc = Qy_dense(1)
+    else if (T_req >= T_dense(n_puntos_actual)) then
+       Qy_calc = Qy_dense(n_puntos_actual)
+    else
+       izq = 1; der = n_puntos_actual
+       do while (der - izq > 1)
+          medio = (izq + der) / 2
+          if (T_req >= T_dense(medio)) then
+             izq = medio
+          else
+             der = medio
+          end if
+       end do
+       pendiente = (Qy_dense(der) - Qy_dense(izq)) / (T_dense(der) - T_dense(izq))
+       Qy_calc = Qy_dense(izq) + pendiente * (T_req - T_dense(izq))
+    end if
+
+    n_creados = T_req * Qy_calc
+  end function obtener_electrones_creados
+
+  ! Opcional: liberar memoria al final del programa
+  subroutine finalizar_nest()
+    if (allocated(T_dense)) deallocate(T_dense)
+    if (allocated(Qy_dense)) deallocate(Qy_dense)
+    nest_inicializado = .false.
+  end subroutine finalizar_nest
+
+end module mod_tnr_to_e

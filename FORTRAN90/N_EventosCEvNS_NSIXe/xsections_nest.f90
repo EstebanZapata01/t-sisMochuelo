@@ -1,0 +1,24 @@
+module xsections_nest
+  use constants, only: dp, GF, pi, M_Ge, QV2, hbarc2
+  implicit none
+
+  ! Factor de conversión de MeV⁻³ a cm²/keV
+  real(dp), parameter :: conv_cs = hbarc2 / 1000.0_dp
+
+contains
+
+  function dsigma_dT(E_nu, T) result(dsdT)
+    real(dp), intent(in) :: E_nu, T
+    real(dp) :: dsdT, prefactor
+
+    ! Prefactor con 1/π (tu definición)
+    prefactor = (GF**2 * M_Ge * QV2) / pi
+
+    if (T <= 0.0_dp .or. T >= 2.0_dp*E_nu**2/(M_Ge+2.0_dp*E_nu)) then
+       dsdT = 0.0_dp
+    else
+       dsdT = prefactor * (1.0_dp - (M_Ge*T)/(2.0_dp*E_nu**2) - T/E_nu) * conv_cs
+    end if
+  end function dsigma_dT
+
+end module xsections_nest

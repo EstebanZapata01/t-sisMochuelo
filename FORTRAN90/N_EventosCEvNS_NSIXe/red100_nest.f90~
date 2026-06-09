@@ -1,0 +1,112 @@
+!=======================================================================
+! Programa: red100_nest (Poisson → Binomial, solo creados y extraídos)
+!=======================================================================
+program red100_nest
+  use constants
+  use mod_tnr_to_e
+  use xsections_nest
+  use mod_stats          ! poisson_prob, binomial_prob
+  use flux
+  implicit none
+
+  integer, parameter :: n_T = 500, n_E = 2000, n_ion = 20
+  real(dp) :: T_nr, T_nr_min, T_nr_max, dT, dT_keV, E_nu, dE
+  real(dp) :: integrando_kop, integrando_mue, integrando_comb
+  integer :: i_T, i_E, i_bin, u_out
+  real(dp) :: tasa_Kop, tasa_Mue, tasa_Comb
+  real(dp) :: atoms_per_kg, sec_per_day
+  real(dp), allocatable :: array_tasa_Comb(:)
+  real(dp) :: lambda, peso, prob_c, prob_e
+  real(dp) :: tasa_creados(0:n_ion), tasa_extraidos(0:n_ion)
+  character(len=250) :: outdir, filename
+  integer :: n, k
+  real(dp) :: dummy
+
+  outdir = '/home/oem/Desktop/Unipamplona/Trabajo de grado/Códigos/datos/'
+
+  call inicializar_nest()
+  allocate(array_tasa_Comb(n_T))
+
+  ! Carga débil
+  QV2 = (-N_Ge/2.0_dp + (1.0_dp - 4.0_dp*s2w)/2.0_dp * Z_Ge)**2
+
+  atoms_per_kg = (NA / A_Ge) * 1000.0_dp
+  sec_per_day  = 86400.0_dp
+
+  dummy = flujo_diferencial(1.0_dp)
+
+  T_nr_min = 0.21_dp / 1000.0_dp
+  T_nr_max = 10.0_dp / 1000.0_dp
+  dT = (T_nr_max - T_nr_min) / (n_T - 1)
+  dT_keV = dT * 1000.0_dp
+  dE = E_nu_max / (n_E - 1)
+
+  ! ================== FASE 1: Espectro continuo ==================
+  filename = trim(outdir) // 'espectro_continuoXe.dat'
+  open(newunit=u_out, file=filename, status='replace')
+  write(u_out, '(A)') '# T_nr[keV]   Tasa_Kop   Tasa_Mue   Tasa_Comb'
+
+  do i_T = 1, n_T
+     T_nr = T_nr_min + (i_T - 1) * dT
+     tasa_Kop = 0.0_dp; tasa_Mue = 0.0_dp; tasa_Comb = 0.0_dp
+     do i_E = 1, n_E
+        E_nu = (i_E - 1) * dE
+        if (E_nu < sqrt(M_Ge * T_nr / 2.0_dp)) cycle
+        peso = merge(0.5_dp, 1.0_dp, i_E == 1 .or. i_E == n_E)
+
+        integrando_kop = (phi_total * kopeikin_spectrum(E_nu) / spectrum_integral) * dsigma_dT(E_nu, T_nr)
+        integrando_mue = (phi_total * (fission_frac(1)*mueller_spectrum(E_nu,1) + &
+                                       fission_frac(2)*mueller_spectrum(E_nu,2) + &
+                                       fission_frac(3)*mueller_spectrum(E_nu,3) + &
+                                       fission_frac(4)*mueller_spectrum(E_nu,4)) &
+                          / spectrum_integral) * dsigma_dT(E_nu, T_nr)
+        integrando_comb = flujo_diferencial(E_nu) * dsigma_dT(E_nu, T_nr)
+
+        tasa_Kop  = tasa_Kop  + integrando_kop * dE * peso
+        tasa_Mue  = tasa_Mue  + integrando_mue * dE * peso
+        tasa_Comb = tasa_Comb + integrando_comb * dE * peso
+     end do
+     tasa_Kop  = tasa_Kop  * atoms_per_kg * sec_per_day
+     tasa_Mue  = tasa_Mue  * atoms_per_kg * sec_per_day
+     tasa_Comb = tasa_Comb * atoms_per_kg * sec_per_day
+     array_tasa_Comb(i_T) = tasa_Comb
+     write(u_out, '(F10.4, 3ES15.6)') T_nr*1000.0_dp, tasa_Kop, tasa_Mue, tasa_Comb
+  end do
+  close(u_out)
+
+  ! ================== FASE 2: Ionización (Poisson + Binomial) ==================
+  filename = trim(outdir) // 'ionization_electrones.dat'
+  open(newunit=u_out, file=filename, status='replace')
+  write(u_out, '(A)') '# N_e   creados [Evts/kg/dia]   extraidos [Evts/kg/dia]'
+
+  tasa_creados   = 0.0_dp
+  tasa_extraidos = 0.0_dp
+
+  do i_T = 1, n_T
+     T_nr = T_nr_min + (i_T - 1) * dT
+     lambda = obtener_electrones_creados(T_nr * 1000.0_dp)
+     peso = merge(0.5_dp, 1.0_dp, i_T == 1 .or. i_T == n_T)
+
+     do n = 0, n_ion
+        prob_c = poisson_prob(n, lambda)
+        if (prob_c <= 0.0_dp) cycle
+
+        tasa_creados(n) = tasa_creados(n) + array_tasa_Comb(i_T) * dT_keV * peso * prob_c
+
+        do k = 0, n
+           prob_e = binomial_prob(k, n, EEE)   ! EEE = 0.328 en constants
+           if (prob_e <= 0.0_dp) cycle
+           tasa_extraidos(k) = tasa_extraidos(k) + array_tasa_Comb(i_T) * dT_keV * peso * prob_c * prob_e
+        end do
+     end do
+  end do
+
+  do i_bin = 0, n_ion
+     write(u_out, '(I5, 2ES15.6)') i_bin, tasa_creados(i_bin), tasa_extraidos(i_bin)
+  end do
+  close(u_out)
+
+  print*, "Tasa diferencial máxima: ", maxval(array_tasa_Comb)
+  print*, "Simulación completada."
+
+end program red100_nest

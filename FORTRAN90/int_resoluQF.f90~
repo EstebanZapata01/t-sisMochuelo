@@ -1,0 +1,92 @@
+! ============================================================
+! int_resoluQF.f90
+! Cálculo de K_i(TN) con el quenching factor de Lindhard (De Romeri Eq. 31)
+! ============================================================
+program int_resolu_qf_lindhard
+  implicit none
+  integer, parameter :: dp = kind(1.0d0)
+  real(dp), parameter :: pi = 3.14159265358979323846d0
+
+  ! ----- Parámetros físicos -----
+  real(dp), parameter :: eta = 2.96d-6        ! MeVee (2.96 eV)
+  real(dp), parameter :: F_Fano = 0.1096d0
+  real(dp), parameter :: FWHM_pulser = 48.0d-6 ! MeVee (48 eV)
+  real(dp), parameter :: sigma0 = FWHM_pulser / sqrt(8.0d0*log(2.0d0))
+  real(dp), parameter :: E_nu = 10.0d0        ! MeV
+  integer, parameter :: A = 76
+  real(dp), parameter :: M = A*931.49410242d0 ! masa nuclear [MeV]
+  integer, parameter :: Z = 32
+  real(dp), parameter :: k_lind = 0.162d0
+
+  ! ----- Bines de energía reconstruida -----
+  integer, parameter :: nbins = 19
+  real(dp), parameter :: bin_start = 160.0d-6, bin_width = 10.0d-6 ! [MeV]
+
+  ! ----- Grid en TN -----
+  integer, parameter :: npoints = 1000
+  real(dp) :: Tmax, dTN, TN
+  integer :: i, j, k
+
+  ! ----- Variables -----
+  real(dp) :: Eer, Ereco, sres, Gval, sumG, dE
+  real(dp) :: Ereco_low, Ereco_high, Kval(nbins)
+  integer, parameter :: nE = 1000
+  integer :: u
+  character(len=*), parameter :: path = "/home/oem/Desktop/Unipamplona/Trabajo de grado/Códigos/datos/K_all.dat"
+  character(len=256) :: header
+
+
+  Tmax = 2.0d0 * E_nu**2 / (M + 2.0d0 * E_nu)
+  dTN = Tmax / real(npoints-1, dp)
+  print *, "Tmax [MeV] =", Tmax, " | σ₀ =", sigma0, " MeV"
+  print *, "Guardando archivo en: ", trim(path)
+
+  header = "# TN[MeV]"
+  do j = 1, nbins
+     write(header(len_trim(header)+1:), '(A,I2.2)') "   K_bin", j
+  end do
+
+  open(newunit=u, file=path, status="replace")
+  write(u,'(A)') trim(header)
+
+  do i = 0, npoints-1
+     TN = i * dTN
+     Eer = QF_TN(TN) * TN
+     sres = sqrt(sigma0**2 + F_Fano * eta * Eer)
+
+     do j = 1, nbins
+        Ereco_low  = bin_start + (j-1)*bin_width
+        Ereco_high = Ereco_low + bin_width
+        dE = (Ereco_high - Ereco_low) / real(nE-1,dp)
+
+        sumG = 0.0d0
+        do k = 0, nE-1
+           Ereco = Ereco_low + k*dE
+           Gval = (1.0d0/(sqrt(2.0d0*pi)*sres)) * exp(-0.5d0*((Ereco-Eer)/sres)**2)
+           if (k==0 .or. k==nE-1) then
+              sumG = sumG + 0.5d0*Gval
+           else
+              sumG = sumG + Gval
+           end if
+        end do
+        Kval(j) = sumG * dE
+     end do
+
+     write(u,'(ES15.8E3,1X,19(ES15.8E3,1X))') TN, Kval
+  end do
+
+  close(u)
+  print *, "Archivo 'K_all.dat' generado con QF(TN) de Lindhard."
+contains
+  function QF_TN(TN) result(QF)
+    implicit none
+    real(dp), intent(in) :: TN
+    real(dp) :: QF, eps, g_eps
+
+    eps = 11.5d0 * Z**(-7.0d0/3.0d0) * (TN * 1.0d3)
+    g_eps = 3.0d0 * eps**0.15d0 + 0.7d0 * eps**0.6d0 + eps
+    QF = (k_lind * g_eps) / (1.0d0 + k_lind * g_eps)
+  end function QF_TN
+
+end program int_resolu_qf_lindhard
+

@@ -1,0 +1,107 @@
+!=======================================================================
+! Módulo: mod_detector (Versión Gaussiana Analítica)
+!
+! Interfaz idéntica a la versión PCHIP original:
+!   - cargar_SE_data(filename)  <- ahora ignora el archivo, solo imprime
+!   - respuesta_empirica(S, k)  <- devuelve la misma densidad [PE^-1]
+!
+! Física (paper calibración arXiv:2403.12645, Sec. 3.5, Fig. 12):
+!   La electroluminiscencia de k electrones es la convolución de k
+!   gaussianas idénticas de 1SE, resultando en:
+!       mu(k)    = k * SEG          SEG  = 27.0 +/- 0.1 PE/e-
+!       sigma(k) = sqrt(k) * sig1   sig1 = 6.5 PE (del ancho del pico)
+!   normalizada: integral de respuesta_empirica sobre PE = 1
+!=======================================================================
+module mod_detector
+  use constants, only: dp
+  implicit none
+
+  ! ==================== PARÁMETROS FÍSICOS ====================
+  real(dp), parameter :: SEG_val = 27.0_dp  ! PE/e-, paper calibración
+  real(dp), parameter :: sig1    = 7.6_dp   ! PE, sigma del 1SE (Fig.12)
+  real(dp), parameter :: pi_val  = 3.141592653589793_dp
+
+  integer, parameter :: max_curvas = 7
+
+  ! ==================== GRILLA PRE-CALCULADA ====================
+  integer,  parameter :: N_GRID  = 5000
+  real(dp), parameter :: PE_MIN  = 0.0_dp
+  real(dp), parameter :: PE_MAX  = 300.0_dp
+
+  real(dp) :: x_grid(N_GRID)
+  real(dp) :: y_gauss(N_GRID, max_curvas)
+  logical  :: SE_loaded = .false.
+
+contains
+
+  !-------------------------------------------------------------------
+  ! cargar_SE_data: mantiene el mismo nombre y firma que el original.
+  ! El argumento 'filename' se ignora — las gaussianas se calculan
+  ! analíticamente. El resto del código no necesita cambiar nada.
+  !-------------------------------------------------------------------
+  subroutine cargar_SE_data(filename)
+    character(len=*), intent(in) :: filename
+    integer  :: i, k
+    real(dp) :: dx, mu, sig, norm_check
+
+    write(*,*) "----------------------------------------------------------"
+    write(*,*) "   MOD_DETECTOR: Gaussianas analiticas (arXiv:2403.12645) "
+    write(*,*) "   SEG  = ", SEG_val, " PE/e-"
+    write(*,*) "   sig1 = ", sig1,    " PE"
+    write(*,*) "   (archivo ignorado: ", trim(filename), ")"
+    write(*,*) "----------------------------------------------------------"
+
+    dx = (PE_MAX - PE_MIN) / real(N_GRID - 1, dp)
+    do i = 1, N_GRID
+       x_grid(i) = PE_MIN + (i - 1) * dx
+    end do
+
+    do k = 1, max_curvas
+       mu  = real(k, dp) * SEG_val
+       sig = sqrt(real(k, dp)) * sig1
+
+       do i = 1, N_GRID
+          y_gauss(i, k) = exp(-0.5_dp * ((x_grid(i) - mu) / sig)**2) &
+                          / (sqrt(2.0_dp * pi_val) * sig)
+       end do
+
+       norm_check = sum(y_gauss(:, k)) * dx
+       write(*,'(A,I2,A,F6.1,A,F5.2,A,F8.5)') &
+            "   k=", k, "SE: mu=", mu, " sig=", sig, &
+            "  integral=", norm_check
+    end do
+
+    SE_loaded = .true.
+    write(*,*) "----------------------------------------------------------"
+  end subroutine cargar_SE_data
+
+  !-------------------------------------------------------------------
+  ! respuesta_empirica: mismo nombre, misma firma, mismo resultado [PE^-1].
+  ! Ahora interpola sobre la gaussiana pre-calculada en lugar del PCHIP.
+  !-------------------------------------------------------------------
+  function respuesta_empirica(S, k) result(val)
+    real(dp), intent(in) :: S
+    integer,  intent(in) :: k
+    real(dp) :: val
+    integer  :: lo, hi, mid
+
+    val = 0.0_dp
+    if (.not. SE_loaded .or. k < 1 .or. k > max_curvas) return
+
+    if (S <= x_grid(1))      then; val = y_gauss(1,      k); return; end if
+    if (S >= x_grid(N_GRID)) then; val = y_gauss(N_GRID, k); return; end if
+
+    ! Búsqueda binaria (idéntica al original)
+    lo = 1; hi = N_GRID
+    do while (hi - lo > 1)
+       mid = (lo + hi) / 2
+       if (S >= x_grid(mid)) then; lo = mid; else; hi = mid; end if
+    end do
+
+    ! Interpolación lineal (idéntica al original)
+    val = y_gauss(lo, k) + (y_gauss(hi, k) - y_gauss(lo, k)) &
+          * (S - x_grid(lo)) / (x_grid(hi) - x_grid(lo))
+
+  end function respuesta_empirica
+
+end module mod_detector

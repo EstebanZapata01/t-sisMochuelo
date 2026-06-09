@@ -1,0 +1,31 @@
+module constants
+  implicit none
+  integer, parameter :: dp = kind(1.0d0)
+
+  ! ==================== FÍSICA FUNDAMENTAL ====================
+  real(dp), parameter :: GF     = 1.1663787d-11    ! Fermi (MeV⁻²)
+  real(dp), parameter :: pi     = 3.141592653589793_dp
+  real(dp), parameter :: NA     = 6.02214076d23    ! Avogadro (mol⁻¹)
+  real(dp), parameter :: hbarc2 = 3.89379d-22      ! (ℏc)² en cm²·MeV²
+  real(dp), parameter :: s2w    = 0.23857_dp
+  real(dp), parameter :: conv   = 1.0_dp
+
+  ! ==================== BLANCO: XENÓN LÍQUIDO ====================
+  real(dp), parameter :: A_Ge = 131.293_dp
+  real(dp), parameter :: Z_Ge = 54.0_dp
+  real(dp), parameter :: N_Ge = 77.0_dp
+  real(dp), parameter :: M_Ge = 122194.0_dp
+
+  ! ==================== DETECTOR RED-100 ====================
+  real(dp), parameter :: total_mass_kg   = 126.0_dp
+  real(dp), parameter :: dias_exposicion = 331.0_dp
+  real(dp), parameter :: livetime_frac   = 0.60_dp
+  real(dp), parameter :: EEE             = 0.328_dp
+
+  ! ==================== FLUJO EXPLICITO ====================
+  real(dp), parameter :: phi_total     = 1.4d13     ! [nu / cm^2 s]
+  real(dp), parameter :: E_nu_min_flux = 2.0_dp
+  real(dp), parameter :: E_nu_max      = 10.0_dp
+
+  real(dp) :: QV2 = 1.0_dp
+end module constants

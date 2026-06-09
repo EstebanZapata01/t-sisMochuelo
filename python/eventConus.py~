@@ -1,0 +1,121 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Script para graficar los eventos de CEvNS calculados por eventos_conus.f90
+Lee el archivo eventos_conus.dat y genera un gráfico con los espectros de
+cada detector y el total.
+"""
+
+import numpy as np
+import matplotlib.pyplot as plt
+import re
+import sys
+
+def leer_eventos(filename):
+    """
+    Lee el archivo de salida de eventos_conus.f90 y devuelve:
+    - bins: lista de tuplas (low, high) en eV
+    - eventos_por_detector: dict con clave detector y array de eventos por bin
+    - total_por_bin: array con la suma de eventos de los tres detectores por bin
+    - total_general: número total de eventos (suma de todos los detectores)
+    """
+    with open(filename, 'r') as f:
+        lines = f.readlines()
+    
+    # Expresiones regulares para identificar secciones
+    re_detector = re.compile(r'# (C[235]): masa = .*')  # Detectores C3, C5, C2
+    re_bin = re.compile(r'\s*(\d+)\s+(\d+\.?\d*)-(\d+\.?\d*)\s+eV\s+([\d\.Ee+-]+)')
+    re_total_gral = re.compile(r'Eventos totales .*:\s+([\d\.Ee+-]+)')
+    
+    eventos = {}
+    bins = []
+    detector_actual = None
+    
+    for line in lines:
+        line = line.strip()
+        if not line:
+            continue
+        
+        # Detector
+        m = re_detector.match(line)
+        if m:
+            detector_actual = m.group(1)
+            eventos[detector_actual] = []
+            continue
+        
+        # Bin
+        m = re_bin.match(line)
+        if m and detector_actual is not None:
+            low = float(m.group(2))
+            high = float(m.group(3))
+            val = float(m.group(4))
+            eventos[detector_actual].append(val)
+            # Guardamos bins si es la primera vez (todos los detectores tienen los mismos bins)
+            if not bins:
+                bins.append((low, high))
+            continue
+        
+        # Total general
+        m = re_total_gral.match(line)
+        if m:
+            total_general = float(m.group(1))
+    
+    # Convertir listas a arrays numpy
+    for det in eventos:
+        eventos[det] = np.array(eventos[det])
+    
+    # Calcular total por bin sumando los tres detectores
+    n_bins = len(eventos['C3'])  # cualquiera sirve
+    total_por_bin = np.zeros(n_bins)
+    for det in eventos:
+        total_por_bin += eventos[det]
+    
+    return bins, eventos, total_por_bin, total_general
+
+def graficar_eventos(bins, eventos, total_por_bin, total_general, filename='eventos_conus.png'):
+    """
+    Grafica los eventos por bin para cada detector y el total.
+    """
+    # Extraer centros de los bins para graficar
+    bin_centers = [(low+high)/2 for low, high in bins]
+    bin_width = bins[0][1] - bins[0][0]  # ancho en eV
+    
+    fig, ax = plt.subplots(figsize=(10, 6))
+    
+    # Colores para cada detector
+    colors = {'C2': 'blue', 'C3': 'green', 'C5': 'orange'}
+    
+    # Graficar el total como barras grises transparentes
+    ax.bar(bin_centers, total_por_bin, width=bin_width*0.9, color='gray', alpha=0.3, label='Total')
+    
+    # Graficar cada detector con barras apiladas
+    bottom = np.zeros(len(bin_centers))
+    # Orden para que se vean bien: C3, C5, C2 (por umbral ascendente)
+    for det in ['C3', 'C5', 'C2']:
+        ax.bar(bin_centers, eventos[det], width=bin_width*0.9, bottom=bottom,
+               color=colors[det], label=f'{det}', alpha=0.7)
+        bottom += eventos[det]
+    
+    ax.set_xlabel('Energía reconstruida (eV$_{ee}$)')
+    ax.set_ylabel('Eventos')
+    ax.set_title(f'Espectro de eventos CEvNS para CONUS+ (SM)\nTotal = {total_general:.1f} eventos')
+    ax.legend()
+    ax.grid(True, alpha=0.3)
+    
+    # Ajustar límites del eje x
+    ax.set_xlim(bins[0][0] - bin_width, bins[-1][1] + bin_width)
+    
+    plt.tight_layout()
+    plt.savefig(filename, dpi=300)
+    plt.show()
+    print(f"Gráfico guardado en {filename}")
+
+if __name__ == '__main__':
+    # Si se pasa un argumento, se toma como ruta del archivo; si no, se usa la predeterminada
+    if len(sys.argv) > 1:
+        archivo = sys.argv[1]
+    else:
+        archivo = '/home/oem/Desktop/Unipamplona/Trabajo de grado/Códigos/datos/eventos_conus.dat'
+    
+    bins, eventos, total_por_bin, total_general = leer_eventos(archivo)
+    graficar_eventos(bins, eventos, total_por_bin, total_general)

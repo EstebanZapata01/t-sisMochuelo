@@ -1,0 +1,243 @@
+!=======================================================================
+! Programa principal: eventos_conus
+!   Calcula los eventos de CEvNS para RED-100 (Xe) y escribe los eventos por kg.
+!   Diagnóstico detallado para verificar la física.
+!=======================================================================
+program eventos_conus
+  use constants
+  use quenching
+  use xsections
+  use flux
+  use resolution
+  implicit none
+
+  integer :: i, bin, u_out, k, idx, j
+  real(dp), allocatable :: Eer_vals(:), K_matrix(:,:), S_vals(:)
+  real(dp) :: Erec_low(nbins), Erec_high(nbins), bin_center
+  real(dp) :: events_bin, events_per_kg, events_tot
+  real(dp) :: rate_per_nucleus
+  real(dp), parameter :: sin2th_SM = 0.23857_dp
+  real(dp), parameter :: QW_SM = -N_Ge/2.0_dp + (1.0_dp - 4.0_dp*sin2th_SM)/2.0_dp * Z_Ge
+  character(len=200) :: outdir, filename
+
+  ! Variables para diagnóstico cinemático
+  real(dp) :: Enu_test, T_max, dsdEer_at_thr
+  real(dp), dimension(4) :: Enu_list = [3.0_dp, 5.0_dp, 7.0_dp, 9.0_dp]
+
+  ! Variables para diagnóstico del espectro
+  real(dp) :: integral_espectro, E, dE, spec_val
+  integer, parameter :: n_spectrum_points = 1000
+  real(dp) :: E_nu_vals(4) = [3.0_dp, 5.0_dp, 7.0_dp, 9.0_dp]
+
+  ! Variable para prueba de sección eficaz
+  real(dp) :: Eer_test
+
+  ! ==================== DIAGNÓSTICO INICIAL ====================
+  write(*,*) '==========================================='
+  write(*,*) '       DIAGNÓSTICO DEL CÓDIGO CEvNS        '
+  write(*,*) '==========================================='
+  write(*,*) 'Parámetros del detector (RED-100, Xe):'
+  write(*,*) '  Z = ', Z_Ge
+  write(*,*) '  N = ', N_Ge
+  write(*,*) '  k_lind = ', k_lind
+  write(*,*) '  alpha = ', alpha
+  write(*,*) '  threshold = ', threshold*1.0d6, ' eVee  (equiv. a ', 4, ' electrones)'
+  write(*,*) '  EEE = ', EEE
+  write(*,*) ''
+  write(*,*) 'Parámetros de exposición:'
+  write(*,*) '  exposure_atoms_s = ', exposure_atoms_s, ' átomos·s'
+  write(*,*) '  total_mass_kg = ', total_mass_kg, ' kg'
+  write(*,*) '  (NA/A)*1000 = ', (NA/A_Ge)*1000.0_dp, ' átomos/kg'
+  write(*,*) ''
+  write(*,*) 'Constantes físicas:'
+  write(*,*) '  phi_total = ', phi_total, ' cm⁻² s⁻¹'
+  write(*,*) '  conv = ', conv, ' cm²·MeV²'
+  write(*,*) '  sigma0 = ', sigma0, ' MeV'
+  write(*,*) '  eta = ', eta, ' MeV'
+  write(*,*) '  Fano = ', Fano
+  write(*,*) '  M_nucleo = ', M_Ge, ' MeV'
+  write(*,*) ''
+  write(*,*) 'Carga débil SM:'
+  write(*,*) '  sin2th_SM = ', sin2th_SM
+  write(*,*) '  QW_SM = ', QW_SM
+  write(*,*) '  QV2 (usado en xsections) = ', QW_SM**2
+  write(*,*) ''
+  write(*,*) 'Mallas de integración:'
+  write(*,*) '  npts_Eer = ', npts_Eer
+  write(*,*) '  Eer_min = ', Eer_min, ' MeV (', Eer_min*1.0d6, ' eV)'
+  write(*,*) '  Eer_max = ', Eer_max, ' MeV (', Eer_max*1.0d6, ' eV)'
+  write(*,*) '  npts_nu = ', npts_nu
+  write(*,*) '  E_nu_max = ', E_nu_max, ' MeV'
+  write(*,*) '  E_nu_min_flux = ', E_nu_min_flux, ' MeV'
+  write(*,*) '  npts_gauss = ', npts_gauss
+  write(*,*) ''
+
+  ! ==================== DIAGNÓSTICO DEL ESPECTRO ====================
+  write(*,*) '--- DIAGNÓSTICO DEL ESPECTRO (Mueller) ---'
+  dE = (E_nu_max - E_nu_min_flux) / (n_spectrum_points - 1)
+  integral_espectro = 0.0_dp
+  do i = 1, n_spectrum_points
+     E = E_nu_min_flux + (i-1) * dE
+     spec_val = espectro_total(E)
+     if (i == 1 .or. i == n_spectrum_points) then
+        integral_espectro = integral_espectro + 0.5_dp * spec_val * dE
+     else
+        integral_espectro = integral_espectro + spec_val * dE
+     end if
+  end do
+  write(*,*) 'Integral del espectro total (2-10 MeV, sin normalizar): ', integral_espectro
+  write(*,*) 'Valores del espectro a energías representativas:'
+  do i = 1, 4
+     spec_val = espectro_total(E_nu_vals(i))
+     write(*, '(A, F4.1, A, ES12.4)') '  E_nu = ', E_nu_vals(i), ' MeV -> rho = ', spec_val
+  end do
+  write(*,*) 'Flujo diferencial normalizado:'
+  do i = 1, 4
+     spec_val = flujo_diferencial(E_nu_vals(i))
+     write(*, '(A, F4.1, A, ES12.4)') '  E_nu = ', E_nu_vals(i), ' MeV -> dphi/dE = ', spec_val, ' cm⁻² s⁻¹ MeV⁻¹'
+  end do
+  write(*,*) ''
+
+  ! ==================== PRUEBAS CINEMÁTICAS ====================
+  write(*,*) 'Pruebas cinemáticas para el umbral (', threshold*1.0d6, ' eVee):'
+  do k = 1, 4
+     Enu_test = Enu_list(k)
+     T_max = 2.0_dp * Enu_test**2 / (M_Ge + 2.0_dp * Enu_test)
+     dsdEer_at_thr = dsigma_dEer(Enu_test, threshold)
+     write(*, '(A, F4.1, A, ES12.4, A, ES12.4)') &
+          '  E_nu = ', Enu_test, ' MeV | T_max = ', T_max, ' MeV | dsigma/dEer(threshold) = ', dsdEer_at_thr, ' cm²/MeV'
+  end do
+  write(*,*) ''
+
+  ! ==================== DIAGNÓSTICO DE LA SECCIÓN EFICAZ ====================
+  write(*,*) 'Prueba de sección eficaz transformada para E_nu=7 MeV y varios Eer:'
+  do j = 1, 5
+     Eer_test = 2.96e-6_dp * (10.0_dp**(j-1))
+     write(*, '(A, ES12.4, A, ES12.4)') '  Eer = ', Eer_test, ' MeV -> dsigma/dEer = ', dsigma_dEer(7.0_dp, Eer_test), ' cm²/MeV'
+  end do
+  write(*,*) ''
+
+  ! ==================== FIJAR CARGA DÉBIL ====================
+  QV2 = QW_SM**2
+
+  outdir = '/home/oem/Desktop/Unipamplona/Trabajo de grado/Códigos/datos/'
+  filename = trim(outdir) // 'eventos_xenon_sm.dat'
+
+  ! Definir los 19 bins
+  do i = 1, nbins
+     Erec_low(i)  = Erec_min + (i-1) * Erec_width
+     Erec_high(i) = Erec_low(i) + Erec_width
+  end do
+
+  ! ==================== MATRIZ DE RESOLUCIÓN ====================
+  allocate(Eer_vals(npts_Eer), K_matrix(npts_Eer, nbins))
+  call compute_resolution_matrix(npts_Eer, Eer_min, Eer_max, Eer_vals, K_matrix)
+
+  ! Verificar normalización de la matriz de resolución para un Eer cercano al umbral
+  idx = nint((threshold - Eer_min) / (Eer_max - Eer_min) * (npts_Eer-1)) + 1
+  if (idx < 1) idx = 1
+  if (idx > npts_Eer) idx = npts_Eer
+  write(*,*) 'Verificación de la matriz de resolución para Eer = ', Eer_vals(idx)*1e6, ' eV:'
+  write(*,*) '  Suma de probabilidades sobre todos los bins = ', sum(K_matrix(idx,:))
+  write(*,*) '  (Debería ser aproximadamente 1 si el binning cubre toda la gaussiana)'
+  write(*,*) ''
+
+  ! ==================== CÁLCULO DE S(Eer) ====================
+  allocate(S_vals(npts_Eer))
+  write(*,*) 'Calculando S(Eer) para', npts_Eer, ' puntos...'
+  do i = 1, npts_Eer
+     call compute_S(Eer_vals(i), S_vals(i))
+  end do
+
+  ! Mostrar S(Eer) en puntos clave
+  write(*,*) 'Valores de S(Eer) (tasa por núcleo en s⁻¹):'
+  write(*,*) '  Eer = 2.96e-6 MeV -> S = ', S_vals(1)
+  idx = nint((threshold - Eer_min) / (Eer_max - Eer_min) * (npts_Eer-1)) + 1
+  write(*,*) '  Eer = umbral (', threshold*1e6, ' eV) -> S = ', S_vals(idx)
+  write(*,*) '  Eer = ', Eer_max*1e6, ' eV -> S = ', S_vals(npts_Eer)
+  write(*,*) ''
+
+  ! Verificar para un Eer dentro del rango de los bins (e.g., 200 eV)
+  Eer_test = 200.0d-6   ! 200 eV
+  do i = 1, npts_Eer
+     if (abs(Eer_vals(i) - Eer_test) < 1.0d-8) then
+        write(*,*) 'Para Eer = ', Eer_test*1e6, ' eV, suma de probabilidades = ', sum(K_matrix(i,:))
+        exit
+     end if
+  end do
+
+  ! ==================== CÁLCULO DE EVENTOS POR BIN ====================
+  open(newunit=u_out, file=filename, status='replace')
+  events_tot = 0.0_dp
+  do bin = 1, nbins
+     if (Erec_low(bin) >= threshold - 1.0d-12) then
+        rate_per_nucleus = integral_trapecio(Eer_vals, K_matrix(:,bin), S_vals, npts_Eer)
+        events_bin = rate_per_nucleus * exposure_atoms_s
+        events_per_kg = (events_bin / total_mass_kg) 
+        bin_center = (Erec_low(bin) + Erec_high(bin)) / 2.0_dp * 1.0d6
+        write(u_out, '(F8.2, 2X, ES12.4)') bin_center, events_per_kg
+        if (bin == 1) then
+           write(*,*) 'Resultados para el primer bin:'
+           write(*,*) '  Tasa por núcleo (rate_per_nucleus) = ', rate_per_nucleus, ' s⁻¹'
+           write(*,*) '  Eventos por kg (con EEE) = ', events_per_kg
+           write(*,*) ''
+        end if
+     else
+        bin_center = (Erec_low(bin) + Erec_high(bin)) / 2.0_dp * 1.0d6
+        write(u_out, '(F8.2, 2X, ES12.4)') bin_center, 0.0_dp
+     end if
+     events_tot = events_tot + events_per_kg
+  end do
+  write(*,*) '  Eventos totales por kg (suma sobre bins) = ', events_tot
+  close(u_out)
+
+  write(*,*) 'Archivo generado: ', trim(filename)
+  write(*,*) '=== FIN DEL CÁLCULO ==='
+
+contains
+
+  !=====================================================================
+  ! compute_S: calcula S(Eer) = ∫ dEν (dφ/dEν) * (dσ/dEer)
+  !=====================================================================
+  subroutine compute_S(Eer, S)
+    real(dp), intent(in) :: Eer
+    real(dp), intent(out) :: S
+    real(dp) :: a, b, T, h, x, sum_trap
+    integer :: i
+    T = T_from_Eer(Eer)
+    if (T <= 0.0_dp) then
+       S = 0.0_dp; return
+    end if
+    a = (T + sqrt(T**2 + 2.0_dp * M_Ge * T)) / 2.0_dp
+    if (a >= E_nu_max) then
+       S = 0.0_dp; return
+    end if
+    if (a < E_nu_min_flux) a = E_nu_min_flux
+    b = E_nu_max
+    h = (b - a) / (npts_nu - 1)
+    sum_trap = 0.5_dp * (integrando_S(a, Eer) + integrando_S(b, Eer))
+    do i = 2, npts_nu-1
+       x = a + (i-1) * h
+       sum_trap = sum_trap + integrando_S(x, Eer)
+    end do
+    S = sum_trap * h
+  end subroutine compute_S
+
+  function integrando_S(E_nu, Eer) result(val)
+    real(dp), intent(in) :: E_nu, Eer
+    real(dp) :: val
+    val = flujo_diferencial(E_nu) * dsigma_dEer(E_nu, Eer)
+  end function integrando_S
+
+  function integral_trapecio(x, y, z, n) result(intg)
+    real(dp), intent(in) :: x(:), y(:), z(:)
+    integer, intent(in) :: n
+    real(dp) :: intg
+    integer :: j
+    intg = 0.0_dp
+    do j = 1, n-1
+       intg = intg + 0.5_dp * (y(j)*z(j) + y(j+1)*z(j+1)) * (x(j+1) - x(j))
+    end do
+  end function integral_trapecio
+
+end program eventos_conus

@@ -1,0 +1,211 @@
+!=======================================================================
+! Programa principal: eventos_conus
+!   Calcula los eventos de CEvNS para cada detector de CONUS+
+!   (C2, C3, C5) por separado, imprime diagnóstico completo y suma total.
+!=======================================================================
+program eventos_conus
+  use constants
+  use quenching
+  use xsections
+  use flux
+  use resolution
+  implicit none
+
+  integer :: i, bin, u_out, k, idx, j, det
+  real(dp), allocatable :: Eer_vals(:), K_matrix(:,:), S_vals(:)
+  real(dp) :: Erec_low(nbins), Erec_high(nbins), bin_center
+  real(dp) :: events_bin, events_per_kg, events_det, events_total
+  real(dp) :: rate_per_nucleus
+  real(dp), parameter :: sin2th_SM = 0.23857_dp
+  real(dp), parameter :: QW_SM = -N_Ge/2.0_dp + (1.0_dp - 4.0_dp*sin2th_SM)/2.0_dp * Z_Ge
+  character(len=200) :: outdir, filename
+  character(len=3)   :: det_name
+
+  ! Parámetros específicos de cada detector
+  integer, parameter :: ndet = 3
+  real(dp) :: mass_det(ndet)  = [ 0.95_dp, 0.94_dp, 0.94_dp ]   ! kg
+  real(dp) :: days_det(ndet)  = [ 117.0_dp, 119.0_dp, 110.0_dp ] ! días
+  real(dp) :: thr_det(ndet)   = [ 1.80d-4, 1.60d-4, 1.70d-4 ]   ! MeV (180,160,170 eVee)
+
+  ! Variables para diagnóstico cinemático
+  real(dp) :: Enu_test, T_max, dsdEer_at_thr
+  real(dp), dimension(4) :: Enu_list = [3.0_dp, 5.0_dp, 7.0_dp, 9.0_dp]
+
+  ! Variables para prueba de sección eficaz
+  real(dp) :: Eer_test
+
+  outdir = '/home/oem/Desktop/Unipamplona/Trabajo de grado/Códigos/datos/'
+
+  ! ==================== DIAGNÓSTICO INICIAL (común) ====================
+  write(*,*) '==========================================='
+  write(*,*) '       DIAGNÓSTICO DEL CÓDIGO CEvNS        '
+  write(*,*) '==========================================='
+  write(*,*) 'Parámetros del detector (Ge):'
+  write(*,*) '  Z_Ge = ', Z_Ge
+  write(*,*) '  N_Ge = ', N_Ge
+  write(*,*) '  k_lind = ', k_lind
+  write(*,*) '  alpha = ', alpha
+  write(*,*) ''
+  write(*,*) 'Constantes físicas:'
+  write(*,*) '  phi_total = ', phi_total, ' cm⁻² s⁻¹'
+  write(*,*) '  conv = ', conv, ' cm²·MeV²'
+  write(*,*) '  sigma0 = ', sigma0, ' MeV'
+  write(*,*) '  eta = ', eta, ' MeV'
+  write(*,*) '  Fano = ', Fano
+  write(*,*) '  M_Ge = ', M_Ge, ' MeV'
+  write(*,*) ''
+  write(*,*) 'Carga débil SM:'
+  write(*,*) '  sin2th_SM = ', sin2th_SM
+  write(*,*) '  QW_SM = ', QW_SM
+  write(*,*) '  QV2 (usado en xsections) = ', QW_SM**2
+  write(*,*) ''
+  write(*,*) 'Mallas de integración:'
+  write(*,*) '  npts_Eer = ', npts_Eer
+  write(*,*) '  Eer_min = ', Eer_min, ' MeV (', Eer_min*1.0d6, ' eV)'
+  write(*,*) '  Eer_max = ', Eer_max, ' MeV (', Eer_max*1.0d6, ' eV)'
+  write(*,*) '  npts_nu = ', npts_nu
+  write(*,*) '  E_nu_max = ', E_nu_max, ' MeV'
+  write(*,*) '  E_nu_min_flux = ', E_nu_min_flux, ' MeV'
+  write(*,*) '  npts_gauss = ', npts_gauss
+  write(*,*) ''
+
+  ! ==================== FIJAR CARGA DÉBIL ====================
+  QV2 = QW_SM**2
+
+  ! Inicializar acumulador de eventos totales
+  events_total = 0.0_dp
+
+  ! ==================== BUCLE SOBRE DETECTORES ====================
+  do det = 1, ndet
+     ! Asignar parámetros del detector actual a las variables globales
+     total_mass_kg   = mass_det(det)
+     threshold       = thr_det(det)
+     exposure_kg_s   = total_mass_kg * days_det(det) * 86400.0_dp
+     exposure_atoms_s = (NA / A_Ge) * 1000.0_dp * exposure_kg_s
+
+     select case(det)
+     case(1); det_name = 'C2'
+     case(2); det_name = 'C3'
+     case(3); det_name = 'C5'
+     end select
+
+     write(*,*) '==========================================='
+     write(*,*) '  Procesando detector ', det_name
+     write(*,*) '==========================================='
+     write(*,*) '  Masa        = ', total_mass_kg, ' kg'
+     write(*,*) '  Exposición  = ', days_det(det), ' días'
+     write(*,*) '  Umbral      = ', threshold*1.0d6, ' eVee'
+     write(*,*) '  exposure_atoms_s = ', exposure_atoms_s
+     write(*,*) ''
+
+     ! Definir los 19 bins (siempre desde 160 eVee)
+     do i = 1, nbins
+        Erec_low(i)  = Erec_min + (i-1) * Erec_width
+        Erec_high(i) = Erec_low(i) + Erec_width
+     end do
+
+     ! ==================== MATRIZ DE RESOLUCIÓN ====================
+     allocate(Eer_vals(npts_Eer), K_matrix(npts_Eer, nbins))
+     call compute_resolution_matrix(npts_Eer, Eer_min, Eer_max, Eer_vals, K_matrix)
+
+     ! Verificar normalización de la matriz de resolución para un Eer típico
+     idx = npts_Eer / 4
+     write(*,*) 'Verificación matriz de resolución para Eer = ', Eer_vals(idx)*1e6, ' eV:'
+     write(*,*) '  Suma probabilidades = ', sum(K_matrix(idx,:))
+     write(*,*) ''
+
+     ! ==================== CÁLCULO DE S(Eer) ====================
+     allocate(S_vals(npts_Eer))
+     write(*,*) 'Calculando S(Eer) para', npts_Eer, ' puntos...'
+     do i = 1, npts_Eer
+        call compute_S(Eer_vals(i), S_vals(i))
+     end do
+
+     ! Mostrar S(Eer) en puntos clave
+     write(*,*) 'Valores de S(Eer) (tasa por núcleo en s⁻¹):'
+     write(*,*) '  Eer = 2.96e-6 MeV -> S = ', S_vals(1)
+     idx = nint((threshold - Eer_min) / (Eer_max - Eer_min) * (npts_Eer-1)) + 1
+     if (idx < 1) idx = 1
+     write(*,*) '  Eer = umbral (', threshold*1e6, ' eV) -> S = ', S_vals(idx)
+     write(*,*) '  Eer = 0.001 MeV -> S = ', S_vals(npts_Eer)
+     write(*,*) ''
+
+     ! ==================== CÁLCULO DE EVENTOS POR BIN ====================
+     events_det = 0.0_dp
+     filename = trim(outdir) // 'eventos_' // det_name // '.dat'
+     open(newunit=u_out, file=filename, status='replace')
+     do bin = 1, nbins
+        if (Erec_low(bin) >= threshold - 1.0d-12) then
+           rate_per_nucleus = integral_trapecio(Eer_vals, K_matrix(:,bin), S_vals, npts_Eer)
+           events_bin   = rate_per_nucleus * exposure_atoms_s
+           events_per_kg = events_bin / total_mass_kg
+           events_det   = events_det + events_bin
+           bin_center   = (Erec_low(bin) + Erec_high(bin)) / 2.0_dp * 1.0d6
+           write(u_out, '(F8.2, 2X, ES12.4)') bin_center, events_per_kg
+        else
+           bin_center = (Erec_low(bin) + Erec_high(bin)) / 2.0_dp * 1.0d6
+           write(u_out, '(F8.2, 2X, ES12.4)') bin_center, 0.0_dp
+        end if
+     end do
+     close(u_out)
+
+     write(*,*) '  Eventos totales en ', det_name, ' = ', events_det
+     write(*,*) '  Archivo generado: ', trim(filename)
+     write(*,*) ''
+
+     events_total = events_total + events_det
+
+     ! Liberar memoria asignada
+     deallocate(Eer_vals, K_matrix, S_vals)
+  end do
+
+  write(*,*) '==========================================='
+  write(*,*) '  EVENTOS TOTALES COMBINADOS = ', events_total
+  write(*,*) '==========================================='
+  write(*,*) '=== FIN DEL CÁLCULO ==='
+
+contains
+
+  ! (Subrutinas compute_S, integrando_S, integral_trapecio sin cambios)
+  subroutine compute_S(Eer, S)
+    real(dp), intent(in) :: Eer
+    real(dp), intent(out) :: S
+    real(dp) :: a, b, T, h, x, sum_trap
+    integer :: i
+    T = T_from_Eer(Eer)
+    if (T <= 0.0_dp) then
+       S = 0.0_dp; return
+    end if
+    a = (T + sqrt(T**2 + 2.0_dp * M_Ge * T)) / 2.0_dp
+    if (a >= E_nu_max) then
+       S = 0.0_dp; return
+    end if
+    if (a < E_nu_min_flux) a = E_nu_min_flux
+    b = E_nu_max
+    h = (b - a) / (npts_nu - 1)
+    sum_trap = 0.5_dp * (integrando_S(a, Eer) + integrando_S(b, Eer))
+    do i = 2, npts_nu-1
+       x = a + (i-1) * h
+       sum_trap = sum_trap + integrando_S(x, Eer)
+    end do
+    S = sum_trap * h
+  end subroutine compute_S
+
+  function integrando_S(E_nu, Eer) result(val)
+    real(dp), intent(in) :: E_nu, Eer
+    real(dp) :: val
+    val = flujo_diferencial(E_nu) * dsigma_dEer(E_nu, Eer)
+  end function integrando_S
+
+  function integral_trapecio(x, y, z, n) result(intg)
+    real(dp), intent(in) :: x(:), y(:), z(:)
+    integer, intent(in) :: n
+    real(dp) :: intg
+    integer :: j
+    intg = 0.0_dp
+    do j = 1, n-1
+       intg = intg + 0.5_dp * (y(j)*z(j) + y(j+1)*z(j+1)) * (x(j+1) - x(j))
+    end do
+  end function integral_trapecio
+
+end program eventos_conus

@@ -1,0 +1,88 @@
+!=======================================================================
+! Programa: mainred100_nest (Asimov Dataset para Chi Cuadrado)
+!=======================================================================
+program mainred100_nest
+  use constants
+  use mod_tnr_to_e       
+  use xsections_nest     
+  use mod_stats
+  use flux, only: inicializar_flujo, flujo_diferencial
+  implicit none
+
+  integer, parameter :: n_T = 500, n_E = 2000
+  real(dp) :: T_nr, T_nr_min, T_nr_max, dT, dT_keV, E_nu, dE, integrando
+  real(dp) :: tasa_Comb, QW_SM, peso
+  integer :: i_T, i_E, n_bin, u_out
+  real(dp) :: R_SM(4:7)
+  real(dp) :: n_creados_medio, n_extraidos_medio
+  character(len=250) :: outdir, filename
+  
+  real(dp) :: atoms_per_kg, sec_per_day
+
+  outdir = '/home/oem/Desktop/Unipamplona/Trabajo de grado/Códigos/datos/'
+  filename = trim(outdir) // 'eventos_sm_xe.dat'
+
+  call inicializar_nest()
+  call inicializar_flujo()
+
+  QW_SM = -N_Ge/2.0_dp + (1.0_dp - 4.0_dp*s2w)/2.0_dp * Z_Ge
+  QV2 = QW_SM**2
+
+  atoms_per_kg = (NA / A_Ge) * 1000.0_dp
+  sec_per_day  = 86400.0_dp
+
+  write(*,*) ""
+  write(*,*) "=========================================================="
+  write(*,*) "   DIAGNOSTICO FASE 3: ASIMOV DATASET (mainred100)        "
+  write(*,*) "=========================================================="
+  write(*,*) "ATENCION: Para el ajuste Chi-Cuadrado, este modulo DEBE "
+  write(*,*) "escribir CONTEOS ABSOLUTOS. Se procedera a multiplicar la "
+  write(*,*) "tasa pura por la exposicion total de la campana."
+  write(*,*) "-> Multiplicador de Masa   : ", total_mass_kg, " kg"
+  write(*,*) "-> Multiplicador de Tiempo : ", dias_exposicion * livetime_frac, " dias (efectivos)"
+  write(*,*) "----------------------------------------------------------"
+
+  R_SM = 0.0_dp
+  T_nr_min = 0.1_dp / 1000.0_dp; T_nr_max = 3.0_dp / 1000.0_dp
+  dT = (T_nr_max - T_nr_min) / (n_T - 1); dT_keV = dT * 1000.0_dp
+  dE = E_nu_max / (n_E - 1)
+
+  do i_T = 1, n_T
+     T_nr = T_nr_min + (i_T - 1) * dT
+     tasa_Comb = 0.0_dp
+
+     do i_E = 1, n_E
+        E_nu = (i_E - 1) * dE
+        if (E_nu < sqrt(M_Ge * T_nr / 2.0_dp)) cycle
+
+        peso = merge(0.5_dp, 1.0_dp, i_E == 1 .or. i_E == n_E)
+        integrando = flujo_diferencial(E_nu) * dsigma_dT(E_nu, T_nr)
+        tasa_Comb = tasa_Comb + integrando * dE * peso
+     end do
+
+     ! Tasa pura en Evts / keV / kg / dia
+     tasa_Comb = tasa_Comb * atoms_per_kg * sec_per_day
+     peso = merge(0.5_dp, 1.0_dp, i_T == 1 .or. i_T == n_T)
+
+     n_creados_medio = obtener_electrones_creados(T_nr * 1000.0_dp)
+     n_extraidos_medio = n_creados_medio * EEE
+     
+     do n_bin = 4, 7
+        ! La magia absoluta para Chi2: Tasa Pura * dT * Masa * Tiempo
+        R_SM(n_bin) = R_SM(n_bin) + (tasa_Comb * dT_keV * peso * total_mass_kg * &
+                      (dias_exposicion * livetime_frac) * poisson_prob(n_bin, n_extraidos_medio))
+     end do
+  end do
+
+  open(newunit=u_out, file=filename, status='replace')
+  write(u_out, '(A)') '# Bin(Ne)   Eventos_SM_Asimov_Absolutos'
+  do n_bin = 4, 7
+     write(u_out, '(I5, E15.6)') n_bin, R_SM(n_bin)
+     write(*,*) "   Bin ", n_bin, "SE -> ", R_SM(n_bin), " eventos"
+  end do
+  close(u_out)
+
+  write(*,*) "=========================================================="
+  write(*,*) "=== EXITOSO: Asimov Dataset guardado para matriz NSI ==="
+  write(*,*) "=========================================================="
+end program mainred100_nest

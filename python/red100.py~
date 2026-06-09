@@ -1,0 +1,69 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Script para graficar los resultados de red100.f90 (v7.0)
+Genera:
+  - fig_recoil.png   : Espectro de retrocesos nucleares (escala log)
+  - fig_ionization.png: Espectro en electrones de ionización
+"""
+
+import numpy as np
+import matplotlib.pyplot as plt
+
+# ===================== CONFIGURACIÓN =====================
+datadir = '/home/oem/Desktop/Unipamplona/Trabajo de grado/Códigos/datos/'
+
+plt.rcParams.update({'font.size': 12, 'legend.fontsize': 11})
+
+# ===================== FIGURA 1: ESPECTRO DE RETROCESOS (LOG) =====================
+print("Generando Figura 1: Espectro de retrocesos nucleares (escala log)...")
+data_r = np.loadtxt(datadir + 'recoil_spectra.dat')
+Tnr = data_r[:, 0]          # keV
+Kop = data_r[:, 1]
+Mue = data_r[:, 2]
+Comb = data_r[:, 3]
+
+fig1, ax1 = plt.subplots(figsize=(8, 5))
+ax1.plot(Tnr, Kop, label='Kopeikin completo (0-9 MeV)', lw=2)
+ax1.plot(Tnr, Mue, label='Mueller puro (2-10 MeV, KNPP)', lw=2)
+ax1.plot(Tnr, Comb, label='Combinado (Kop < 2, Mue >= 2)', lw=2, linestyle='--')
+ax1.set_xlabel('Energía de retroceso nuclear, $T_{nr}$ (keV)')
+ax1.set_ylabel('Eventos / (keV · kg · día)')
+ax1.set_title('Espectros de retroceso para RED‑100 (Xe) — Escala logarítmica', fontsize=14)
+ax1.set_yscale('log')
+ax1.legend()
+ax1.grid(True, linestyle=':', alpha=0.6)
+ax1.set_xlim(0.0, 3.0)
+fig1.tight_layout()
+fig1.savefig(datadir + 'fig_recoil.png', dpi=300)
+plt.close(fig1)
+print("  → fig_recoil.png guardado.")
+
+# ===================== FIGURA 2: ELECTRONES DE IONIZACIÓN =====================
+print("Generando Figura 2: Espectro en electrones de ionización...")
+data_i = np.loadtxt(datadir + 'ionization_spectra.dat')
+Ne = data_i[:, 0]
+creados = data_i[:, 1]
+extraidos = data_i[:, 2]
+fig2, ax2 = plt.subplots(figsize=(8, 5))
+
+# Para scatter: 'c' es color y 's' es el tamaño del punto (área)
+ax2.scatter(Ne, creados, c='k', label='Electrones creados', s=16)
+ax2.scatter(Ne, extraidos, c='r', label=f'Electrones extraídos (EEE = {0.328})', s=16)
+
+ax2.set_xlabel('Número de electrones de ionización')
+ax2.set_ylabel('Eventos / (kg · día)')
+ax2.set_title('Espectro en electrones de ionización – RED-100 (Xe)', fontsize=14)
+ax2.legend()
+ax2.set_yscale('log')
+ax2.grid(True, linestyle=':', alpha=0.6)
+ax2.set_xlim(0, 10)
+ax2.set_ylim(1e-8, 1e+4)
+
+fig2.tight_layout()
+fig2.savefig(datadir + 'fig_ionization.png', dpi=300)
+plt.close(fig2)
+print("  → fig_ionization.png guardado.")
+
+
+

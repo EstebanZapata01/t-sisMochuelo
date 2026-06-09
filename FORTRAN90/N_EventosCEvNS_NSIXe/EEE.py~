@@ -1,0 +1,86 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+import matplotlib
+# Fuerza el backend 'Agg' para generar el archivo sin necesidad de una ventana gráfica
+matplotlib.use('Agg') 
+
+import numpy as np
+import matplotlib.pyplot as plt
+import matplotlib.patches as mpatches
+from matplotlib.ticker import AutoMinorLocator
+import sys
+
+print("==================================================")
+print("  Visualizador de Sensibilidad NSI - RED-100 (Xe) ")
+print("==================================================")
+
+print("\n[1/5] Configurando entorno y constantes de la tesis...")
+
+# 1. Cargar los datos generados por el código Fortran
+print("[2/5] Cargando archivos .dat de las 3 eficiencias...")
+try:
+    # Se cargan los archivos generados con la física rigurosa de los módulos
+    data_pes = np.loadtxt('chi2_xe_pesimista.dat')
+    data_nom = np.loadtxt('chi2_xe_nominal.dat')
+    data_opt = np.loadtxt('chi2_xe_optimista.dat')
+    print("      -> ¡Datos cargados con éxito!")
+except OSError:
+    print("\n[ERROR] No se encontraron los archivos .dat en esta carpeta.")
+    sys.exit(1)
+
+# 2. Procesamiento de la malla (100x100)
+print("[3/5] Redimensionando matrices y validando Chi2...")
+puntos_malla = 100  # Resolución definida en el Fortran
+
+# Redimensionar para usar la función 'contour' rápida
+u_vals = data_nom[:, 0].reshape(puntos_malla, puntos_malla)
+d_vals = data_nom[:, 1].reshape(puntos_malla, puntos_malla)
+
+chi2_pes = data_pes[:, 2].reshape(puntos_malla, puntos_malla)
+chi2_nom = data_nom[:, 2].reshape(puntos_malla, puntos_malla)
+chi2_opt = data_opt[:, 2].reshape(puntos_malla, puntos_malla)
+
+# 3. Configuración estética de la gráfica
+print("[4/5] Dibujando contornos al 90% C.L. (Delta Chi2 = 4.61)...")
+fig, ax = plt.subplots(figsize=(9, 7))
+
+# Título y etiquetas con formato LaTeX para parámetros NSI[cite: 1]
+ax.set_title(r'Sensibilidad a NSI en LXe: Impacto de la EEE', fontsize=16, pad=15, fontweight='bold')
+ax.set_xlabel(r'$\epsilon_{ee}^{dV}$', fontsize=14)
+ax.set_ylabel(r'$\epsilon_{ee}^{uV}$', fontsize=14)
+
+# Nivel de confianza al 90% para 2 grados de libertad[cite: 1]
+nivel_cl = [4.61]
+
+# Graficar contornos (Contour es mucho más estable que tricontour para mallas regulares)
+cp = ax.contour(u_vals, d_vals, chi2_pes, levels=nivel_cl, colors='#d62728', linestyles='--', linewidths=2.5)
+cn = ax.contour(u_vals, d_vals, chi2_nom, levels=nivel_cl, colors='#1f77b4', linestyles='-', linewidths=2.5)
+co = ax.contour(u_vals, d_vals, chi2_opt, levels=nivel_cl, colors='#2ca02c', linestyles='-.', linewidths=2.5)
+
+# 4. Detalles de formato académico
+ax.axhline(0, color='black', lw=1, ls=':')
+ax.axvline(0, color='black', lw=1, ls=':')
+ax.grid(True, which='major', color='gray', linestyle='-', alpha=0.15)
+
+# Ticks y bordes profesionales
+ax.xaxis.set_minor_locator(AutoMinorLocator(5))
+ax.yaxis.set_minor_locator(AutoMinorLocator(5))
+ax.tick_params(which='both', direction='in', top=True, right=True, labelsize=12)
+
+# Leyenda con las eficiencias evaluadas
+leg_pes = mpatches.Patch(color='#d62728', label='EEE = 0.300 (Pesimista)')
+leg_nom = mpatches.Patch(color='#1f77b4', label='EEE = 0.328 (Nominal)')
+leg_opt = mpatches.Patch(color='#2ca02c', label='EEE = 0.356 (Optimista)')
+ax.legend(handles=[leg_opt, leg_nom, leg_pes], loc='upper right', fontsize=12, frameon=True, shadow=True)
+
+plt.tight_layout()
+
+# 5. Guardar el resultado final
+out_name = 'contornos_nsi_xe_eee.png'
+print(f"[5/5] Exportando imagen: {out_name}...")
+plt.savefig(out_name, dpi=300, bbox_inches='tight')
+
+print("\n==================================================")
+print(f"  ¡Proceso finalizado! Revisa el archivo {out_name} ")
+print("==================================================")

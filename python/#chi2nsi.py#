@@ -1,0 +1,84 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+import numpy as np
+import matplotlib.pyplot as plt
+from matplotlib.lines import Line2D
+import os
+
+# ============================================================================
+# CONFIGURACIÓN
+# ============================================================================
+outdir = '/home/oem/Desktop/Unipamplona/Trabajo de grado/Códigos/datos/'
+datafile = outdir + 'chi2_nsi_2D.dat'
+configfile = outdir + 'nsi_config.txt'
+
+# Leer etiquetas desde archivo de configuración
+if os.path.exists(configfile):
+    with open(configfile, 'r') as f:
+        lines = f.readlines()
+        xlabel = lines[0].strip()
+        ylabel = lines[1].strip()
+else:
+    xlabel = r'$\epsilon_{x}$'
+    ylabel = r'$\epsilon_{y}$'
+
+# Cargar datos (columnas: eps_u, eps_d, chi2)
+data = np.loadtxt(datafile)
+eps_u = np.unique(data[:, 0])   # uV
+eps_d = np.unique(data[:, 1])   # dV
+chi2 = data[:, 2].reshape(len(eps_d), len(eps_u))  # filas: eps_d, columnas: eps_u
+
+# Calcular Δχ²
+chi2_min = chi2.min()
+delta_chi2 = chi2 - chi2_min
+
+# Niveles de confianza para 2 parámetros
+level_68 = 2.30
+level_90 = 4.61
+
+# ============================================================================
+# GRÁFICA (x = dV, y = uV)
+# ============================================================================
+plt.figure(figsize=(8, 6))
+
+# Rellenos
+plt.contourf(eps_u, eps_d, delta_chi2.T, levels=[0, level_90], colors=['lightgray'], alpha=0.5)
+plt.contourf(eps_u, eps_d, delta_chi2.T, levels=[0, level_68], colors=['gray'], alpha=0.3)
+
+# Contornos
+plt.contour(eps_u, eps_d, delta_chi2.T, levels=[level_90], colors='black', linewidths=1.5)
+plt.contour(eps_d, eps_u, delta_chi2.T, levels=[level_68], colors='black', linestyles='--', linewidths=1.5)
+
+# Líneas en cero
+plt.axhline(0, color='gray', linestyle=':', lw=0.8)
+plt.axvline(0, color='gray', linestyle=':', lw=0.8)
+
+# Límites
+#plt.xlim(eps_d.min(), eps_d.max())
+#plt.ylim(eps_u.min(), eps_u.max())
+plt.xlim(-0.4,0.8)
+plt.ylim(-0.4,0.6)
+# Etiquetas
+plt.xlabel(xlabel, fontsize=12)
+plt.ylabel(ylabel, fontsize=12)
+plt.title(r'Regiones permitidas (NSI)', fontsize=14)
+plt.grid(True, linestyle=':', alpha=0.5)
+
+# Leyenda
+legend_elements = [
+    Line2D([0], [0], color='black', lw=1.5, label='90% C.L.'),
+    Line2D([0], [0], color='black', lw=1.5, linestyle='--', label='68% C.L.')
+]
+plt.legend(handles=legend_elements, loc='upper right')
+
+plt.tight_layout()
+
+# Guardar
+outplot = outdir + 'contornos_nsi.png'
+plt.savefig(outplot, dpi=300)
+plt.show()
+
+print(f"Chi2 mínimo: {chi2_min:.2f}")
+idx = np.unravel_index(chi2.argmin(), chi2.shape)
+print(f"eps_d = {eps_d[idx[1]]:.4f}, eps_u = {eps_u[idx[0]]:.4f}")

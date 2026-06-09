@@ -1,0 +1,97 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+import numpy as np
+import matplotlib.pyplot as plt
+from matplotlib.lines import Line2D
+import os
+
+# ============================================================================
+# CONFIGURACIÓN DE RUTAS
+# ============================================================================
+outdir = '/home/oem/Desktop/Unipamplona/Trabajo de grado/Códigos/datos/'
+datafile = outdir + 'chi2_nsi_2DXe.dat'
+configfile = outdir + 'nsi_configXe.txt'
+
+# Leer etiquetas desde archivo de configuración generado por Fortran
+if os.path.exists(configfile):
+    with open(configfile, 'r') as f:
+        lines = f.readlines()
+        xlabel = lines[0].strip()
+        ylabel = lines[1].strip()
+else:
+    xlabel = r'$\epsilon_{x}$'
+    ylabel = r'$\epsilon_{y}$'
+
+# ============================================================================
+# CARGA Y PROCESAMIENTO DE DATOS
+# ============================================================================
+# Columnas en el archivo .dat: 0:eps_x, 1:eps_y, 2:chi2
+data = np.loadtxt(datafile)
+
+# Extraer valores únicos de los ejes
+x_vals = np.unique(data[:, 0])  # Corresponde a eps_d en Fortran (Eje X)
+y_vals = np.unique(data[:, 1])  # Corresponde a eps_u en Fortran (Eje Y)
+
+nx = len(x_vals)
+ny = len(y_vals)
+
+# Reestructurar chi2 a una matriz (filas: Y, columnas: X)
+# Fortran escribe X rápido (bucle interno) y Y lento (bucle externo)
+chi2 = data[:, 2].reshape(ny, nx)
+
+# Calcular Δχ² respecto al mínimo (para Asimov SM el mínimo debe estar en 0,0)
+chi2_min = chi2.min()
+delta_chi2 = chi2 - chi2_min
+
+# Niveles de confianza para 2 parámetros de libertad
+level_68 = 2.30
+level_90 = 4.61
+
+# ============================================================================
+# GRÁFICA (Estilo Artículos de Colaboración)
+# ============================================================================
+plt.figure(figsize=(8, 7))
+
+# Rellenos de contorno
+plt.contourf(x_vals, y_vals, delta_chi2, levels=[0, level_90], colors=['#1f77b4'], alpha=0.3)
+plt.contourf(x_vals, y_vals, delta_chi2, levels=[0, level_68], colors=['#1f77b4'], alpha=0.6)
+
+# Líneas de contorno definidas
+c90 = plt.contour(x_vals, y_vals, delta_chi2, levels=[level_90], colors='#1f77b4', linewidths=1.8)
+c68 = plt.contour(x_vals, y_vals, delta_chi2, levels=[level_68], colors='#1f77b4', linestyles='--', linewidths=1.8)
+
+# Referencias visuales (Líneas en cero para SM)
+plt.axhline(0, color='black', linestyle='-', lw=0.5, alpha=0.5)
+plt.axvline(0, color='black', linestyle='-', lw=0.5, alpha=0.5)
+
+# Límites de visualización (puedes comentar estos para ver el rango completo [-1, 1])
+plt.xlim(-0.4, 0.8)
+plt.ylim(-0.4, 0.6)
+
+# Configuración de etiquetas y formato
+plt.xlabel(xlabel, fontsize=14)
+plt.ylabel(ylabel, fontsize=14)
+plt.title(r'Regiones de Exclusión RED-100 (LXe) - Proyección Asimov', fontsize=12, pad=15)
+plt.grid(True, linestyle=':', alpha=0.4)
+
+# Leyenda personalizada
+legend_elements = [
+    Line2D([0], [0], color='#1f77b4', lw=2, label='90% C.L.'),
+    Line2D([0], [0], color='#1f77b4', lw=2, linestyle='--', label='68% C.L.')
+]
+plt.legend(handles=legend_elements, loc='upper right', frameon=True, fontsize=10)
+
+plt.tight_layout()
+
+# Guardar la imagen en alta resolución
+outplot = outdir + 'contornos_nsi_red100Xe.png'
+plt.savefig(outplot, dpi=300, bbox_inches='tight')
+plt.show()
+
+# Salida de diagnóstico por consola
+print(f"--- Diagnóstico del Ajuste ---")
+print(f"Chi2 mínimo detectado: {chi2_min:.4f}")
+idx = np.unravel_index(chi2.argmin(), chi2.shape)
+print(f"Punto mínimo hallado en: X={x_vals[idx[1]]:.4f}, Y={y_vals[idx[0]]:.4f}")
+print(f"Gráfica guardada en: {outplot}")

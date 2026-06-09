@@ -1,0 +1,105 @@
+! prom_cross_sum_simple.f90
+! Minimal: suma lambda por punto E (todos isotopos), luego multiplica por dσ/dT(Enu,T)
+program prom_cross_sum_simple
+  implicit none
+  integer, parameter :: dp = kind(1.0d0)
+  integer, parameter :: n_iso = 4, nT = 10
+  character(len=*), parameter :: iso_names(n_iso) = (/ "U235", "U238", "Pu239", "Pu241" /)
+  character(len=*), parameter :: data_dir = "/home/oem/Desktop/Unipamplona/Trabajo de grado/Códigos/datos/"
+
+  real(dp), parameter :: fission_frac(n_iso) = (/ 0.58d0, 0.30d0, 0.05d0, 0.07d0 /)
+
+  ! constantes físicas en unidades MeV (resultado en cm^2/MeV)
+  real(dp), parameter :: pi = 3.141592653589793d0
+  real(dp), parameter :: GF = 1.1663787d-11    ! MeV^-2
+  real(dp), parameter :: sin2w = 0.2312d0
+  real(dp), parameter :: conv = 3.89379d-22    ! MeV^-3 -> cm^2/MeV
+
+  integer, parameter :: Z = 32, Nn = 40
+  real(dp), parameter :: mp = 938.272d0, mn = 939.565d0
+  real(dp), parameter :: M = Z*mp + Nn*mn
+
+  ! variables
+  integer :: i, j, unit, nE
+  character(len=200) :: fname
+  real(dp), allocatable :: E(:), lambda_iso(:,:), lambda_tot(:)
+  real(dp) :: Tmin, Tmax, logstep, T, Enu_min, result, Ea, Eb
+  real(dp) :: la, lb, dsig_a, dsig_b, dEseg
+
+  ! contar nE en el primer archivo (salta 1 línea de encabezado)
+  fname = trim(data_dir)//"spectrum_"//trim(iso_names(1))//".dat"
+  open(newunit=unit, file=fname, status='old', action='read')
+  read(unit,'(A)')        ! salto encabezado
+  nE = 0
+  do
+     read(unit,*,iostat=j)
+     if (j /= 0) exit
+     nE = nE + 1
+  end do
+  close(unit)
+
+  allocate(E(nE), lambda_iso(n_iso,nE), lambda_tot(nE))
+
+  ! leer todos los archivos (salta 1 encabezado cada uno), asume misma grilla
+  do i = 1, n_iso
+     fname = trim(data_dir)//"spectrum_"//trim(iso_names(i))//".dat"
+     open(newunit=unit, file=fname, status='old', action='read')
+     read(unit,'(A)')          ! salto encabezado
+     do j = 1, nE
+        read(unit,*) E(j), lambda_iso(i,j)
+     end do
+     close(unit)
+  end do
+
+
+  lambda_tot = 0.0_dp
+  do i = 1, n_iso
+     lambda_tot = lambda_tot + fission_frac(i) * lambda_iso(i, :)
+  end do
+
+
+  Tmin = 1.0d-4; Tmax = 1.0d-2
+  logstep = (log10(Tmax) - log10(Tmin)) / real(nT-1, dp)
+
+  open(newunit=unit, file=trim(data_dir)//"avg_cross_section_from_data.dat", status='replace', action='write')
+  write(unit,'(A)') "# T(MeV)    <dSigma/dT> [cm^2 / MeV]"
+
+  do i = 1, nT
+     T = 10.0d0**( log10(Tmin) + real(i-1,dp)*logstep )
+     Enu_min = 0.5d0*T*(1.0d0 + sqrt(1.0d0 + 2.0d0*M/T))
+
+     result = 0.0d0
+
+     do j = 1, nE-1
+        Ea = E(j); Eb = E(j+1)
+        if (Eb <= Enu_min) cycle
+        if (Ea < Enu_min) Ea = Enu_min
+
+        dEseg = Eb - Ea
+        result = result + 0.5d0*(la*dsig_a + lb*dsig_b)*dEseg
+     end do
+
+     write(unit,'(E12.5,2X,E18.10)') T, result
+  end do
+
+  close(unit)
+end program prom_cross_sum_simple
+
+! -----------------------
+
+real(dp) function differential_xs(Enu, T)
+  implicit none
+  real(dp), intent(in) :: Enu, T
+  real(dp) :: Qw, prefactor, kin
+  Qw = real(Nn,dp) - (1.0d0 - 4.0d0*sin2w) * real(Z,dp)
+  prefactor = (GF**2 / (4.0d0*pi)) * (Qw**2) * M   ! MeV^-3
+  if (Enu <= 0.0d0) then
+     differential_xs = 0.0d0; return
+  end if
+  kin = 1.0d0 - (M*T)/(2.0d0*Enu**2)
+  if (kin <= 0.0d0) then
+     differential_xs = 0.0d0
+  else
+     differential_xs = prefactor * kin * conv
+  end if
+end function differential_xs
