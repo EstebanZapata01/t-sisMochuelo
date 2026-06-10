@@ -128,7 +128,7 @@ program chi2_ON_OFF_1D
     end if
     j = j + 1
     pe_pred(j) = pe_temp
-    R_pred(j)  = R_temp
+    R_pred(j)  = R_temp*0.25
   end do
   close(u_pred)
   write(*,'(A,I5,A)') '  [2] Leidos ', n_pred, ' bins de la prediccion SM'
