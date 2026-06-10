@@ -198,8 +198,8 @@ program chi2_ON_OFF_1D
   !     Minimizando d(chi2)/d(alpha) = 0:
   !       alpha_min(A) = A*(S1 - A*S2) / (1/sigF^2 + A^2*S2)
   ! ==================================================================
-  A_min = -1.5_dp
-  A_max =  5.0_dp
+  A_min = 0_dp
+  A_max =  100.0_dp
   dA    = (A_max - A_min) / real(N_scan - 1, dp)
 
   chi2_min_con = 1.0d30
