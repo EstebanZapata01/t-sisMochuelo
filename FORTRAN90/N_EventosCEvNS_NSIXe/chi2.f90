@@ -1,5 +1,5 @@
 !=======================================================================
-! Programa: chi2_ON_OFF_1D.f90
+! Programa: chi2_ON_OFF_1D.f90 v2
 ! Propósito: Leer los datos ON-OFF digitalizados de arXiv:2403.12645
 !            y hacer el análisis chi² 1D sobre la amplitud de señal CEvNS.
 !
