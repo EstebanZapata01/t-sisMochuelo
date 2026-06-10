@@ -73,7 +73,7 @@ perfil, _      = leer_dat(F_PERFIL)
 pe       = banda[:, 0]
 R_SM     = banda[:, 1]
 band_up  = banda[:, 2]
-band_dn  = banda[:, 3]
+# band_dn ya no se usa físicamente, ignoramos banda[:, 3]
 dN       = banda[:, 4]
 sigma    = banda[:, 5]
 
@@ -89,7 +89,7 @@ A_best_con = meta_b.get('A_best (con nuisance)', np.nan)
 A_90_con   = meta_b.get('A_90   (con nuisance)', np.nan)
 chi2_min   = chi2_con.min()
 
-print(f'  Bins de datos:  {len(pe)}')
+print(f'  Bins de datos:              {len(pe)}')
 print(f'  A_best (con nuisance) = {A_best_con:.4f}')
 print(f'  A_90   (con nuisance) = {A_90_con:.4f}')
 print(f'  chi2_min              = {chi2_min:.4f}')
@@ -124,25 +124,29 @@ NARANJA = '#E87722'   # color de la banda del articulo
 # ============================================================
 fig1, ax1 = plt.subplots(figsize=(6.8, 3.2))
 
-# Banda naranja: +/- A_90 * R_SM
-ax1.fill_between(pe, band_dn, band_up,
+# 1. Linea en cero (base del fondo sin señal)
+ax1.axhline(0.0, color='0.55', lw=0.6, ls='--', zorder=1)
+
+# 2. Predicción del Modelo Estándar (A=1)
+ax1.step(pe, R_SM, where='mid', color='blue', lw=1.5, 
+         linestyle='-', label='Predicción CEvNS (SM)', zorder=2)
+
+# 3. Banda naranja: Limite superior al 90% C.L. (desde 0 hasta band_up)
+#    Bajamos un poco el alpha para que deje ver la línea azul del SM debajo
+ax1.fill_between(pe, 0, band_up,
                  step='mid',
-                 color=NARANJA, alpha=0.75,
-                 label='limit 90% C.L.')
+                 color=NARANJA, alpha=0.3,
+                 label='Límite 90% C.L.', zorder=3)
 
-# Linea de borde de la banda
-ax1.step(pe,  band_up, color=NARANJA, lw=0.5, where='mid', alpha=0.4)
-ax1.step(pe,  band_dn, color=NARANJA, lw=0.5, where='mid', alpha=0.4)
+#    Linea de borde superior de la banda
+ax1.step(pe, band_up, color=NARANJA, lw=1.5, where='mid', alpha=0.8, zorder=4)
 
-# Puntos ON-OFF con barras de error
+# 4. Puntos ON-OFF con barras de error (zorder=5 los pone al frente del todo)
 ax1.errorbar(pe, dN, yerr=sigma,
              fmt='ko', ms=3.8, lw=0.9,
              capsize=2.2, capthick=0.9,
-             label='delta ON-OFF',
+             label='Delta ON-OFF',
              zorder=5)
-
-# Linea en cero
-ax1.axhline(0.0, color='0.55', lw=0.6, ls='--', zorder=1)
 
 # Decoracion
 ax1.set_xlim(pe.min() - 2, pe.max() + 2)
@@ -157,6 +161,7 @@ ax1.xaxis.set_minor_locator(ticker.MultipleLocator(5))
 ax1.yaxis.set_major_locator(ticker.MaxNLocator(5))
 ax1.grid(True, ls=':', lw=0.35, color='0.75', zorder=0)
 
+# Legend con 'ncol=2' para que quede más horizontal y limpio si quieres
 leg1 = ax1.legend(framealpha=0.95, edgecolor='0.75',
                   loc='upper right', handlelength=1.4)
 
@@ -206,7 +211,7 @@ ax2.annotate(f'$A_{{best}}={A_best_con:.2f}$',
 
 ax2.annotate(f'$A_{{90\\%}}={A_90_con:.2f}$',
              xy=(A_90_con, 2.706),
-             xytext=(A_90_con + 0.08, ymax_plot * 0.50),
+             xytext=(A_90_con - 2.5, ymax_plot * 0.50), # Movido a la izquierda para no tapar si el número es grande
              fontsize=8.5, color=NARANJA,
              arrowprops=dict(arrowstyle='->', color=NARANJA, lw=0.7))
 
@@ -220,8 +225,11 @@ ax2.set_xlim(max(-0.8, A_best_con - 1.5),
 ax2.set_ylim(-0.3, ymax_plot)
 ax2.set_xlabel(r'Amplitud de la senal CEvNS  $A$')
 ax2.set_ylabel(r'$\Delta\chi^2 = \chi^2(A) - \chi^2_{\min}$')
-ax2.xaxis.set_major_locator(ticker.MultipleLocator(0.5))
-ax2.xaxis.set_minor_locator(ticker.MultipleLocator(0.25))
+
+# Ajuste automático del espaciado para X cuando A_90 es un número mayor a 10
+ax2.xaxis.set_major_locator(ticker.MaxNLocator(integer=True, nbins=8))
+ax2.xaxis.set_minor_locator(ticker.AutoMinorLocator())
+
 ax2.yaxis.set_major_locator(ticker.MultipleLocator(2))
 ax2.yaxis.set_minor_locator(ticker.MultipleLocator(1))
 ax2.grid(True, ls=':', lw=0.35, color='0.75', zorder=0)
@@ -247,7 +255,7 @@ print(f'  A_90   (con nuisance):    {A_90_con:.4f}  x SM')
 if not np.isnan(A_best_con):
     if 0.0 <= A_best_con <= 1.5:
         print('  Interpretacion: compatible con la prediccion SM')
-    elif A_best_con < 0.0:
+    elif A_best_con < 0.0 or A_best_con == 0.0:
         print('  Interpretacion: senal no requerida, solo limite superior')
 
 plt.show()
