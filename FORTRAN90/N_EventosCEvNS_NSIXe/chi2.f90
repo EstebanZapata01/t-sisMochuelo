@@ -66,7 +66,7 @@ program chi2_ON_OFF_1D
   ! ==================================================================
   ! 0. RUTAS
   ! ==================================================================
-  datadir  = '/home/oem/Desktop/Unipamplona/Trabajo de grado/Codigos/datos/'
+  datadir  = '/home/oem/Desktop/Unipamplona/Trabajo de grado/Códigos/datos/'
   f_pred   = trim(datadir)//'ionization_spectra_detallado.dat'
   f_perfil = trim(datadir)//'chi2_ON_OFF_perfil.dat'
   f_banda  = trim(datadir)//'chi2_ON_OFF_banda.dat'
