@@ -1,170 +1,312 @@
 !=======================================================================
-! Programa: chi2red100 (Versión Definitiva Tesis - Poisson Smearing)
-!   Cálculo de la matriz NSI 2D usando fenomenología empírica NEST
-!   y estadística cuántica de Poisson para el detector RED-100.
-!   Caso ipar=5: eps_ee^dV vs eps_emu^dV
+! Programa: chi2_ON_OFF_1D.f90
+! Propósito: Leer los datos ON-OFF digitalizados de arXiv:2403.12645
+!            y hacer el análisis chi² 1D sobre la amplitud de señal CEvNS.
+!
+! Método:
+!   chi²(A, alpha) = Σ (ΔNᵢ - A*(1+alpha)*Rᵢ)² / σᵢ²  +  alpha²/sigma_F²
+!
+!   Donde:
+!     A      = amplitud de la señal CEvNS  (A=1 → predicción SM exacta)
+!     alpha  = nuisance de normalización de flujo  (pull term)
+!     ΔNᵢ   = residuo ON-OFF digitalizado del artículo [cuentas/kg/día]
+!     σᵢ    = incertidumbre estadística en cada bin  [cuentas/kg/día]
+!     Rᵢ    = predicción CEvNS SM en bin i  [cuentas/kg/día]
+!     sigma_F = incertidumbre sistemática del flujo = 16.9%
+!
+!   Para cada valor de A, se minimiza analíticamente sobre alpha.
+!   El límite al 90% C.L. es donde Δchi² = chi²(A) - chi²_min = 2.706
+!
+! Archivos de entrada:
+!   ionization_spectra_detallado.dat → predicción de red100PE.f90
+!
+! Archivos de salida:
+!   chi2_ON_OFF_perfil.dat → A  chi2_sinNuisance  chi2_conNuisance
+!   chi2_ON_OFF_banda.dat  → PE  R_SM  banda_sup  banda_inf  datos  sigma
 !=======================================================================
-program chi2red100
-  use constants
-  use mod_tnr_to_e      
-  use xsections_nest    
-  use mod_stats           
-  use flux, only: kopeikin_spectrum, mueller_spectrum, fission_frac, &
-                  E_nu_min_flux, E_nu_max
+program chi2_ON_OFF_1D
   implicit none
 
-  integer, parameter :: n_T = 500, n_E = 2000
-  real(dp) :: T_nr, T_nr_min, T_nr_max, dT, dT_keV, E_nu, dE, integrando
-  real(dp) :: tasa_Comb, n_creados_medio, n_extraidos_medio, peso
-  integer :: i_T, i_E, n_bin, i, j
+  integer, parameter :: dp = kind(1.0d0)
+  integer, parameter :: NMAX = 100   ! máximo de bins de datos
 
-  real(dp), parameter :: P_th = 3.1_dp, E_f_MeV = 204.0_dp, L_m = 19.0_dp
-  real(dp), parameter :: sin2th_SM = 0.23857_dp, sigma_alpha = 0.169_dp
-  real(dp) :: flux_factor, atoms_per_kg, sec_per_day
-  real(dp) :: QW_SM, q_nsi_ee, q_nsi_emu, q_nsi_etau, q_eff2
+  ! ── Variables de datos ─────────────────────────────────────────────
+  integer  :: n_datos
+  real(dp) :: pe_dat(NMAX), dN_dat(NMAX), sigma_dat(NMAX)
+
+  ! ── Predicción SM (del dat de Fortran) ────────────────────────────
+  integer  :: n_pred
+  real(dp), allocatable :: pe_pred(:), R_pred(:)
+
+  ! ── Predicción interpolada en bins de datos ───────────────────────
+  real(dp) :: R_SM(NMAX)
+
+  ! ── Parámetros del análisis ────────────────────────────────────────
+  real(dp), parameter :: sigma_F  = 0.169_dp   ! sist. flujo 16.9%
+  real(dp), parameter :: dchi2_90 = 2.706_dp   ! Δchi² → 90% CL (1 cola)
+  integer,  parameter :: N_alpha  = 10000      ! puntos del barrido en A
+
+  ! ── Cantidades intermedias ─────────────────────────────────────────
+  real(dp) :: S1, S2, S3            ! sumas para la minimización analítica
+  real(dp) :: A, dA                 ! amplitud de señal y paso del barrido
+  real(dp) :: A_min, A_max
+  real(dp) :: alpha_nu              ! nuisance de flujo minimizado en A
+  real(dp) :: chi2_sin, chi2_con    ! chi² sin y con nuisance de flujo
+  real(dp) :: chi2_min_sin, chi2_min_con
+  real(dp) :: A_best_sin, A_best_con
+  real(dp) :: A_90_sin, A_90_con
+
+  ! ── Archivos ──────────────────────────────────────────────────────
+  integer  :: u_pred, u_perfil, u_banda
+  integer  :: ios, i, j, j0
+  character(len=250) :: datadir
+  character(len=250) :: f_pred, f_perfil, f_banda
+
+  ! ── Variables adicionales para lectura robusta ─────────────────────
+  character(len=256) :: line
+  real(dp) :: pe_temp, R_temp
+
+  ! ══════════════════════════════════════════════════════════════════
+  ! 0. RUTAS  (ajusta solo esta línea)
+  ! ══════════════════════════════════════════════════════════════════
+  datadir = '/home/oem/Desktop/Unipamplona/Trabajo de grado/Códigos/datos/'
+
+  f_pred    = trim(datadir) // 'ionization_spectra_detallado.dat'
+  f_perfil  = trim(datadir) // 'chi2_ON_OFF_perfil.dat'
+  f_banda   = trim(datadir) // 'chi2_ON_OFF_banda.dat'
+
+  ! ══════════════════════════════════════════════════════════════════
+  ! 1. DATOS DIGITALIZADOS DEL ARTÍCULO (Ingresados directamente)
+  ! ══════════════════════════════════════════════════════════════════
+  n_datos = 15
   
-  integer :: ipar = 5   ! <-- Cambia aquí el caso NSI que quieras
-  integer :: u_out, u_conf
-  character(len=200) :: outdir, filename, configfile
-  character(len=50)  :: xlabel, ylabel
+  pe_dat(1) = 112.60128_dp; dN_dat(1) = -0.21102_dp; sigma_dat(1) = 0.20630_dp
+  pe_dat(2) = 117.86781_dp; dN_dat(2) =  0.09291_dp; sigma_dat(2) = 0.18583_dp
+  pe_dat(3) = 123.14301_dp; dN_dat(3) = -0.29449_dp; sigma_dat(3) = 0.18583_dp
+  pe_dat(4) = 128.34364_dp; dN_dat(4) =  0.10394_dp; sigma_dat(4) = 0.14961_dp
+  pe_dat(5) = 133.57848_dp; dN_dat(5) =  0.14173_dp; sigma_dat(5) = 0.13071_dp
+  pe_dat(6) = 138.88895_dp; dN_dat(6) = -0.01732_dp; sigma_dat(6) = 0.12756_dp
+  pe_dat(7) = 144.19912_dp; dN_dat(7) = -0.17323_dp; sigma_dat(7) = 0.12913_dp
+  pe_dat(8) = 149.46939_dp; dN_dat(8) =  0.09134_dp; sigma_dat(8) = 0.10551_dp
+  pe_dat(9) = 154.71783_dp; dN_dat(9) = -0.01417_dp; sigma_dat(9) = 0.09291_dp
+  pe_dat(10) = 159.96419_dp; dN_dat(10) = -0.09764_dp; sigma_dat(10) = 0.09291_dp
+  pe_dat(11) = 165.24581_dp; dN_dat(11) =  0.04724_dp; sigma_dat(11) = 0.06929_dp
+  pe_dat(12) = 170.54956_dp; dN_dat(12) = -0.04094_dp; sigma_dat(12) = 0.07402_dp
+  pe_dat(13) = 175.78321_dp; dN_dat(13) =  0.00945_dp; sigma_dat(13) = 0.06614_dp
+  pe_dat(14) = 181.02373_dp; dN_dat(14) = -0.01260_dp; sigma_dat(14) = 0.06772_dp
+  pe_dat(15) = 186.30357_dp; dN_dat(15) =  0.15118_dp; sigma_dat(15) = 0.05512_dp
 
-  integer, parameter :: n_u = 1000, n_d = 1000
-  real(dp) :: eps_y, eps_x, chi2, alpha_best, sum1, sum2
-  real(dp) :: eps_y_min, eps_y_max, eps_x_min, eps_x_max, deps_y, deps_x
-  real(dp) :: R_SM(4:7), R_exp(4:7), sigma_exp(4:7), R_unit(4:7), R_th(4:7)
+  write(*,'(A,I3,A)') '  [1] Cargados ', n_datos, ' bins ON-OFF (Digitalizados)'
 
-  outdir = '/home/oem/Desktop/Unipamplona/Trabajo de grado/Códigos/datos/'
-  filename = trim(outdir) // 'chi2_nsi_2DXe.dat'
-  configfile = trim(outdir) // 'nsi_configXe.txt'
+  ! ══════════════════════════════════════════════════════════════════
+  ! 2. LEER PREDICCIÓN SM (solo columnas 1: PE_center, 2: Total)
+  !    Formato esperado del archivo:
+  !      PE_center   Total   1SE   2SE   3SE   4SE   5SE   6SE
+  !    Se ignoran líneas de comentario (#) y líneas vacías.
+  ! ══════════════════════════════════════════════════════════════════
+  n_pred = 0
+  open(newunit=u_pred, file=f_pred, status='old', action='read')
+  ! Primer pase: contar líneas con datos
+  do
+     read(u_pred, '(A)', iostat=ios) line
+     if (ios < 0) exit               ! fin de archivo
+     if (ios > 0) cycle              ! error de lectura, saltar
+     line = adjustl(line)
+     if (line(1:1) == '#' .or. len_trim(line) == 0) cycle
+     n_pred = n_pred + 1
+  end do
+  rewind(u_pred)
 
-  call inicializar_nest()
+  allocate(pe_pred(n_pred), R_pred(n_pred))
 
-  ! Carga débil del Modelo Estándar (tu definición consistente con prefactor 1/π)
-  QW_SM = -N_Ge/2.0_dp + (1.0_dp - 4.0_dp*sin2th_SM)/2.0_dp * Z_Ge
-  QV2 = QW_SM**2
+  ! Segundo pase: leer los dos primeros números de cada línea
+  j = 0
+  do
+     read(u_pred, '(A)', iostat=ios) line
+     if (ios < 0) exit
+     if (ios > 0) cycle
+     line = adjustl(line)
+     if (line(1:1) == '#' .or. len_trim(line) == 0) cycle
+     read(line, *, iostat=ios) pe_temp, R_temp
+     if (ios /= 0) then
+        write(*,*) 'Error al parsear línea: ', trim(line)
+        cycle
+     end if
+     j = j + 1
+     pe_pred(j) = pe_temp
+     R_pred(j)  = R_temp
+  end do
+  close(u_pred)
+  write(*,'(A,I5,A)') '  [2] Leídos ', n_pred, ' bins de la predicción SM'
 
-  atoms_per_kg = (NA / A_Ge) * 1000.0_dp
-  sec_per_day  = 86400.0_dp
-  flux_factor = (P_th * 1.0d9 / (E_f_MeV * 1.60218d-13)) / (4.0_dp * PI * (L_m * 100.0_dp)**2)
-
-  ! ================== FASE 1: R_unit (eventos sin QW^2) ==================
-  R_unit(:) = 0.0_dp
-  T_nr_min = 0.1_dp / 1000.0_dp
-  T_nr_max = 3.0_dp / 1000.0_dp
-  dT = (T_nr_max - T_nr_min) / (n_T - 1)
-  dT_keV = dT * 1000.0_dp
-  dE = E_nu_max / (n_E - 1)
-
-  do i_T = 1, n_T
-     T_nr = T_nr_min + (i_T - 1) * dT
-     tasa_Comb = 0.0_dp
-     do i_E = 1, n_E
-        E_nu = (i_E - 1) * dE
-        if (E_nu < sqrt(M_Ge * T_nr / 2.0_dp)) cycle
-        if (E_nu < E_nu_min_flux) then
-           integrando = kopeikin_spectrum(E_nu) * dsigma_dT(E_nu, T_nr)
-        else
-           integrando = (fission_frac(1)*mueller_spectrum(E_nu,1) + &
-                        fission_frac(2)*mueller_spectrum(E_nu,2) + &
-                        fission_frac(3)*mueller_spectrum(E_nu,3) + &
-                        fission_frac(4)*mueller_spectrum(E_nu,4)) * dsigma_dT(E_nu, T_nr)
-        end if
-        tasa_Comb = tasa_Comb + integrando * dE
-     end do
-     
-     ! Sin división por conv_keV; la sección eficaz ya está en cm²/keV
-     tasa_Comb = tasa_Comb *conv * atoms_per_kg * sec_per_day
-     
-     if (i_T == 1 .or. i_T == n_T) then; peso = 0.5_dp; else; peso = 1.0_dp; end if
-     
-     n_creados_medio = obtener_electrones_creados(T_nr * 1000.0_dp)
-     n_extraidos_medio = n_creados_medio * EEE
-     
-     do n_bin = 4, 7 
-        R_unit(n_bin) = R_unit(n_bin) + &
-             (tasa_Comb * dT_keV * peso * total_mass_kg * dias_exposicion * &
-              poisson_prob(n_bin, n_extraidos_medio))
-     end do
+  ! ══════════════════════════════════════════════════════════════════
+  ! 3. INTERPOLAR PREDICCIÓN A LOS BINS DE DATOS
+  !    Interpolación lineal: busca el intervalo [pe_pred(j), pe_pred(j+1)]
+  !    que contiene pe_dat(i) y aplica interpolación lineal.
+  ! ══════════════════════════════════════════════════════════════════
+  write(*,'(A)') '  [3] Interpolando predicción a bins de datos...'
+  do i = 1, n_datos
+    R_SM(i) = 0.0_dp
+    j0 = -1
+    do j = 1, n_pred - 1
+      if (pe_pred(j) <= pe_dat(i) .and. pe_dat(i) <= pe_pred(j+1)) then
+        j0 = j
+        exit
+      end if
+    end do
+    if (j0 > 0) then
+      ! Interpolación lineal
+      R_SM(i) = R_pred(j0) + (R_pred(j0+1) - R_pred(j0)) * (pe_dat(i) - pe_pred(j0)) / (pe_pred(j0+1) - pe_pred(j0))
+    else
+      write(*,'(A,F7.1,A)') '  ADVERTENCIA: bin PE=', pe_dat(i), &
+        ' fuera del rango de la predicción → R_SM=0'
+    end if
   end do
 
-  ! Definición del dataset Asimov (Modelo Estándar)
-  do n_bin = 4, 7
-     R_SM(n_bin) = R_unit(n_bin) * (QW_SM**2)
-     R_exp(n_bin) = R_SM(n_bin)
-     sigma_exp(n_bin) = sqrt(R_SM(n_bin))
-     if (sigma_exp(n_bin) < 1.0d-6) sigma_exp(n_bin) = 1.0d-6 
+  ! Imprimir tabla de verificación
+  write(*,'(/,A)') '  Verificación: datos vs predicción SM interpolada'
+  write(*,'(A)') '  PE_center      ΔN_data       sigma        R_SM'
+  do i = 1, n_datos
+    write(*,'(4(F12.4))') pe_dat(i), dN_dat(i), sigma_dat(i), R_SM(i)
   end do
 
-  ! ================== FASE 2: Barrido NSI ==================
-  eps_y_min = -1.0_dp; eps_y_max =  1.0_dp
-  eps_x_min = -1.0_dp; eps_x_max =  1.0_dp
-  deps_y = (eps_y_max - eps_y_min) / (n_u - 1)
-  deps_x = (eps_x_max - eps_x_min) / (n_d - 1)
-
-  ! Etiquetas para el caso ipar=5 (configuración por defecto)
-  select case(ipar)
-  case(1);  xlabel='$\epsilon_{ee}^{dV}$'; ylabel='$\epsilon_{ee}^{uV}$'
-  case(2);  xlabel='$\epsilon_{e\mu}^{dV}$'; ylabel='$\epsilon_{e\mu}^{uV}$'
-  case(3);  xlabel='$\epsilon_{e\tau}^{dV}$'; ylabel='$\epsilon_{e\tau}^{uV}$'
-  case(4);  xlabel='$\epsilon_{ee}^{uV}$'; ylabel='$\epsilon_{e\mu}^{uV}$'
-  case(5);  xlabel='$\epsilon_{ee}^{dV}$'; ylabel='$\epsilon_{e\mu}^{dV}$'
-  case(6);  xlabel='$\epsilon_{ee}^{uV}$'; ylabel='$\epsilon_{e\mu}^{dV}$'
-  case(7);  xlabel='$\epsilon_{ee}^{dV}$'; ylabel='$\epsilon_{e\mu}^{uV}$'
-  case(8);  xlabel='$\epsilon_{ee}^{uV}$'; ylabel='$\epsilon_{e\tau}^{uV}$'
-  case(9);  xlabel='$\epsilon_{ee}^{dV}$'; ylabel='$\epsilon_{e\tau}^{dV}$'
-  case(10); xlabel='$\epsilon_{ee}^{uV}$'; ylabel='$\epsilon_{e\tau}^{dV}$'
-  case(11); xlabel='$\epsilon_{ee}^{dV}$'; ylabel='$\epsilon_{e\tau}^{uV}$'
-  case(12); xlabel='$\epsilon_{e\mu}^{uV}$'; ylabel='$\epsilon_{e\tau}^{uV}$'
-  case(13); xlabel='$\epsilon_{e\mu}^{dV}$'; ylabel='$\epsilon_{e\tau}^{dV}$'
-  case(14); xlabel='$\epsilon_{e\mu}^{uV}$'; ylabel='$\epsilon_{e\tau}^{dV}$'
-  case(15); xlabel='$\epsilon_{e\mu}^{dV}$'; ylabel='$\epsilon_{e\tau}^{uV}$'
-  end select
-
-  open(newunit=u_conf, file=configfile, status='replace')
-  write(u_conf, '(A)') trim(xlabel); write(u_conf, '(A)') trim(ylabel)
-  close(u_conf)
-
-  open(newunit=u_out, file=filename, status='replace')
-  write(u_out, '(A)') '# eps_x   eps_y   chi2'
-
-  write(*,*) 'Iniciando barrido NSI (1000x1000)...'
-  do i = 0, n_u-1
-     eps_y = eps_y_min + i * deps_y 
-     do j = 0, n_d-1
-        eps_x = eps_x_min + j * deps_x 
-        q_nsi_ee = 0.0_dp; q_nsi_emu = 0.0_dp; q_nsi_etau = 0.0_dp
-
-        ! Asignación de cargas NSI según ipar
-        select case(ipar)
-        case(1); q_nsi_ee = (2.0_dp*eps_y + eps_x)*Z_Ge + (eps_y + 2.0_dp*eps_x)*N_Ge 
-        case(2); q_nsi_emu = (2.0_dp*eps_y + eps_x)*Z_Ge + (eps_y + 2.0_dp*eps_x)*N_Ge
-        case(3); q_nsi_etau = (2.0_dp*eps_y + eps_x)*Z_Ge + (eps_y + 2.0_dp*eps_x)*N_Ge
-        case(4); q_nsi_ee = (2.0_dp*eps_x)*Z_Ge + (eps_x)*N_Ge; q_nsi_emu = (2.0_dp*eps_y)*Z_Ge + (eps_y)*N_Ge 
-        case(5); q_nsi_ee = (eps_x)*Z_Ge + (2.0_dp*eps_x)*N_Ge; q_nsi_emu = (eps_y)*Z_Ge + (2.0_dp*eps_y)*N_Ge 
-        case(6); q_nsi_ee = (2.0_dp*eps_x)*Z_Ge + (eps_x)*N_Ge; q_nsi_emu = (eps_y)*Z_Ge + (2.0_dp*eps_y)*N_Ge
-        case(7); q_nsi_ee = (eps_x)*Z_Ge + (2.0_dp*eps_x)*N_Ge; q_nsi_emu = (2.0_dp*eps_y)*Z_Ge + (eps_y)*N_Ge
-        case(8); q_nsi_ee = (2.0_dp*eps_x)*Z_Ge + (eps_x)*N_Ge; q_nsi_etau = (2.0_dp*eps_y)*Z_Ge + (eps_y)*N_Ge
-        case(9); q_nsi_ee = (eps_x)*Z_Ge + (2.0_dp*eps_x)*N_Ge; q_nsi_etau = (eps_y)*Z_Ge + (2.0_dp*eps_y)*N_Ge
-        case(10);q_nsi_ee = (2.0_dp*eps_x)*Z_Ge + (eps_x)*N_Ge; q_nsi_etau = (eps_y)*Z_Ge + (2.0_dp*eps_y)*N_Ge
-        case(11);q_nsi_ee = (eps_x)*Z_Ge + (2.0_dp*eps_x)*N_Ge; q_nsi_etau = (2.0_dp*eps_y)*Z_Ge + (eps_y)*N_Ge
-        case(12);q_nsi_emu = (2.0_dp*eps_x)*Z_Ge + (eps_x)*N_Ge; q_nsi_etau = (2.0_dp*eps_y)*Z_Ge + (eps_y)*N_Ge
-        case(13);q_nsi_emu = (eps_x)*Z_Ge + (2.0_dp*eps_x)*N_Ge; q_nsi_etau = (eps_y)*Z_Ge + (2.0_dp*eps_y)*N_Ge
-        case(14);q_nsi_emu = (2.0_dp*eps_x)*Z_Ge + (eps_x)*N_Ge; q_nsi_etau = (eps_y)*Z_Ge + (2.0_dp*eps_y)*N_Ge
-        case(15);q_nsi_emu = (eps_x)*Z_Ge + (2.0_dp*eps_x)*N_Ge; q_nsi_etau = (2.0_dp*eps_y)*Z_Ge + (eps_y)*N_Ge
-        end select
-
-        q_eff2 = (QW_SM + q_nsi_ee)**2 + q_nsi_emu**2 + q_nsi_etau**2
-        R_th(:) = R_unit(:) * q_eff2
-        
-        sum1 = sum((R_exp * R_th) / sigma_exp**2)
-        sum2 = sum(R_th**2 / sigma_exp**2)
-        alpha_best = (sum1 - sum2) / (sum2 + 1.0_dp/sigma_alpha**2)
-        
-        chi2 = sum(((R_exp - (1.0_dp + alpha_best)*R_th)**2) / sigma_exp**2) + (alpha_best/sigma_alpha)**2
-        write(u_out, '(3ES15.6)') eps_x, eps_y, chi2
-     end do
-     write(u_out, *)
+  ! ══════════════════════════════════════════════════════════════════
+  ! 4. SUMAS AUXILIARES (independientes de A)
+  !    S1 = Σᵢ (ΔNᵢ * Rᵢ) / σᵢ²
+  !    S2 = Σᵢ  Rᵢ²        / σᵢ²
+  !    S3 = Σᵢ  ΔNᵢ²       / σᵢ²
+  ! ══════════════════════════════════════════════════════════════════
+  S1 = 0.0_dp; S2 = 0.0_dp; S3 = 0.0_dp
+  do i = 1, n_datos
+    S1 = S1 + dN_dat(i) * R_SM(i) / sigma_dat(i)**2
+    S2 = S2 + R_SM(i)**2           / sigma_dat(i)**2
+    S3 = S3 + dN_dat(i)**2         / sigma_dat(i)**2
   end do
-  close(u_out)
-  write(*,*) '--- Matriz NSI Generada para ipar=', ipar, '---'
-end program chi2red100
+
+  ! ══════════════════════════════════════════════════════════════════
+  ! 5a. RESULTADO ANALÍTICO: CHI² SIN NUISANCE DE FLUJO
+  !
+  !     chi²(A) = Σ (ΔNᵢ - A*Rᵢ)² / σᵢ²
+  !             = S3 - 2*A*S1 + A²*S2
+  !
+  !     Mínimo en A_best = S1/S2
+  !     chi²_min = S3 - S1²/S2
+  !     Δchi² = S2*(A - A_best)² = 2.706
+  !     → A_90 = A_best + sqrt(2.706/S2)   (límite superior una cola)
+  ! ══════════════════════════════════════════════════════════════════
+  A_best_sin  = S1 / S2
+  chi2_min_sin = S3 - S1**2 / S2
+  A_90_sin    = A_best_sin + sqrt(dchi2_90 / S2)
+
+  write(*,'(/,A)') '  ┌─────────────────────────────────────────────────┐'
+  write(*,'(A)')   '  │         RESULTADOS SIN NUISANCE DE FLUJO        │'
+  write(*,'(A)')   '  ├─────────────────────────────────────────────────┤'
+  write(*,'(A,F10.5,A)') '  │  A_best         = ', A_best_sin,  '                  │'
+  write(*,'(A,F10.5,A)') '  │  chi²_min       = ', chi2_min_sin,'                  │'
+  write(*,'(A,F10.5,A)') '  │  A_90% (sup)    = ', A_90_sin,    '                  │'
+  write(*,'(A)')   '  └─────────────────────────────────────────────────┘'
+
+  ! ══════════════════════════════════════════════════════════════════
+  ! 5b. RESULTADO CON NUISANCE DE FLUJO (minimizado analíticamente)
+  !
+  !     chi²(A, alpha) = Σ(ΔNᵢ - A*(1+alpha)*Rᵢ)²/σᵢ² + alpha²/sigma_F²
+  !
+  !     Minimizando ∂chi²/∂alpha = 0:
+  !       alpha_min(A) = A*(S1 - A*S2) / (1/sigma_F² + A²*S2)
+  !
+  !     Se obtiene chi²_eff(A) = chi²(A, alpha_min(A)) evaluado numéricamente.
+  !     Se busca A_best_con minimizando chi²_eff en el barrido.
+  ! ══════════════════════════════════════════════════════════════════
+  A_min = -1.5_dp
+  A_max =  5.0_dp
+  dA    = (A_max - A_min) / real(N_alpha - 1, dp)
+
+  chi2_min_con = 1.0d30
+  A_best_con   = 0.0_dp
+  A_90_con     = A_max      ! se actualizará en el barrido
+
+  open(newunit=u_perfil, file=f_perfil, status='replace')
+  write(u_perfil,'(A)') '# A   chi2_sinNuisance   chi2_conNuisance'
+
+  do i = 0, N_alpha - 1
+    A = A_min + i * dA
+
+    ! ── chi² sin nuisance (parábola analítica) ──
+    chi2_sin = S3 - 2.0_dp*A*S1 + A**2*S2
+
+    ! ── nuisance optimizado analíticamente ──────
+    alpha_nu = A * (S1 - A*S2) / (1.0_dp/sigma_F**2 + A**2*S2)
+
+    ! ── chi² con nuisance ────────────────────────
+    chi2_con = 0.0_dp
+    do j = 1, n_datos
+      chi2_con = chi2_con + ((dN_dat(j) - A*(1.0_dp + alpha_nu)*R_SM(j)) / sigma_dat(j))**2
+    end do
+    chi2_con = chi2_con + (alpha_nu / sigma_F)**2
+
+    write(u_perfil,'(3(ES14.6,2X))') A, chi2_sin, chi2_con
+
+    ! Buscar mínimo y A_best con nuisance
+    if (chi2_con < chi2_min_con) then
+      chi2_min_con = chi2_con
+      A_best_con   = A
+    end if
+  end do
+  close(u_perfil)
+
+  ! Segundo pase para A_90 con nuisance (buscar cruce Δchi² = 2.706)
+  A_90_con = A_max   ! default conservador
+  do i = 0, N_alpha - 1
+    A = A_min + i * dA
+    if (A < A_best_con) cycle   ! buscar solo hacia arriba (límite superior)
+    alpha_nu = A * (S1 - A*S2) / (1.0_dp/sigma_F**2 + A**2*S2)
+    chi2_con = 0.0_dp
+    do j = 1, n_datos
+      chi2_con = chi2_con + ((dN_dat(j) - A*(1.0_dp + alpha_nu)*R_SM(j))/sigma_dat(j))**2
+    end do
+    chi2_con = chi2_con + (alpha_nu/sigma_F)**2
+    if (chi2_con - chi2_min_con >= dchi2_90) then
+      A_90_con = A
+      exit
+    end if
+  end do
+
+  write(*,'(/,A)') '  ┌─────────────────────────────────────────────────┐'
+  write(*,'(A)')   '  │        RESULTADOS CON NUISANCE DE FLUJO 16.9%   │'
+  write(*,'(A)')   '  ├─────────────────────────────────────────────────┤'
+  write(*,'(A,F10.5,A)') '  │  A_best         = ', A_best_con,  '                  │'
+  write(*,'(A,F10.5,A)') '  │  chi²_min       = ', chi2_min_con,'                  │'
+  write(*,'(A,F10.5,A)') '  │  A_90% (sup)    = ', A_90_con,    '                  │'
+  write(*,'(A)')   '  └─────────────────────────────────────────────────┘'
+
+  if (A_best_con >= 0.0_dp .and. A_best_con <= 1.5_dp) then
+    write(*,'(/,A)') '  → Resultado compatible con la predicción SM (A~1)'
+  else if (A_best_con < 0.0_dp) then
+    write(*,'(/,A)') '  → Mejor ajuste en A<0: señal no requerida por los datos'
+  end if
+
+  ! ══════════════════════════════════════════════════════════════════
+  ! 6. GUARDAR BANDA PARA LA FIGURA
+  !    Columnas: PE_center  R_SM  banda_sup  banda_inf  datos  sigma
+  ! ══════════════════════════════════════════════════════════════════
+  open(newunit=u_banda, file=f_banda, status='replace')
+  write(u_banda,'(A)') &
+    '# PE_center   R_SM   A90_con*R_SM   -A90_con*R_SM   delta_ON_OFF   sigma_stat'
+  write(u_banda,'(A,F8.5)') '# A_best (sin nuisance) = ', A_best_sin
+  write(u_banda,'(A,F8.5)') '# A_90   (sin nuisance) = ', A_90_sin
+  write(u_banda,'(A,F8.5)') '# A_best (con nuisance) = ', A_best_con
+  write(u_banda,'(A,F8.5)') '# A_90   (con nuisance) = ', A_90_con
+  do i = 1, n_datos
+    write(u_banda,'(6(ES14.6,2X))') &
+      pe_dat(i), R_SM(i), &
+      A_90_con * R_SM(i), -A_90_con * R_SM(i), &
+      dN_dat(i), sigma_dat(i)
+  end do
+  close(u_banda)
+
+  write(*,'(/,A)') '=== Archivos generados ==='
+  write(*,'(A)') '  chi2_ON_OFF_perfil.dat  → perfil chi²(A), graficar con Python'
+  write(*,'(A)') '  chi2_ON_OFF_banda.dat   → datos + banda naranja para la figura'
+
+  deallocate(pe_pred, R_pred)
+end program chi2_ON_OFF_1D
