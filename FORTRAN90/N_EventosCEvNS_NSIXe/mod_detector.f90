@@ -8,7 +8,7 @@ module mod_detector
   real(dp), parameter :: sig1    = 7.6_dp   ! PE, sigma del 1SE (Fig.12)
   real(dp), parameter :: pi_val  = 3.141592653589793_dp
 
-  integer, parameter :: max_curvas = 6
+  integer, parameter :: max_curvas = 8
 
   ! ==================== GRILLA PRE-CALCULADA ====================
   integer,  parameter :: N_GRID  = 5000
@@ -64,7 +64,7 @@ contains
 
   !-------------------------------------------------------------------
   ! respuesta_empirica: mismo nombre, misma firma, mismo resultado [PE^-1].
-  ! Ahora interpola sobre la gaussiana pre-calculada en lugar del PCHIP.
+  ! Ahora interpola sobre la gaussiana pre-calculada.
   !-------------------------------------------------------------------
   function respuesta_empirica(S, k) result(val)
     real(dp), intent(in) :: S
