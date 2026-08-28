@@ -81,16 +81,13 @@ program red100PE_detallado
      total_bin = 0.0_dp
      do i_bin = 1, 8
        if (i_bin >= 4 .and. i_bin <= 7)  
-         then contribuciones(i_bin) = tasa_ion_extraidos(i_bin) * respuesta_empirica(S_pe, i_bin) &
+         then
+           contribuciones(i_bin) = tasa_ion_extraidos(i_bin) * respuesta_empirica(S_pe, i_bin) &
                                * bin_width_pe * eff_ROI(i_bin)
-       else
-         contribuciones(i_bin) = 0.0_dp
+         else
+           contribuciones(i_bin) = 0.0_dp
        end if
-   total_bin = total_bin + contribuciones(i_bin)
-end do
-     do i_bin = 1, 8
-        contribuciones(i_bin) = tasa_ion_extraidos(i_bin) * respuesta_empirica(S_pe, i_bin) * bin_width_pe
-        total_bin = total_bin + contribuciones(i_bin)
+       total_bin = total_bin + contribuciones(i_bin)
      end do
      
      write(u_out, '(F8.1, E15.6)', advance='no') S_pe, total_bin
