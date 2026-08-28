@@ -37,7 +37,7 @@ program red100PE_detallado
   atoms_per_kg = (NA / A_Ge) * 1000.0_dp
   sec_per_day = 86400.0_dp
 
-  allocate(array_tasa_Comb(n_T), tasa_ion_extraidos(n_ion), contribuciones(6))
+  allocate(array_tasa_Comb(n_T), tasa_ion_extraidos(n_ion), contribuciones(8))
   tasa_ion_extraidos(:) = 0.0_dp
 
   T_nr_min = 0.1_dp / 1000.0_dp; T_nr_max = 3.0_dp / 1000.0_dp
@@ -79,13 +79,13 @@ program red100PE_detallado
      S_pe = (real(i_pe, dp) - 0.5_dp) * bin_width_pe
      total_bin = 0.0_dp
      
-     do i_bin = 1, 6
+     do i_bin = 1, 8
         contribuciones(i_bin) = tasa_ion_extraidos(i_bin) * respuesta_empirica(S_pe, i_bin) * bin_width_pe
         total_bin = total_bin + contribuciones(i_bin)
      end do
      
      write(u_out, '(F8.1, E15.6)', advance='no') S_pe, total_bin
-     do i_bin = 1, 6
+     do i_bin = 1, 8
         write(u_out, '(E15.6)', advance='no') contribuciones(i_bin)
      end do
      write(u_out, *)
