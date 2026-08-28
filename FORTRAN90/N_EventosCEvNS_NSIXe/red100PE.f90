@@ -18,6 +18,7 @@ program red100PE_detallado
   real(dp) :: total_bin, n_creados_medio, n_extraidos_medio
   character(len=250) :: outdir, filename, datafile
   real(dp) :: atoms_per_kg, sec_per_day, dummy
+  real(dp) :: eff_ROI(4:7) = (/ 0.138_dp, 0.330_dp, 0.599_dp, 0.719_dp /)
 
   bin_width_pe = 5.0_dp
   
@@ -74,11 +75,19 @@ program red100PE_detallado
   open(newunit=u_out, file=filename, status='replace')
   write(u_out, '(A)') '# PE_center   Total   1SE   2SE   3SE   4SE   5SE   6SE'
 
-  write(*,*) "-> Escribiendo formato PCHIP..."
+  write(*,*) "-> Escribiendo..."
   do i_pe = 1, 400
      S_pe = (real(i_pe, dp) - 0.5_dp) * bin_width_pe
      total_bin = 0.0_dp
-     
+     do i_bin = 1, 8
+       if (i_bin >= 4 .and. i_bin <= 7)  
+         then contribuciones(i_bin) = tasa_ion_extraidos(i_bin) * respuesta_empirica(S_pe, i_bin) &
+                               * bin_width_pe * eff_ROI(i_bin)
+       else
+         contribuciones(i_bin) = 0.0_dp
+       end if
+   total_bin = total_bin + contribuciones(i_bin)
+end do
      do i_bin = 1, 8
         contribuciones(i_bin) = tasa_ion_extraidos(i_bin) * respuesta_empirica(S_pe, i_bin) * bin_width_pe
         total_bin = total_bin + contribuciones(i_bin)
