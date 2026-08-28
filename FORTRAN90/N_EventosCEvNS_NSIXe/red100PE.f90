@@ -20,7 +20,7 @@ program red100PE_detallado
   real(dp) :: atoms_per_kg, sec_per_day, dummy
   real(dp) :: eff_ROI(4:7) = (/ 0.138_dp, 0.330_dp, 0.599_dp, 0.719_dp /)
 
-  bin_width_pe = 5.0_dp
+  bin_width_pe = 5.264449285714286_dp
   
   outdir = '/home/oem/Desktop/Unipamplona/Trabajo de grado/Códigos/datos/'
   datafile = trim(outdir) // 'templates_SE_pchip.dat'
