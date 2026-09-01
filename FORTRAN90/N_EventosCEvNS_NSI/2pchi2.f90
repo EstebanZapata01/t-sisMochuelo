@@ -4,6 +4,15 @@
 !   - Datos experimentales de excesos de CONUS+[cite: 2].
 !   - Eje X (eps_x): Primera columna, usualmente sabor electrónico (ee).
 !   - Eje Y (eps_y): Segunda columna, sabores mu o tau.
+!
+! Rol en la tesis: REFERENCIA validada. Reproduce el ajuste NSI 2D de
+!   V. De Romeri, D. K. Papoulias, G. Sanchez Garcia, Phys. Rev. D 111,
+!   075025 (2025) (Fig. 4). El analisis NSI de RED-100
+!   (chi2red100_nest.f90 / chi2_ideal_nest.f90) es este mismo metodo
+!   portado a Xe/Ar: mismos 15 casos ipar, misma carga efectiva Ec. (9),
+!   misma minimizacion analitica de alpha. Lo que cambia: aqui hay DATOS
+!   (senal a 3.7 sigma) -> region PERMITIDA; en RED-100 no -> sensibilidad.
+! Tesis   : metodologia.tex Sec. 6 (CONUS+ frente a RED-100).
 !=======================================================================
 program chi2_nsi_2D
   use constants

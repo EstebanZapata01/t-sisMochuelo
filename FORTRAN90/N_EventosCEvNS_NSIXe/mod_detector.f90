@@ -1,4 +1,14 @@
-
+!=======================================================================
+! Archivo : mod_detector.f90
+! Rol     : respuesta del detector en fotoelectrones (PE): ganancia
+!           SEG = 27 PE/e-, resolucion de un electron unico sig1, y
+!           conversion N_e -> PE.
+! Pipeline: etapa "extraccion / PE" -> la usan red100PE y mainred100_nest
+!           para el espectro en energia corregida [PE] que ajusta chi2.f90.
+! Tesis   : metodologia.tex Sec. 3.3 y Sec. 4 (ajuste 1D ON-OFF).
+! Decision metodologica clave: SEG/sig1 son de LXe; en la carpeta de Ar
+!   este modulo NO es fisico (solo diagnostico), ver Sec. 9.
+!=======================================================================
 module mod_detector
   use constants, only: dp
   implicit none
@@ -8,7 +18,7 @@ module mod_detector
   real(dp), parameter :: sig1    = 7.6_dp   ! PE, sigma del 1SE (Fig.12)
   real(dp), parameter :: pi_val  = 3.141592653589793_dp
 
-  integer, parameter :: max_curvas = 6
+  integer, parameter :: max_curvas = 7   ! plantillas 1SE..7SE (la ROI del paper llega a N_e=7)
 
   ! ==================== GRILLA PRE-CALCULADA ====================
   integer,  parameter :: N_GRID  = 5000

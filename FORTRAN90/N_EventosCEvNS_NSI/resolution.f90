@@ -1,3 +1,11 @@
+!=======================================================================
+! Archivo : resolution.f90   (carpeta CONUS+ / Germanio)
+! Rol     : matriz de resolucion gaussiana del HPGe,
+!           sigma_res^2 = sigma0^2 + Fano * eta * Eer  (Ec. 30 del paper
+!           de CONUS+); reparte cada Eer verdadero entre los 19 bins.
+! Tesis   : REFERENCIA; metodologia.tex Sec. 6. En RED-100 el papel
+!           equivalente lo hace la fluctuacion F(T) de NEST + SEG en PE.
+!=======================================================================
 module resolution
   use constants, only: dp, pi, sigma0, eta, Fano, nbins, Erec_min, Erec_width, npts_gauss
   implicit none

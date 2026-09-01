@@ -1,6 +1,12 @@
 !=======================================================================
 ! Módulo: mod_stats
 ! Propósito: Herramientas estadísticas para resolución de detectores.
+! Pipeline: expone binomial_prob(k, n, p) -> PMF de N_e extraidos
+!           (Ec. 18 de metodologia.tex); la usan red100_nest, red100PE,
+!           mainred100_nest y chi2_ideal_nest.
+! Tesis   : metodologia.tex Sec. 3.2 (modelo binomial de Fano).
+! Decision metodologica clave: el N_e no es Poisson; se propaga en forma
+!   cerrada como binomial (media, varianza de NEST) adelgazada por EEE.
 !=======================================================================
 module mod_stats
   use constants, only: dp

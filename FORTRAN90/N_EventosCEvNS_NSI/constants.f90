@@ -1,3 +1,11 @@
+!=======================================================================
+! Archivo : constants.f90   (carpeta CONUS+ / Germanio)
+! Rol     : parametros del experimento CONUS+ (reactor de Leibstadt,
+!           HPGe, umbral ~160 eVee, exposicion 119 kg*dia por detector).
+! Tesis   : REFERENCIA validada; metodologia.tex Sec. 6.
+! Nota    : los nombres *_Ge aqui SI son germanio (Z=32, N=41). En las
+!           carpetas de RED-100 los mismos nombres contienen Xe o Ar.
+!=======================================================================
 module constants
   implicit none
   integer, parameter :: dp = kind(1.0d0)

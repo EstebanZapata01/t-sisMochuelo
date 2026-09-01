@@ -1,8 +1,14 @@
 !=======================================================================
-! Módulo flux: espectro de antineutrinos de reactor combinado.
-!   - Para E_nu < 2 MeV: Kopeikin (2012)
-!   - Para E_nu >= 2 MeV: Mueller et al. (2011).
-!   La normalización usa explícitamente phi_total / integral(espectro)
+! Módulo flux: espectro de antineutrinos de reactor combinado (HIBRIDO).
+!   - Para E_nu < 2 MeV: Kopeikin (tabla de 50 puntos, interp. lineal)
+!   - Para E_nu >= 2 MeV: Huber-Mueller (suma isotopica, exp de polinomio)
+!   La normalización usa explícitamente phi_total / integral(espectro).
+! Pipeline: etapa "flujo" -> flujo_diferencial(E_nu) lo llaman todos los
+!           integradores de eventos (mainred100_nest, red100*, chi2_ideal).
+! Tesis   : metodologia.tex Sec. 3.1, Ecs. (11)-(12).
+! Decision metodologica clave: NO pasar a "solo Mueller". phi_total es el
+!   flujo TOTAL (6.75 nubar/fision, la mayoria < 2 MeV); quitar Kopeikin
+!   manteniendo phi_total inflaria el flujo > 4.5 MeV en ~2-3x.
 !=======================================================================
 module flux
   use constants, only: dp, phi_total, E_nu_min_flux, E_nu_max

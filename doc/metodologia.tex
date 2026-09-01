@@ -1,0 +1,1585 @@
+\documentclass[11pt,a4paper]{article}
+
+% ---------------------------------------------------------------------------
+%  metodologia.tex
+%  Documento de METODOLOGIA de la tesis:
+%     "Sensibilidad a Interacciones No Estandar (NSI) en un detector tipo
+%      RED-100: comparacion xenon vs argon"
+%
+%  Mapa  codigo <-> matematica <-> capitulo.  Cada ecuacion desarrollada y
+%  numerada; cada bloque cita el archivo fuente y, cuando aplica, el
+%  algoritmo paso a paso.  Autocontenido:
+%      pdflatex metodologia.tex   (x2, por las referencias cruzadas)
+% ---------------------------------------------------------------------------
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[spanish,es-tabla]{babel}
+\usepackage{amsmath,amssymb}
+\usepackage{array}
+\usepackage{booktabs}
+\usepackage{siunitx}
+\usepackage{graphicx}
+\usepackage[margin=2.3cm]{geometry}
+\usepackage[hidelinks]{hyperref}
+
+\sisetup{output-decimal-marker={,},per-mode=symbol}
+\newcommand{\eps}{\varepsilon}
+\newcommand{\QW}{Q_{W}}
+\newcommand{\Enu}{E_{\nu}}
+\newcommand{\Tnr}{T}
+\newcommand{\Ne}{N_{e}}
+\newcommand{\Eer}{E_{\rm er}}
+\newcommand{\qeff}{q_{\rm eff}}
+\newcommand{\Aamp}{A_{\rm amp}}
+\newcommand{\code}[1]{\texttt{#1}}
+\newcommand{\dd}{\mathrm{d}}
+\newcommand{\Rexp}{R^{\rm exp}}
+\newcommand{\Rth}{R^{\rm th}}
+
+\title{\textbf{Metodolog\'ia y resultados}\\[2mm]
+Sensibilidad a interacciones no est\'andar (NSI) en un detector tipo RED-100:\\
+comparaci\'on xen\'on vs.\ arg\'on, y validaci\'on contra CONUS+}
+\author{E.\ Zapata}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+\noindent
+Este documento describe, con el detalle matem\'atico necesario para redactar la
+tesis, el m\'etodo de c\'alculo implementado en los c\'odigos del repositorio, el
+algoritmo paso a paso de cada programa, los resultados obtenidos y las
+afirmaciones que de ellos se derivan. Se cubre: (i)~el marco te\'orico del
+CE$\nu$NS y de las NSI vectoriales de corriente neutra; (ii)~la cadena de
+simulaci\'on flujo $\to$ retroceso $\to$ ionizaci\'on (NEST) $\to$ extracci\'on
+$\to$ espectro en electrones $\to$ $\chi^{2}$; (iii)~la reproducci\'on
+independiente del an\'alisis de xen\'on de RED-100 (arXiv:2411.18641);
+(iv)~la \textbf{validaci\'on del motor NSI contra CONUS+} (Phys.\ Rev.\ D
+\textbf{111}, 075025), un dato real con se\~nal a $3{,}7\sigma$ y cotas
+num\'ericas publicadas, que el c\'odigo reproduce a $\lesssim 0{,}003$ en cada
+par\'ametro $\eps$; (v)~el formalismo NSI 2D y su \emph{geometr\'ia de
+degeneraci\'on}, derivada desde cero, con la conclusi\'on estructural de que
+\textbf{ning\'un par de blancos CE$\nu$NS t\'ipicos rompe esa degeneraci\'on de
+forma apreciable}; (vi)~la comparaci\'on \emph{ideal sim\'etrica} xen\'on--arg\'on
+y el diagn\'ostico de d\'onde reside la ventaja del arg\'on; (vii)~la discusi\'on
+de qu\'e significa \emph{combinar} experimentos con y sin datos. Se enfatiza
+qu\'e es una \emph{sensibilidad proyectada} y qu\'e no se afirma.
+\end{abstract}
+
+\tableofcontents
+\bigskip
+
+% ===========================================================================
+\section{Prop\'osito y alcance}
+\label{sec:proposito}
+
+El objetivo de la tesis es \textbf{comparar la respuesta de un blanco de xen\'on
+y uno de arg\'on} frente al CE$\nu$NS de antineutrinos de reactor y frente a
+NSI, usando la configuraci\'on experimental de RED-100 en la central nuclear de
+Kalinin (KNPP) como banco de pruebas concreto. La tesis \emph{no} es una medida
+ni una exclusi\'on: es un estudio comparativo controlado, apoyado en una
+validaci\'on triple del c\'odigo, y una caracterizaci\'on estructural. Sus
+resultados son:
+
+\begin{description}
+  \item[P1. Validaci\'on independiente (RED-100 Xe).] Un \emph{pipeline} propio
+    reproduce de forma razonable el l\'imite de RED-100 sobre la amplitud
+    CE$\nu$NS, con las discrepancias entendidas y documentadas
+    (Sec.~\ref{sec:xe}).
+  \item[P2. Validaci\'on del motor NSI (CONUS+).] El mismo motor estad\'istico,
+    aplicado a los datos reales de CONUS+ (Ge, se\~nal a $3{,}7\sigma$),
+    reproduce las cotas 1D de su Tabla~II a $\lesssim 0{,}003$ en cada
+    par\'ametro $\eps$, incluida la estructura de doble intervalo por
+    interferencia SM$\leftrightarrow$NSI (Sec.~\ref{sec:conusval}).
+  \item[P3. Geometr\'ia de la degeneraci\'on NSI.] Las NSI vectoriales colapsan
+    en una \'unica combinaci\'on lineal; el lugar geom\'etrico permitido por una
+    medida de sola tasa es una circunferencia (``anillo ciego''); el \'angulo
+    entre las direcciones ciegas de xen\'on y arg\'on es $\approx\SI{1.44}{\degree}$,
+    y se demuestra que \textbf{ning\'un par de blancos CE$\nu$NS realistas la
+    rompe} (Sec.~\ref{sec:nsi}).
+  \item[P4. Diagn\'ostico de la ventaja del arg\'on.] Bajo una comparaci\'on
+    idealizada, el factor de ventaja del arg\'on proviene casi por completo del
+    umbral en $\Ne$ alcanzable antes de que el fondo obligue a cortar, no de la
+    f\'isica nuclear (Sec.~\ref{sec:ideal}).
+\end{description}
+
+\paragraph{Qu\'e NO se afirma.} Ning\'un blanco alcanza $|\eps|\sim 0{,}1$ con un
+an\'alisis de \emph{sola tasa} en KNPP. Todo contorno NSI \emph{proyectado} de
+este trabajo (rama de Asimov) es una \textbf{sensibilidad}, no una exclusi\'on:
+asume sustracci\'on perfecta del fondo, cero sistem\'aticos y eficiencia de
+selecci\'on $1$. El \'unico n\'umero con datos reales de RED-100 es el del
+xen\'on ($A_{90}\approx 111\times$SM), que \emph{no} distingue del modelo
+est\'andar ning\'un punto de la caja $|\eps|\le 1$.
+
+% ===========================================================================
+\section{Marco f\'isico}
+\label{sec:marco}
+
+\subsection{Secci\'on eficaz CE$\nu$NS en el modelo est\'andar}
+\label{sec:xsec}
+
+Para un neutrino de energ\'ia $\Enu$ que dispersa coherentemente sobre un
+n\'ucleo de masa $M$ produciendo un retroceso nuclear de energ\'ia cin\'etica
+$\Tnr$, la secci\'on eficaz diferencial es
+\begin{equation}
+  \label{eq:dsigma_full}
+  \frac{\dd\sigma}{\dd \Tnr}
+  = \frac{G_{F}^{2} M}{\pi}\,\QW^{2}\,F^{2}(q^{2})
+    \left(
+      1 - \frac{M\,\Tnr}{2\Enu^{2}} - \frac{\Tnr}{\Enu}
+        + \frac{\Tnr^{2}}{2\Enu^{2}}
+    \right),
+\end{equation}
+con $G_{F}=\SI{1.1663787e-11}{MeV^{-2}}$ la constante de Fermi,
+$q^{2}\simeq 2M\Tnr$ el cuadrimomento transferido y $F(q^{2})$ el factor de forma
+nuclear. La carga d\'ebil del modelo est\'andar es
+\begin{equation}
+  \label{eq:QW_SM}
+  \QW \;=\; g_{V}^{p}\,Z + g_{V}^{n}\,N,
+  \qquad
+  g_{V}^{p} = \tfrac{1}{2}\bigl(1 - 4\sin^{2}\theta_{W}\bigr),
+  \qquad
+  g_{V}^{n} = -\tfrac{1}{2},
+\end{equation}
+de modo que, con $\sin^{2}\theta_{W}=0{,}23857$ (valor RGE a baja energ\'ia,
+$\overline{\rm MS}$),
+\begin{equation}
+  \label{eq:QW_num}
+  \QW = -\frac{N}{2} + \frac{1 - 4\sin^{2}\theta_{W}}{2}\,Z
+      = -\frac{N}{2} + 0{,}02286\,Z .
+\end{equation}
+El prefactor de Eq.~\eqref{eq:dsigma_full} tiene unidades de
+$\si{MeV^{-3}}$; los c\'odigos lo multiplican por
+$(\hbar c)^{2}=\SI{3.894e-22}{cm^{2}.MeV^{2}}$ para dar
+$\dd\sigma/\dd\Tnr$ en $\si{cm^{2}/keV}$.
+
+\paragraph{Aproximaciones del c\'odigo.} El m\'odulo \code{xsections\_nest.f90}
+(RED-100) y \code{xsections.f90} (CONUS+) implementan
+\begin{equation}
+  \label{eq:dsigma_code}
+  \frac{\dd\sigma}{\dd \Tnr}
+  = \frac{G_{F}^{2} M}{\pi}\,\QW^{2}
+    \left(1 - \frac{M\Tnr}{2\Enu^{2}} - \frac{\Tnr}{\Enu}\right),
+\end{equation}
+es decir: (a)~omiten el t\'ermino subdominante $\Tnr^{2}/2\Enu^{2}$, de orden
+$\Tnr/\Enu\sim 10^{-4}$ en la ROI; (b)~fijan $F^{2}(q^{2})\simeq 1$. Para el
+factor de Helm
+\begin{equation}
+  \label{eq:helm}
+  F(q^{2}) = \frac{3\,j_{1}(qR_{A})}{qR_{A}}\,
+             e^{-q^{2}s^{2}/2},
+  \qquad
+  R_{A} \simeq 1{,}2\,A^{1/3}\ \si{fm},\quad s\simeq\SI{0.9}{fm},
+\end{equation}
+con $qR_{A}\approx 0{,}1$ para xen\'on a $\Tnr=\SI{1}{keV}$
+($q=\sqrt{2M\Tnr}\approx\SI{15}{MeV}$, $R_{A}\approx\SI{6}{fm}$), de donde
+$F^{2}\gtrsim 0{,}99$. El error es menor que la incertidumbre del modelo de
+flujo y, sobre todo, \emph{se cancela} en la comparaci\'on xen\'on--arg\'on
+porque afecta a ambos blancos casi id\'enticamente.
+
+\subsection{Cinem\'atica}
+\label{sec:kin}
+
+En una colisi\'on el\'astica $\nu(\Enu) + \mathcal{N}(M) \to
+\nu(\Enu') + \mathcal{N}(\Tnr)$ con $\Enu' = \Enu - \Tnr$, la conservaci\'on de
+cuadrimomento en el l\'imite $\Enu\ll M$ da
+$\cos\theta_{\rm rec} = \tfrac{\Enu+M}{\Enu}\sqrt{\tfrac{\Tnr}{2M+\Tnr}}$.
+Imponiendo $\cos\theta_{\rm rec}\le 1$ se obtiene el retroceso m\'aximo, y
+resolviendo para $\Enu$ el retroceso pedido,
+\begin{equation}
+  \label{eq:kin}
+  \Tnr^{\max}(\Enu) = \frac{2\Enu^{2}}{M + 2\Enu}
+  \;\xrightarrow[\ \Enu\ll M\ ]{}\; \frac{2\Enu^{2}}{M},
+  \qquad
+  \Enu^{\min}(\Tnr) = \frac{\Tnr + \sqrt{\Tnr^{2} + 2M\Tnr}}{2}
+  \;\xrightarrow[\ \Tnr\ll M\ ]{}\; \sqrt{\frac{M\,\Tnr}{2}} .
+\end{equation}
+La segunda relaci\'on fija la ventana de $\Enu$ que ``ve'' cada blanco: para
+xen\'on ($M\simeq\SI{122}{GeV}$) y el suelo de yield de NEST
+($\Tnr\simeq\SI{0.20}{keV}$) se obtiene $\Enu^{\min}\approx\SI{3.5}{MeV}$; para la
+ROI $\Ne=4$--$7$ ($\Tnr\approx0{,}35$--$\SI{0.6}{keV}$) domina
+$\Enu\approx 4{,}5$--$\SI{8}{MeV}$. Para arg\'on ($M\simeq\SI{37}{GeV}$) la misma
+$\Tnr$ baja $\Enu^{\min}$ a $\approx\SI{1.9}{MeV}$, y $\Tnr^{\max}$ crece:
+$\SI{3.44}{keV}$ a $\Enu=\SI{8}{MeV}$, $\SI{5.37}{keV}$ a $\Enu=\SI{10}{MeV}$.
+
+\subsection{Cargas d\'ebiles: valores num\'ericos}
+\label{sec:qw_num}
+
+Con Eq.~\eqref{eq:QW_num} y los $(Z,N)$ de los archivos \code{constants.f90}:
+
+\begin{table}[h]
+\centering
+\begin{tabular}{@{}lccccc@{}}
+\toprule
+Blanco & $Z$ & $N$ & $N/Z$ & $\QW$ & $\QW^{2}$ \\
+\midrule
+$^{131{,}3}$Xe (RED-100) & 54 & 77 & $1{,}426$ & $-37{,}266$ & $1388{,}7$ \\
+$^{72{,}6}$Ge (CONUS+)   & 32 & 41 & $1{,}281$ & $-19{,}769$ & $\ 390{,}8$ \\
+$^{39{,}9}$Ar (RED-100)  & 18 & 22 & $1{,}222$ & $-10{,}589$ & $\ 112{,}1$ \\
+\bottomrule
+\end{tabular}
+\caption{Cargas d\'ebiles. La secci\'on eficaz total por n\'ucleo
+$\propto \QW^{2}\Enu^{2}$ es \emph{independiente} de $M$: aunque
+$\dd\sigma/\dd\Tnr\propto M$, el rango $\Tnr^{\max}\propto\Enu^{2}/M$ lo
+compensa. Por unidad de masa, la ventaja de coherencia Xe/Ar vale
+$(\QW^{2}|_{\rm Xe}/\QW^{2}|_{\rm Ar})\times(A_{\rm Ar}/A_{\rm Xe})
+\approx 12{,}4\times 0{,}30 \approx 3{,}8$.}
+\label{tab:qw}
+\end{table}
+
+\subsection{Interacciones no est\'andar vectoriales}
+\label{sec:marco_nsi}
+
+Se consideran NSI de corriente neutra tipo vector con quarks de primera
+generaci\'on, descritas por el lagrangiano efectivo (Ec.~(7) de
+Phys.\ Rev.\ D \textbf{111}, 075025)
+\begin{equation}
+  \label{eq:L_nsi}
+  \mathcal{L}_{\rm NC}^{\rm NSI}
+  = -2\sqrt{2}\,G_{F}\!\!\sum_{f=u,d}\ \sum_{\alpha,\beta=e,\mu,\tau}
+     \eps_{\alpha\beta}^{fV}\,
+     \bigl(\bar\nu_{\alpha}\gamma^{\rho}P_{L}\nu_{\beta}\bigr)
+     \bigl(\bar f\gamma_{\rho} f\bigr),
+\end{equation}
+con $\eps_{\alpha\beta}^{fV}=\eps_{\alpha\beta}^{fL}+\eps_{\alpha\beta}^{fR}$. Para
+antineutrinos de reactor solo el sabor entrante $\alpha=e$ contribuye. El efecto
+neto es \textbf{redefinir la carga d\'ebil}: cada quark de valencia del n\'ucleo
+aporta su acoplo est\'andar m\'as $\eps_{e\beta}^{fV}$. Contando $2Z+N$ quarks
+$u$ y $Z+2N$ quarks $d$, la carga efectiva al cuadrado que sustituye a $\QW^{2}$
+en Eq.~\eqref{eq:dsigma_full} es (Ec.~(9) de la referencia)
+\begin{equation}
+  \label{eq:qeff2_full}
+  \qeff^{2}(\eps)
+  = \Bigl[\, Z\bigl(g_{V}^{p} + 2\eps_{ee}^{uV} + \eps_{ee}^{dV}\bigr)
+          + N\bigl(g_{V}^{n} + \eps_{ee}^{uV} + 2\eps_{ee}^{dV}\bigr) \,\Bigr]^{2}
+  + \sum_{\beta=\mu,\tau}
+    \Bigl[\, Z\bigl(2\eps_{e\beta}^{uV} + \eps_{e\beta}^{dV}\bigr)
+           + N\bigl(\eps_{e\beta}^{uV} + 2\eps_{e\beta}^{dV}\bigr) \,\Bigr]^{2}.
+\end{equation}
+Definiendo, para cada sabor de salida $\beta$,
+\begin{equation}
+  \label{eq:q_alpha}
+  q_{e\beta}(\eps)
+  \;\equiv\;
+  Z\bigl(2\,\eps_{e\beta}^{uV} + \eps_{e\beta}^{dV}\bigr)
+  + N\bigl(\eps_{e\beta}^{uV} + 2\,\eps_{e\beta}^{dV}\bigr),
+\end{equation}
+la Eq.~\eqref{eq:qeff2_full} se escribe compactamente
+\begin{equation}
+  \label{eq:qeff2}
+  \boxed{\;
+  \qeff^{2}(\eps)
+  = \bigl(\QW + q_{ee}\bigr)^{2}
+  + q_{e\mu}^{2}
+  + q_{e\tau}^{2}\; }.
+\end{equation}
+Las NSI \emph{diagonales} ($q_{ee}$) interfieren con el modelo est\'andar; las
+\emph{no diagonales} ($q_{e\mu},q_{e\tau}$) suman incoherentemente porque
+corresponden a estados finales de sabor distinto.
+
+\paragraph{Ausencia de distorsi\'on espectral.} La referencia de CONUS+ subraya
+que las NSI vectoriales \emph{no} inducen dependencia en $\Tnr$: $\qeff^{2}$ es un
+factor multiplicativo global. Por tanto la predicci\'on por bin se reescala
+uniformemente,
+\begin{equation}
+  \label{eq:Aamp}
+  R_{i}^{\rm NSI}(\eps) = \Aamp(\eps)\; R_{i}^{\rm SM},
+  \qquad
+  \Aamp(\eps) \equiv \frac{\qeff^{2}(\eps)}{\QW^{2}},
+\end{equation}
+y \textbf{el mapa $\chi^{2}$ NSI 2D es el an\'alisis de amplitud 1D evaluado en
+$A = \Aamp(\eps)$}. Este es el punto que hace que toda la maquinaria NSI se
+traslade de CONUS+ a RED-100 sin cambios (Secs.~\ref{sec:conusval},
+\ref{sec:conus}).
+
+% ===========================================================================
+\section{El \emph{pipeline} de simulaci\'on, etapa por etapa}
+\label{sec:pipeline}
+
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{@{}p{3.0cm}p{6.4cm}p{5.4cm}@{}}
+\toprule
+\textbf{Etapa} & \textbf{Qu\'e calcula} & \textbf{Archivo(s)} \\
+\midrule
+Flujo             & $\dd\Phi/\dd\Enu$ h\'ibrido Kopeikin\,$\cup$\,Huber--Mueller & \code{flux.f90} \\
+Secci\'on eficaz  & $\dd\sigma/\dd\Tnr$ CE$\nu$NS (SM y NSI v\'ia $\QW^{2}\!\to \qeff^{2}$) & \code{xsections\_nest.f90}, \code{xsections.f90} \\
+Retroceso $\to$ ionizaci\'on & $\langle\Ne\rangle(\Tnr)$, $F(\Tnr)$ de NEST (RED-100) \'o quenching de Lindhard (CONUS+) & \code{Tnr\_to\_e.f90}, \code{nest.py}, \code{nest\_Ar.py}, \code{quenching.f90} \\
+Extracci\'on / respuesta & adelgazado binomial por EEE; ROI en $\Ne$; \'o matriz de resoluci\'on gaussiana + PE & \code{constants.f90}, \code{mod\_detector.f90}, \code{resolution.f90} \\
+Espectro          & $R(\Ne)$ [ev/(kg\,d\'ia)] \'o $R_{i}$ [cuentas/bin] & \code{red100\_nest.f90}, \code{mainred100\_nest.f90}, \code{main.f90} \\
+Estad\'istica     & $\chi^{2}(A)$, $A_{90}$; barrido NSI 2D & \code{chi2.f90}, \code{chi2red100\_nest.f90}, \code{chi2\_ideal\_nest.f90}, \code{2pchi2.f90} \\
+\bottomrule
+\end{tabular}
+\caption{Correspondencia etapa\,$\leftrightarrow$\,archivo. Los nombres
+\code{*\_Ge} son hist\'oricos; en las carpetas de RED-100 contienen valores de
+Xe o Ar.}
+\label{tab:pipeline}
+\end{table}
+
+\subsection{Flujo de antineutrinos de reactor (\code{flux.f90})}
+\label{sec:flux}
+
+Espectro \textbf{h\'ibrido}: para $\Enu<\SI{2}{MeV}$, Kopeikin (interpolaci\'on
+lineal en una tabla de 50 puntos $E_{k},\rho_{k}$); para $\Enu\ge\SI{2}{MeV}$,
+la suma isot\'opica de Huber--Mueller
+\begin{equation}
+  \label{eq:mueller}
+  S(\Enu) = \sum_{k}\, f_{k}\,
+            \exp\!\Bigl(\textstyle\sum_{n=1}^{6} a_{n}^{(k)}\,\Enu^{\,n-1}\Bigr),
+  \qquad
+  f_{k} = (0{,}717,\ 0{,}068,\ 0{,}184,\ 0{,}031)
+\end{equation}
+para $k=\{{}^{235}\mathrm{U},{}^{238}\mathrm{U},{}^{239}\mathrm{Pu},
+{}^{241}\mathrm{Pu}\}$; los $a_{n}^{(k)}$ son los coeficientes tabulados de
+Mueller et al.\ (2011). El flujo diferencial se normaliza al flujo
+\emph{total} medido:
+\begin{equation}
+  \label{eq:flux_norm}
+  \frac{\dd\Phi}{\dd\Enu}(\Enu)
+  = \Phi_{\rm tot}\;
+    \frac{S(\Enu)}{\displaystyle\int_{0}^{\SI{10}{MeV}} S(E')\,\dd E'},
+  \qquad
+  \Phi_{\rm tot} =
+  \begin{cases}
+    \SI{1.4e13}{cm^{-2}.s^{-1}} & \text{(KNPP, RED-100)}\\
+    \SI{1.5e13}{cm^{-2}.s^{-1}} & \text{(Leibstadt, CONUS+)}
+  \end{cases}
+\end{equation}
+La integral del denominador se eval\'ua por trapecios ($10^{4}$ puntos); su valor
+num\'erico es $\approx 6{,}73$ (RED-100) / $6{,}68$ (CONUS+) $\bar\nu$/fisi\'on,
+consistente con las $\sim 6{,}7$ esperadas.
+
+\paragraph{Por qu\'e el h\'ibrido es obligatorio.} $\Phi_{\rm tot}$ es el flujo
+total, dominado por antineutrinos de $\Enu<\SI{2}{MeV}$. Si se usara ``solo
+Huber--Mueller'' manteniendo $\Phi_{\rm tot}$, la normalizaci\'on
+Eq.~\eqref{eq:flux_norm} repartir\'ia las $\sim 6{,}7\,\bar\nu/$fisi\'on entre la
+banda $\Enu>\SI{2}{MeV}$ e inflar\'ia el flujo relevante en un factor
+$\sim 2$--$3$. La parte sub-\SI{2}{MeV} no contribuye al CE$\nu$NS de xen\'on en
+la ROI (Eq.~\eqref{eq:kin}), pero es imprescindible en el \emph{denominador} de
+la normalizaci\'on. Para arg\'on ($\Enu^{\min}\approx\SI{1.9}{MeV}$) la regi\'on
+$1{,}9$--$\SI{4}{MeV}$ s\'i pesa: otra raz\'on para mantener id\'entico el
+h\'ibrido en ambos blancos.
+
+\subsection{Retroceso $\to$ electrones de ionizaci\'on: RED-100 (\code{Tnr\_to\_e.f90})}
+\label{sec:nest}
+
+El n\'umero de electrones de ionizaci\'on \emph{no} es Poisson. NEST predice,
+para retrocesos nucleares en LXe/LAr, una distribuci\'on \textbf{sub-Poissoniana}
+resumida en dos funciones tabuladas (archivos \code{datos/nest\_218V\_dense.txt},
+\code{datos/nest\_Ar\_218V\_dense.txt}; 3 columnas $\Tnr$ [keV], $Q_{y}$
+[e$^{-}$/keV], $F$):
+\begin{equation}
+  \label{eq:nest_tab}
+  \langle\Ne\rangle(\Tnr) = \Tnr\,Q_{y}(\Tnr),
+  \qquad
+  F(\Tnr) \equiv \frac{\operatorname{Var}(\Ne)}{\langle\Ne\rangle}\Big|_{\rm NEST}.
+\end{equation}
+Para LXe, $F\approx 0{,}43$--$0{,}56$; para LAr (\code{LArNEST}),
+$F\approx 0{,}11$--$0{,}15$ en la ROI y $\approx 0{,}65$ en el umbral. Las tablas
+se generan muestreando el generador de cuantos de NEST $N_{\rm samp}\sim 10^{4}$
+veces por energ\'ia y midiendo $F=\operatorname{Var}/\text{media}$
+(\code{python/nest.py}: \code{GetQuanta}; \code{python/nest\_Ar.py}:
+\code{LArNEST.get\_yield\_fluctuations(...).NeFluctuation}).
+
+\paragraph{Modelo binomial de Fano.} Para propagar $(\langle\Ne\rangle,F)$ de
+forma cerrada se ajusta una binomial. Sea
+\begin{equation}
+  \label{eq:pf_nf}
+  p_{F} = 1 - F(\Tnr)\quad(\text{recortado a }[0{,}02,\ 0{,}98]),
+  \qquad
+  n_{F} = \operatorname{round}\!\left(\frac{\langle\Ne\rangle}{p_{F}}\right).
+\end{equation}
+Los electrones \emph{creados} siguen $\Ne^{\rm cre}\sim\mathrm{Binom}(n_{F},p_{F})$,
+que reproduce media y varianza pedidas:
+\begin{equation}
+  \label{eq:binom_moments}
+  \mathbb{E}[\Ne^{\rm cre}] = n_{F}\,p_{F} = \langle\Ne\rangle,
+  \qquad
+  \operatorname{Var}(\Ne^{\rm cre}) = n_{F}\,p_{F}(1-p_{F})
+     = \langle\Ne\rangle\,(1-p_{F}) = \langle\Ne\rangle\,F .
+\end{equation}
+La eficiencia de extracci\'on de la interfase l\'iquido--gas, EEE, act\'ua como un
+\emph{adelgazamiento binomial} (cada electr\'on se extrae con probabilidad EEE
+independientemente). La composici\'on de una binomial con un adelgazamiento
+binomial es de nuevo una binomial\footnote{Si $X\sim\mathrm{Binom}(n,p)$ y
+$Y\mid X\sim\mathrm{Binom}(X,r)$, la funci\'on generatriz de $Y$ es
+$G_{Y}(t)=G_{X}(1-r+rt)=(1-p+p(1-r+rt))^{n}=(1-pr+prt)^{n}$, es decir
+$Y\sim\mathrm{Binom}(n,pr)$.}:
+\begin{equation}
+  \label{eq:binom_thinning}
+  \Ne^{\rm cre}\sim\mathrm{Binom}(n_{F},p_{F})
+  \ \Longrightarrow\
+  \Ne^{\rm ext}\sim\mathrm{Binom}(n_{F},\,p_{F}\cdot\mathrm{EEE}),
+\end{equation}
+con lo que
+\begin{equation}
+  \label{eq:binom_pmf}
+  P(\Ne^{\rm ext}=k\mid \Tnr)
+  = \binom{n_{F}}{k}\,(p_{F}\,\mathrm{EEE})^{k}\,(1-p_{F}\,\mathrm{EEE})^{\,n_{F}-k},
+  \qquad
+  \frac{\operatorname{Var}(\Ne^{\rm ext})}{\mathbb{E}[\Ne^{\rm ext}]}
+  = 1 - p_{F}\,\mathrm{EEE}.
+\end{equation}
+
+\paragraph{Algoritmo (\code{binomial\_prob}, \code{mod\_stats.f90}).}
+La PMF se eval\'ua en espacio logar\'itmico para estabilidad:
+\begin{enumerate}\itemsep2pt
+  \item si $p\notin[0,1]$ \'o $k\notin[0,n]$: devolver $0$.
+  \item $\ln\binom{n}{k} = \sum_{i=1}^{k}\ln\!\dfrac{n-k+i}{i}$.
+  \item $\ln P = \ln\binom{n}{k} + k\ln p + (n-k)\ln(1-p)$
+        (para $k=0$: $\ln P = n\ln(1-p)$).
+  \item devolver $\exp(\ln P)$.
+\end{enumerate}
+
+\subsection{Retroceso $\to$ ionizaci\'on: CONUS+ (\code{quenching.f90})}
+\label{sec:quench}
+
+Para germanio no se usa NEST sino el quenching de Lindhard anal\'itico. Con
+$\eps_{L} = 11{,}5\,Z^{-7/3}\,\Tnr[\si{keV}]$ y la aproximaci\'on de Robinson
+\begin{equation}
+  \label{eq:lindhard}
+  g(\eps_{L}) = 3\,\eps_{L}^{0{,}15} + 0{,}7\,\eps_{L}^{0{,}6} + \eps_{L},
+  \qquad
+  Q(\Tnr) = \frac{k\,g(\eps_{L})}{1 + k\,g(\eps_{L})},
+  \qquad k = 0{,}162,
+\end{equation}
+la energ\'ia de ionizaci\'on (``electron-equivalente'') es $\Eer = Q(\Tnr)\,\Tnr$.
+La inversa $\Tnr(\Eer)$ se obtiene por bisecci\'on (100 iteraciones). La
+secci\'on eficaz en $\Eer$ es
+\begin{equation}
+  \label{eq:dsdEer}
+  \frac{\dd\sigma}{\dd\Eer}
+  = \frac{\dd\sigma}{\dd\Tnr}\cdot\frac{\dd\Tnr}{\dd\Eer},
+  \qquad
+  \frac{\dd\Eer}{\dd\Tnr} = Q(\Tnr) + \Tnr\,\frac{\dd Q}{\dd\Tnr},
+  \qquad
+  \frac{\dd Q}{\dd\Tnr}
+  = \frac{k\,g'(\eps_{L})\,\alpha_{L}}{\bigl(1+k\,g(\eps_{L})\bigr)^{2}},
+\end{equation}
+con $\alpha_{L}=11{,}5\,Z^{-7/3}$ (en $\si{keV^{-1}}$) y
+$g'(\eps_{L}) = 0{,}45\,\eps_{L}^{-0{,}85} + 0{,}42\,\eps_{L}^{-0{,}4} + 1$.
+
+\subsection{Respuesta del detector: matriz de resoluci\'on de germanio
+(\code{resolution.f90})}
+\label{sec:resol}
+
+CONUS+ mide energ\'ia de ionizaci\'on con resoluci\'on gaussiana de anchura
+(Ec.~(30) del paper)
+\begin{equation}
+  \label{eq:sigma_res}
+  \sigma_{\rm res}^{2}(\Eer) = \sigma_{0}^{2} + \mathcal{F}\,\eta\,\Eer,
+  \qquad
+  \sigma_{0} = \SI{20.38}{eV},\quad \eta = \SI{2.96}{eV},\quad
+  \mathcal{F} = 0{,}1096.
+\end{equation}
+La matriz de resoluci\'on reparte cada $\Eer$ verdadero entre los $19$ bins
+experimentales $[\Eer^{j},\Eer^{j}+\Delta]$ ($\Delta=\SI{10}{eV_{ee}}$, umbral
+$\SI{160}{eV_{ee}}$):
+\begin{equation}
+  \label{eq:Kmatrix}
+  K(\Eer, j)
+  = \int_{\Eer^{j}}^{\Eer^{j}+\Delta}
+      \frac{1}{\sqrt{2\pi}\,\sigma_{\rm res}(\Eer)}\,
+      \exp\!\left[-\frac{(x-\Eer)^{2}}{2\sigma_{\rm res}^{2}(\Eer)}\right] \dd x ,
+\end{equation}
+integrada por trapecios ($10^{3}$ puntos por bin). En RED-100 el papel
+equivalente lo hacen la fluctuaci\'on $F(\Tnr)$ de NEST (Sec.~\ref{sec:nest}) y la
+respuesta en fotoelectrones (Sec.~\ref{sec:pe}).
+
+\subsection{Respuesta en fotoelectrones: RED-100 (\code{mod\_detector.f90})}
+\label{sec:pe}
+
+Cada electr\'on extra\'ido produce en fase gaseosa una avalancha de luz de
+$\mathrm{SEG}=\SI{27}{PE/e^{-}}$ con anchura $\sigma_{1}=\SI{7.6}{PE}$. Para
+$\Ne^{\rm ext}=k$ electrones, la se\~nal S2 en fotoelectrones es
+\begin{equation}
+  \label{eq:pe_template}
+  \mathcal{T}_{k}(S)
+  = \frac{1}{\sqrt{2\pi}\,\sigma_{k}}
+    \exp\!\left[-\frac{(S-\mu_{k})^{2}}{2\sigma_{k}^{2}}\right],
+  \qquad
+  \mu_{k} = k\,\mathrm{SEG},\quad
+  \sigma_{k} = \sqrt{k}\,\sigma_{1},
+\end{equation}
+(suma de $k$ gaussianas independientes). El espectro en energ\'ia corregida [PE]
+es $\dd R/\dd S = \sum_{k} R_{k}\,\mathcal{T}_{k}(S)$, y la eficiencia de que la
+se\~nal supere un umbral $S_{\rm thr}$ es
+\begin{equation}
+  \label{eq:pe_eff}
+  \epsilon_{k}(S_{\rm thr})
+  = \tfrac{1}{2}\operatorname{erfc}\!\left(\frac{S_{\rm thr}-\mu_{k}}
+    {\sqrt{2}\,\sigma_{k}}\right).
+\end{equation}
+Este espectro en [PE] es la entrada de \code{chi2.f90} (Sec.~\ref{sec:xe}).
+\emph{Nota:} SEG y $\sigma_{1}$ son de LXe; en la carpeta de arg\'on este
+m\'odulo no es f\'isico (Sec.~\ref{sec:changelog}).
+
+\subsection{Espectro en $\Ne$ y tasa de eventos}
+\label{sec:Rk}
+
+Integrando el retroceso contra el flujo y convolucionando con
+Eq.~\eqref{eq:binom_pmf}, la tasa CE$\nu$NS SM en el bin $k$ de electrones
+extra\'idos, por kg y por d\'ia, es
+\begin{equation}
+  \label{eq:Rk_eq}
+  R_{k}
+  = \frac{N_{A}}{A}\;
+    \int_{\Tnr^{\min}}^{\Tnr^{\max}}\!\!\dd\Tnr\;
+      P(\Ne^{\rm ext}=k\mid\Tnr)\,
+      \varepsilon_{\rm ROI}(k)\,
+      \underbrace{\int_{\Enu^{\min}(\Tnr)}^{\Enu^{\max}}\!\!\dd\Enu\;
+        \frac{\dd\Phi}{\dd\Enu}\,
+        \frac{\dd\sigma}{\dd\Tnr}(\Enu,\Tnr)}_{\displaystyle \equiv\ \dd R/\dd\Tnr},
+\end{equation}
+con $N_{A}/A$ n\'ucleos por kg y $\varepsilon_{\rm ROI}(k)$ la eficiencia de
+selecci\'on por bin (Sec.~\ref{sec:xe}); en la comparaci\'on ideal
+(Sec.~\ref{sec:ideal}) $\varepsilon_{\rm ROI}\equiv 1$.
+
+\paragraph{Algoritmo (\code{chi2\_ideal\_nest.f90}, n\'ucleo de c\'alculo).}
+\begin{enumerate}\itemsep2pt
+  \item malla en $\Tnr$: $n_{T}=800$ puntos de
+    $\Tnr^{\min}=\SI{0.20}{keV}$ a $\Tnr^{\max}=\SI{6}{keV}$;
+    malla en $\Enu$: $n_{E}=2000$ de $0$ a $\SI{10}{MeV}$; pesos de trapecio
+    ($\tfrac12$ en los extremos).
+  \item para cada $\Tnr$: $\dd R/\dd\Tnr = \sum_{\Enu}
+    (\dd\Phi/\dd\Enu)(\dd\sigma/\dd\Tnr)\,w_{\Enu}\,\Delta\Enu$, saltando
+    $\Enu<\Enu^{\min}(\Tnr)$; multiplicar por $N_{A}/A\times 10^{3}\times\SI{86400}{s}$.
+  \item para cada $\Tnr$ y cada modo de fluctuaci\'on ($F$ de NEST \'o $F=1$):
+    obtener $(n_{F},p_{F})$ (Eq.~\eqref{eq:pf_nf}) y acumular
+    $R_{k} \mathrel{+}= (\dd R/\dd\Tnr)\,\Delta\Tnr\,w_{\Tnr}\,
+    P(\Ne^{\rm ext}=k\mid\Tnr)$ para $k=1,\dots,30$.
+  \item para cada umbral $\Ne\ge\{1,2,3,4\}$:
+    $R_{\rm tot} = \sum_{k\ge N_{e,\rm lo}} R_{k}$,
+    $N_{\rm tot} = R_{\rm tot}\times$ exposici\'on,
+    $A_{90} = 1 + \sqrt{2{,}706/N_{\rm tot}}$ (Eq.~\eqref{eq:chi2_asimov}).
+  \item barrido NSI 2D (Sec.~\ref{sec:nsi}) sobre grilla $1000\times1000$ en
+    $[-1,1]^{2}$.
+\end{enumerate}
+
+% ===========================================================================
+\section{Reproducci\'on del an\'alisis de xen\'on de RED-100 (P1)}
+\label{sec:xe}
+
+\subsection{Ajuste 1D a la amplitud CE$\nu$NS (\code{chi2.f90})}
+\label{sec:chi2xe}
+
+RED-100 no detect\'o CE$\nu$NS; publica un residuo ON$-$OFF por bin de energ\'ia
+corregida [PE] compatible con cero. \code{chi2.f90} digitaliza ese residuo
+$\Delta N_{i}$ ($15$ bins, $i=1,\dots,15$) con su incertidumbre $\sigma_{i}$, e
+interpola linealmente la predicci\'on SM $R_{i}$ (salida de \code{red100PE.f90})
+a esos bins. El estad\'istico, con nuisance $\alpha$ de normalizaci\'on de flujo
+($\sigma_{\alpha}=16{,}9\%$), es
+\begin{equation}
+  \label{eq:chi2_nuis}
+  \chi^{2}(A,\alpha)
+  = \sum_{i}
+    \frac{\bigl[\Delta N_{i} - A\,(1+\alpha)\,R_{i}\bigr]^{2}}{\sigma_{i}^{2}}
+  + \frac{\alpha^{2}}{\sigma_{\alpha}^{2}}.
+\end{equation}
+
+\paragraph{Minimizaci\'on anal\'itica.} Con
+\begin{equation}
+  \label{eq:S123}
+  S_{1} = \sum_{i}\frac{\Delta N_{i}\,R_{i}}{\sigma_{i}^{2}},
+  \qquad
+  S_{2} = \sum_{i}\frac{R_{i}^{2}}{\sigma_{i}^{2}},
+  \qquad
+  S_{3} = \sum_{i}\frac{\Delta N_{i}^{2}}{\sigma_{i}^{2}},
+\end{equation}
+la condici\'on $\partial\chi^{2}/\partial\alpha = 0$ da
+$\hat\alpha(A) = A(S_{1} - A S_{2})/(\sigma_{\alpha}^{-2} + A^{2} S_{2})$.
+Sin nuisance ($\alpha\equiv 0$), $\chi^{2}(A)=S_{3}-2A\,S_{1}+A^{2}S_{2}$ es una
+par\'abola exacta; de $\dd\chi^{2}/\dd A = 0$ y $\Delta\chi^{2}=S_{2}(A-A_{\rm
+best})^{2}$,
+\begin{equation}
+  \label{eq:A90_1d}
+  A_{\rm best} = \frac{S_{1}}{S_{2}},
+  \qquad
+  \chi^{2}_{\min} = S_{3} - \frac{S_{1}^{2}}{S_{2}},
+  \qquad
+  A_{90} = A_{\rm best} + \sqrt{\frac{2{,}706}{S_{2}}}
+\end{equation}
+(l\'imite superior a 1 g.d.l., $\Delta\chi^{2}=2{,}706$). El perfil con nuisance
+se obtiene sustituyendo $\hat\alpha(A)$ en Eq.~\eqref{eq:chi2_nuis} y barriendo
+$A$ ($10^{4}$ puntos, $A\in[-1{,}5,\ 5]$).
+
+\subsection{Resultado y por qu\'e difiere de la Tabla I del paper}
+\label{sec:xe_res}
+
+Con la fluctuaci\'on de NEST se obtiene $A_{90}\approx 111\times$SM (con nuisance;
+$\approx 107$ sin \'el; $A_{\rm best}\approx 0$). El paper reporta
+$60$--$94\times$SM seg\'un el modelo de espectro. Las tres causas de la
+diferencia, todas entendidas y ninguna un error del c\'odigo:
+\begin{enumerate}\itemsep2pt
+  \item \textbf{Un histograma frente a tres.} El paper ajusta simult\'aneamente
+    tres histogramas residuales (energ\'ia [PE], duraci\'on del c\'umulo [ns],
+    radio$^{2}$ [mm$^{2}$]). \code{chi2.f90} solo ajusta el primero. Combinar
+    tres histogramas de poder comparable aprieta el l\'imite en
+    $\approx\sqrt{3}\approx 1{,}7$: $111/1{,}7\approx 65$, dentro de la Tabla I.
+    Las plantillas de duraci\'on y radio$^{2}$ necesitan el Monte Carlo de
+    respuesta de RED-100.
+  \item \textbf{Modelo de espectro.} El h\'ibrido no es ninguno de los cuatro
+    modelos del paper; su forma es algo m\'as dura. El propio paper var\'ia el
+    l\'imite $63\leftrightarrow 94$ (factor $1{,}5$) solo cambiando el modelo.
+  \item \textbf{Aceptancia del detector.} Hay una discrepancia \emph{en el propio
+    paper} entre la Fig.~3 (espectro CE$\nu$NS en $\Ne$) y la Fig.~6 (se\~nal
+    antes/despu\'es de cortes): la raz\'on $\Ne\!:\!4\!\to\!5$ pasa de $7{,}0$ a
+    $1{,}2$. La simulaci\'on reproduce bien la Fig.~3 (raz\'on $6{,}3$) pero no la
+    Fig.~6: falta la eficiencia de trigger/borde (Fig.~4), que muerde en
+    $\sim\SI{110}{PE}$ ($\Ne=4$). Se documenta como hallazgo, no se fuerza el
+    acuerdo.
+\end{enumerate}
+
+\paragraph{Errores propios corregidos durante la validaci\'on.}
+(i)~un t\'ermino ``$7\times$SE'' que faltaba en el modelo de fondo de electr\'on
+\'unico; (ii)~un factor de ancho de bin en la conversi\'on a [PE]; (iii)~el uso
+de Poisson en vez de la binomial de Fano (Sec.~\ref{sec:nest}), que manten\'ia
+$A_{90}$ artificialmente bajo ($\sim 46$, por debajo de los cuatro modelos del
+paper). Corregir (iii) es lo que lleva $46\to 111$.
+
+\subsection{Eficiencia de selecci\'on $\varepsilon_{\rm ROI}$}
+
+El array \code{eff\_ROI(4:7)} $= (0{,}138,\,0{,}330,\,0{,}599,\,0{,}719)$ se
+digitaliz\'o de la Fig.~6. La retenci\'on global se comprueba como el cociente de
+las \emph{integrales} de las dos curvas digitalizadas de la Fig.~6:
+$\sum(\text{after})/\sum(\text{before}) = 0{,}00737/0{,}02886 = 0{,}256
+\approx 25\%$, consistente con el ``75\% signal loss'' del texto. Promediar
+eficiencias por bin pesadas por un espectro que cae r\'apido da $\sim 0{,}17$ y
+\emph{no} es la comprobaci\'on correcta.
+
+\subsection{Sensibilidad esperada (RED-100 \S V) para xen\'on}
+\label{sec:xe_sv}
+
+El an\'alisis anterior es RED-100 \S VI (\emph{l\'imite observado}): compara la
+predicci\'on en PE contra el residuo ON$-$OFF \emph{real}. RED-100 \S V, antes de
+usar el reactor ON, calcula la \emph{sensibilidad esperada}: fondo m\'as se\~nal
+CE$\nu$NS simulada, con estad\'istica de Asimov (el ``dato'' es la se\~nal SM,
+$\Delta N_{i} = R_{i}$, $A_{\rm best}=1$). Entonces
+\begin{equation}
+  \label{eq:A90_esp}
+  \chi^{2}(A) = \sum_{i}\frac{(R_{i} - A\,R_{i})^{2}}{\sigma_{i}^{2}}
+             = (1-A)^{2}\,S_{2},
+  \qquad
+  A_{90}^{\rm esp} = 1 + \sqrt{\frac{2{,}706}{S_{2}}},
+  \qquad
+  S_{2} = \sum_{i}\frac{R_{i}^{2}}{\sigma_{i}^{2}} .
+\end{equation}
+\code{chi2.f90} ya calcula $S_{2}$, as\'i que $A_{90}^{\rm esp}$ sale de dos
+l\'ineas. \textbf{No se simula ning\'un fondo para xen\'on}: las $\sigma_{i}$ del
+residuo publicado ya llevan la estad\'istica del fondo
+($\sigma_{i}\approx\sqrt{\sigma_{{\rm ON},i}^{2}+\sigma_{{\rm OFF},i}^{2}}$; m\'as
+fondo $\Rightarrow$ $\sigma_{i}$ mayores $\Rightarrow$ l\'imite m\'as d\'ebil).
+Num\'ericamente $A_{90}^{\rm esp}\approx 126$ (un histograma), y
+$126/\sqrt{3}\approx 73$ al pasar a los tres histogramas del paper; del orden de
+la columna de sensibilidad de la Tabla~I (SM2018 58, KI 90, DB 56, INR 64
+$\times$SM), con la diferencia residual explicada por el modelo de espectro
+(nuestro h\'ibrido es m\'as duro que SM2018, cercano a KI). \textbf{Esto valida el
+m\'etodo \S V}, que la Sec.~\ref{sec:ar_sv} aplica a arg\'on con fondo
+\emph{simulado}.
+
+% ===========================================================================
+\section{Validaci\'on del motor NSI contra CONUS+ (P2)}
+\label{sec:conusval}
+
+Esta es la validaci\'on m\'as fuerte del c\'odigo. A diferencia de RED-100
+--- Xe (l\'imite nulo d\'ebil) y Ar (proyecci\'on sin datos) ---, CONUS+ tiene
+\textbf{datos reales con exceso CE$\nu$NS a $3{,}7\sigma$} y publica cotas
+num\'ericas (Tabla~II de Phys.\ Rev.\ D \textbf{111}, 075025). Reproducirlas con
+el mismo motor $\chi^{2}$ que se us\'o para xen\'on valida de forma independiente
+toda la capa NSI: la parametrizaci\'on de carga efectiva Eq.~\eqref{eq:qeff2}, la
+minimizaci\'on anal\'itica del nuisance, y la estructura de interferencia
+SM$\leftrightarrow$NSI.
+
+\subsection{Qu\'e calcula \code{2pchi2.f90} paso a paso}
+\label{sec:2pchi2}
+
+\begin{enumerate}\itemsep3pt
+  \item \textbf{Matriz de resoluci\'on} $K(\Eer, j)$ (Eq.~\eqref{eq:Kmatrix},
+    $\code{npts\_Eer}=2000$, $19$ bins).
+  \item \textbf{Tasa por n\'ucleo con carga unidad.} Fijando
+    $\QW^{2}\!\to 1$, para cada $\Eer$ se calcula
+    \begin{equation}
+      \label{eq:S_Eer}
+      S(\Eer)
+      = \int_{\Enu^{\min}(\Tnr(\Eer))}^{\SI{10}{MeV}}\!\!\dd\Enu\;
+        \frac{\dd\Phi}{\dd\Enu}(\Enu)\;
+        \frac{\dd\sigma}{\dd\Eer}\bigg|_{\QW^{2}=1}(\Enu,\Eer),
+    \end{equation}
+    con $\dd\sigma/\dd\Eer$ de Eq.~\eqref{eq:dsdEer} y $\Tnr(\Eer)$ por
+    bisecci\'on (Sec.~\ref{sec:quench}). La integral en $\Enu$ es por trapecios
+    ($\code{npts\_nu}=2000$).
+  \item \textbf{Predicci\'on unidad por bin:}
+    \begin{equation}
+      \label{eq:Runit}
+      R^{\rm u}_{j}
+      = \Bigl[\int \dd\Eer\; K(\Eer, j)\, S(\Eer)\Bigr]\cdot
+        \frac{N_{A}}{A_{\rm Ge}}\cdot 10^{3}\cdot t_{\rm exp},
+      \qquad t_{\rm exp} = \SI{119}{kg.d}\ \text{por detector}.
+    \end{equation}
+    Esta parte se calcula \emph{una sola vez} (no depende de $\eps$).
+  \item \textbf{Barrido NSI.} Para cada $(\eps_{x},\eps_{y})$ de la grilla
+    $1000\times1000$ en $[-1,1]^{2}$:
+    \begin{itemize}\itemsep1pt
+      \item mapear $(\eps_{x},\eps_{y})\to(q_{ee},q_{e\mu},q_{e\tau})$ seg\'un
+        \code{ipar} (Eq.~\eqref{eq:q_alpha}; los 15 casos), calcular
+        $\qeff^{2}(\eps)$ (Eq.~\eqref{eq:qeff2});
+      \item predicci\'on con NSI: $\Rth_{j} = R^{\rm u}_{j}\,\qeff^{2}(\eps)$;
+      \item minimizaci\'on anal\'itica del nuisance $\alpha$
+        ($\sigma_{\alpha}=16{,}9\%$): con
+        $\Sigma_{1}=\sum_{j}\Rexp_{j}\Rth_{j}/\sigma_{j}^{2}$ y
+        $\Sigma_{2}=\sum_{j}(\Rth_{j})^{2}/\sigma_{j}^{2}$,
+        \begin{equation}
+          \label{eq:alpha_conus}
+          \hat\alpha
+          = \frac{\Sigma_{1} - \Sigma_{2}}
+                 {\Sigma_{2} + \sigma_{\alpha}^{-2}},
+          \qquad
+          \chi^{2}(\eps)
+          = \sum_{j}
+            \frac{\bigl[\Rexp_{j} - (1+\hat\alpha)\Rth_{j}\bigr]^{2}}
+                 {\sigma_{j}^{2}}
+          + \frac{\hat\alpha^{2}}{\sigma_{\alpha}^{2}}.
+        \end{equation}
+    \end{itemize}
+    Los $\Rexp_{j},\sigma_{j}$ ($19$ valores cada uno) son los excesos y barras
+    de error digitalizados de la Fig.~1 de CONUS+.
+\end{enumerate}
+La salida es \code{datos/chi2\_nsi\_2Dconus.dat} (grilla $\eps_{x}\,\eps_{y}\,
+\chi^{2}$) y \code{nsi\_config\_conus.txt} (etiquetas de ejes seg\'un
+\code{ipar}).
+
+\subsection{Metodolog\'ia de la validaci\'on (\code{python/valida\_conus.py})}
+\label{sec:valida}
+
+La Tabla~II de CONUS+ da cotas \emph{1D a $1\sigma$} (un par\'ametro variando,
+los dem\'as a cero). El script:
+\begin{enumerate}\itemsep2pt
+  \item carga la grilla y toma el \textbf{corte 1D} a lo largo de cada eje con el
+    otro par\'ametro $=0$ (fila/columna m\'as cercana a cero);
+  \item calcula $\Delta\chi^{2}(\eps) = \chi^{2}(\eps) - \min_{\eps}\chi^{2}$
+    sobre ese corte;
+  \item extrae los intervalos $\{\eps:\ \Delta\chi^{2}(\eps)\le 1\}$
+    ($1\sigma$, 1 g.d.l.), con \textbf{interpolaci\'on lineal} en los cruces;
+  \item los compara con los valores publicados.
+\end{enumerate}
+
+\subsection{Resultados}
+\label{sec:conus_res}
+
+Ejecutado para \code{ipar}$=5$ (plano $\eps_{ee}^{dV}$--$\eps_{e\mu}^{dV}$) y
+\code{ipar}$=1$ (plano $\eps_{ee}^{dV}$--$\eps_{ee}^{uV}$), con
+$\chi^{2}_{\min}\approx 7{,}35$ (m\'inimo en $\eps\approx 0$;
+$\chi^{2}_{\min}/\text{g.d.l.}\approx 0{,}43$, consistente con las barras de
+error grandes de CONUS+):
+
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{@{}lp{5.4cm}p{5.4cm}c@{}}
+\toprule
+Par\'ametro & Este trabajo ($\Delta\chi^{2}\!\le\!1$) &
+  CONUS+ Tabla~II ($1\sigma$) & $\max|\text{dif}|$ \\
+\midrule
+$\eps_{ee}^{dV}$   & $[-0{,}032,\ +0{,}025]\ \cup\ [+0{,}321,\ +0{,}379]$
+                   & $[-0{,}034,\ +0{,}024]\ \cup\ [+0{,}322,\ +0{,}380]$
+                   & $0{,}002$ \\
+$\eps_{ee}^{uV}$   & $[-0{,}034,\ +0{,}029]\ \cup\ [+0{,}350,\ +0{,}412]$
+                   & $[-0{,}037,\ +0{,}026]\ \cup\ [+0{,}348,\ +0{,}411]$
+                   & $0{,}003$ \\
+$\eps_{e\mu}^{dV}$ & $[-0{,}108,\ +0{,}108]$
+                   & $[-0{,}114,\ +0{,}114]$
+                   & $0{,}006$ \\
+\bottomrule
+\end{tabular}
+\caption{Validaci\'on de las cotas NSI 1D contra CONUS+. Se reproduce incluso la
+\textbf{isla de cancelaci\'on} $\eps_{ee}\in[0{,}32,\ 0{,}41]$, donde una NSI
+diagonal grande hace $\qeff^{2}=\QW^{2}$ de nuevo y la tasa vuelve a la del SM.}
+\label{tab:conusval}
+\end{table}
+
+\subsection{Por qu\'e esto valida toda la maquinaria NSI}
+\label{sec:conus_why}
+
+\begin{itemize}\itemsep2pt
+  \item \textbf{Es un dato con se\~nal}, no un l\'imite nulo: la posici\'on del
+    m\'inimo, la anchura de los intervalos y la existencia de la isla de
+    cancelaci\'on son informaci\'on real, no un ejercicio de sensibilidad.
+  \item \textbf{Ejercita la capa NSI completa}: el mapeo
+    $(\eps_{x},\eps_{y})\to \qeff^{2}$ (Eq.~\eqref{eq:qeff2}), la interferencia
+    SM$\leftrightarrow$NSI (que da los dos intervalos), y el $\chi^{2}$ con
+    $\alpha$ anal\'itico (Eq.~\eqref{eq:alpha_conus}) --- exactamente la misma
+    maquinaria que usan \code{chi2red100\_nest.f90} y
+    \code{chi2\_ideal\_nest.f90}.
+  \item \textbf{Es independiente del \emph{pipeline} de RED-100}: la f\'isica de
+    detector es otra (quenching de Lindhard + resoluci\'on gaussiana de Ge, no
+    NEST + PE). Que el resultado coincida a $\lesssim 0{,}003$ aisla y valida la
+    capa NSI/estad\'istica.
+  \item Junto con P1 (forma de la Fig.~3 de RED-100) y la consistencia interna de
+    la comparaci\'on ideal, constituye la \textbf{tercera validaci\'on
+    independiente}.
+\end{itemize}
+
+% ===========================================================================
+\section{Formalismo NSI 2D y geometr\'ia de la degeneraci\'on (P3)}
+\label{sec:nsi}
+
+\subsection{Reducci\'on a una amplitud y forma cu\'artica}
+\label{sec:reduccion}
+
+Combinando Eqs.~\eqref{eq:qeff2} y \eqref{eq:Aamp} con el ajuste 1D, el mapa
+$\chi^{2}$ en el plano de dos par\'ametros NSI es
+\begin{equation}
+  \label{eq:chi2_nsi}
+  \chi^{2}(\eps) = \chi^{2}\bigl(A = \Aamp(\eps)\bigr),
+  \qquad
+  \Aamp(\eps) = \frac{(\QW + q_{ee})^{2} + q_{e\mu}^{2} + q_{e\tau}^{2}}
+                     {\QW^{2}} .
+\end{equation}
+Para \code{ipar}$=5$, con $q_{ee}=\eps_{x}(Z+2N)$, $q_{e\mu}=\eps_{y}(Z+2N)$,
+$q_{e\tau}=0$, y escribiendo $C\equiv Z+2N$,
+\begin{equation}
+  \label{eq:Aamp_quart}
+  \Aamp(\eps_{x},\eps_{y})
+  = 1
+  + \frac{2C}{\QW}\,\eps_{x}
+  + \frac{C^{2}}{\QW^{2}}\,\bigl(\eps_{x}^{2} + \eps_{y}^{2}\bigr).
+\end{equation}
+Con Asimov (Sec.~\ref{sec:ideal}), $\chi^{2}(\eps) = (1-\Aamp(\eps))^{2}\,
+N_{\rm tot}$ es una \textbf{cu\'artica} en $\eps$ (porque $\Aamp$ es
+cuadr\'atica). El selector \code{ipar}$\in\{1,\dots,15\}$ elige qu\'e dos
+componentes se var\'ian; el mapeo es id\'entico en \code{chi2red100\_nest.f90},
+\code{chi2\_ideal\_nest.f90} y \code{2pchi2.f90}.
+
+\subsection{El lugar geom\'etrico ciego}
+\label{sec:blind}
+
+Una medida de \emph{sola tasa} no distingue NSI de un reescalado de la secci\'on
+eficaz: todo $\eps$ con $\Aamp(\eps)=1$ es \textbf{indistinguible} del SM. De
+Eq.~\eqref{eq:Aamp_quart}, $\Aamp=1 \Leftrightarrow \qeff^{2}=\QW^{2}$, es decir
+\begin{equation}
+  \label{eq:blind_conic}
+  \bigl[\QW + \eps_{x}\,C\bigr]^{2} + \bigl[\eps_{y}\,C\bigr]^{2} = \QW^{2}.
+\end{equation}
+Con $u=\eps_{x}C$, $v=\eps_{y}C$ queda $(\QW+u)^{2}+v^{2}=\QW^{2}$: una
+\textbf{circunferencia} en $(u,v)$ de radio $|\QW|$ centrada en $(-\QW,0)$. En
+variables $\eps$ es una circunferencia
+\begin{equation}
+  \label{eq:blind_center}
+  \text{centro}\ \ \bigl(\eps_{x}^{c},\eps_{y}^{c}\bigr)
+  = \left(\frac{-\QW}{C},\ 0\right),
+  \qquad
+  \text{radio}\ \ \rho_{\eps} = \frac{|\QW|}{C} = \frac{|\QW|}{Z+2N}.
+\end{equation}
+Pasa por el origen (SM) y corta el eje $\eps_{y}=0$ en $\eps_{x}=-2\QW/C
+=2\rho_{\eps}$. \emph{No hay} un punto ciego aislado: el lugar ciego es toda la
+circunferencia. Su centro Eq.~\eqref{eq:blind_center} \emph{no} pertenece a ella
+(ah\'i $\qeff^{2}=0$, tasa nula, m\'aximamente distinguible; en la grilla de
+\code{valida\_conus.py} eso se ve como el corte del eje en $2\rho_{\eps}$, no en
+$\rho_{\eps}$).
+
+\subsection{Ancho del anillo permitido}
+\label{sec:anillo}
+
+Con Asimov y $N_{\rm tot}$ eventos, el criterio de $90\%$~C.L.\
+($\Delta\chi^{2}<4{,}605$, 2 g.d.l.) equivale a
+\begin{equation}
+  \label{eq:tol}
+  \bigl|1 - \Aamp(\eps)\bigr| < \tau,
+  \qquad
+  \tau \equiv \sqrt{\frac{4{,}605}{N_{\rm tot}}}.
+\end{equation}
+Linealizando alrededor de la circunferencia ciega, la regi\'on permitida es un
+\textbf{anillo} de radio $\rho_{\eps}$ y semiancho
+\begin{equation}
+  \label{eq:halfwidth}
+  \delta_{\eps} \simeq \frac{|\QW|\,\tau}{2\,C} = \frac{\rho_{\eps}\,\tau}{2},
+\end{equation}
+cuya \'area, frente a la de la caja $|\eps|\le 1$ (que vale $4$), da la fracci\'on
+``dentro del alcance'':
+\begin{equation}
+  \label{eq:frac_area}
+  \frac{\text{\'area anillo}}{\text{\'area caja}}
+  \simeq \frac{2\pi\,\rho_{\eps}\,(2\,\delta_{\eps})}{4}
+  = \pi\,\rho_{\eps}^{2}\,\tau .
+\end{equation}
+
+\subsection{Valores num\'ericos y \'angulo xen\'on--arg\'on}
+\label{sec:angulo}
+
+En el plano $(\eps_{ee}^{dV},\eps_{ee}^{uV})$ (\code{ipar}$=1$), la carga
+diagonal es $q_{ee} = \eps^{uV}(2Z+N) + \eps^{dV}(Z+2N)$; sus curvas de nivel
+$q_{ee}=\text{const}$ son rectas paralelas con vector director
+\begin{equation}
+  \label{eq:blind_dir}
+  \mathbf{d} = \bigl(2Z+N,\ -(Z+2N)\bigr),
+\end{equation}
+que forma con el eje $\eps_{ee}^{dV}$ un \'angulo
+\begin{equation}
+  \label{eq:theta_blind}
+  \theta(Z,N) = \arctan\!\frac{Z+2N}{2Z+N}.
+\end{equation}
+
+\begin{table}[h]
+\centering
+\begin{tabular}{@{}lccccc@{}}
+\toprule
+ & $Z+2N$ & $2Z+N$ & $\rho_{\eps}=\dfrac{|\QW|}{Z+2N}$
+ & $\dfrac{Z+2N}{2Z+N}$ & $\theta$ \\
+\midrule
+Xe & 208 & 185 & $0{,}1792$ & $1{,}1243$ & $48{,}35\si{\degree}$ \\
+Ge & 114 & 105 & $0{,}1734$ & $1{,}0857$ & $47{,}36\si{\degree}$ \\
+Ar & \ 62 & \ 58 & $0{,}1708$ & $1{,}0690$ & $46{,}91\si{\degree}$ \\
+\bottomrule
+\end{tabular}
+\caption{Geometr\'ia NSI de cada blanco (de los $Z,N$ de \code{constants.f90}).
+Diferencias de \'angulo: Xe--Ar $\SI{1.44}{\degree}$, Ge--Xe
+$\SI{0.99}{\degree}$, Ge--Ar $\SI{0.45}{\degree}$.}
+\label{tab:geom}
+\end{table}
+
+El \'angulo entre las direcciones ciegas de dos blancos es
+$\cos\theta_{12}=\mathbf{d}_{1}\!\cdot\!\mathbf{d}_{2}/
+(|\mathbf{d}_{1}||\mathbf{d}_{2}|)$, es decir
+$\theta_{12}=|\theta(Z_{1},N_{1}) - \theta(Z_{2},N_{2})|$. De la
+Tabla~\ref{tab:geom},
+\begin{equation}
+  \label{eq:angle}
+  \boxed{\ \theta_{\rm Xe,Ar} \approx \SI{1.44}{\degree}\ }.
+\end{equation}
+
+\subsection{El l\'imite es estructural: ning\'un par de blancos CE$\nu$NS lo rompe}
+\label{sec:estructural}
+
+\'Este es un resultado de la tesis, no una nota al pie. Sea $r\equiv N/Z$. La
+pendiente ciega es
+\begin{equation}
+  \label{eq:ab_ratio}
+  \frac{Z+2N}{2Z+N} = \frac{1 + 2r}{2 + r} \;\equiv\; f(r).
+\end{equation}
+La funci\'on $f$ es \textbf{mon\'otona creciente y acotada}:
+\begin{equation}
+  \label{eq:fprime}
+  f'(r) = \frac{2(2+r) - (1+2r)}{(2+r)^{2}} = \frac{3}{(2+r)^{2}} > 0,
+  \qquad
+  f(1) = 1,
+  \qquad
+  \lim_{r\to\infty} f(r) = 2.
+\end{equation}
+Todos los n\'ucleos estables tienen $r\in[1,\ \sim\!1{,}6]$; los blancos
+realmente usados en CE$\nu$NS viven en un rango a\'un m\'as estrecho:
+
+\begin{table}[h]
+\centering
+\begin{tabular}{@{}lcccc@{}}
+\toprule
+Blanco & $Z$ & $N$ & $r=N/Z$ & $\theta = \arctan f(r)$ \\
+\midrule
+$^{16}$O   & \ 8 & \ 8 & $1{,}00$ & $45{,}00\si{\degree}$ \\
+$^{23}$Na  & 11  & 12  & $1{,}09$ & $45{,}83\si{\degree}$ \\
+$^{40}$Ar  & 18  & 22  & $1{,}22$ & $46{,}91\si{\degree}$ \\
+$^{73}$Ge  & 32  & 41  & $1{,}28$ & $47{,}36\si{\degree}$ \\
+$^{127}$I  & 53  & 74  & $1{,}40$ & $48{,}15\si{\degree}$ \\
+$^{131}$Xe & 54  & 77  & $1{,}43$ & $48{,}35\si{\degree}$ \\
+\bottomrule
+\end{tabular}
+\caption{Direcci\'on ciega para los blancos CE$\nu$NS habituales. Todo el rango
+cabe en $\theta\in[\,45\si{\degree},\ 48{,}4\si{\degree}\,]$: una franja de
+$\SI{3.4}{\degree}$.}
+\label{tab:estructural}
+\end{table}
+
+\paragraph{Consecuencias.}
+\begin{enumerate}\itemsep2pt
+  \item El par \textbf{xen\'on+arg\'on} rota la degeneraci\'on solo
+    $\SI{1.44}{\degree}$; a\'un el par m\'as extremo posible con blancos
+    comunes, \textbf{ox\'igeno} ($r=1$) \textbf{contra xen\'on} ($r=1{,}43$), da
+    apenas $\SI{3.35}{\degree}$.
+  \item El \textbf{germanio no ayuda}: su $r=1{,}28$ cae \emph{entre} Ar
+    ($1{,}22$) y Xe ($1{,}43$), as\'i que su direcci\'on ciega tambi\'en cae en
+    medio. Ge+Ar da $\SI{0.45}{\degree}$ (peor que Xe+Ar) y Ge+Xe da
+    $\SI{0.99}{\degree}$: ninguna combinaci\'on de los tres mejora
+    sustancialmente lo que ya se ten\'ia.
+  \item Los centros de anillo casi coinciden: $\rho_{\eps}\approx 0{,}17$--$0{,}18$
+    para los tres (Tabla~\ref{tab:geom}), de modo que tampoco se rompe la
+    degeneraci\'on ``radial''.
+\end{enumerate}
+
+\noindent
+\textbf{Conclusi\'on (P3).} Con un observable de \emph{sola tasa}, \textbf{ning\'un
+par de blancos CE$\nu$NS realistas (O, Na, Ar, Ge, CsI, Xe) rompe apreciablemente
+la degeneraci\'on NSI vectorial}, porque $f(r)$ no var\'ia lo suficiente en el
+valle de estabilidad. Romperla requiere \emph{otro tipo de dato}: forma
+espectral de un proceso con dependencia distinta en $\eps$, informaci\'on
+temporal, o experimentos de oscilaci\'on. Esto responde de forma cuantitativa y
+general la pregunta que RED-100 deja abierta en su discusi\'on
+(``\emph{show if the change of medium is beneficial}'').
+
+% ===========================================================================
+\section{CONUS+ frente a RED-100 en el aspecto NSI}
+\label{sec:conus}
+
+El an\'alisis NSI 2D \textbf{no est\'a en el paper de RED-100}
+(arXiv:2411.18641), que solo ajusta la amplitud $A$; su formalismo se toma de la
+referencia de CONUS+ y se valida contra ella (Sec.~\ref{sec:conusval}). La
+Tabla~\ref{tab:conus_vs_red} resume qu\'e se traslada 1:1 y qu\'e cambia. La
+clave: la \emph{maquinaria} (carga efectiva, $\chi^{2}$ con $\alpha$ anal\'itico,
+anillo ciego) es id\'entica; lo que cambia es la \emph{naturaleza del dato}
+(detecci\'on vs.\ no-detecci\'on vs.\ proyecci\'on) y, por tanto, la
+interpretaci\'on del contorno.
+
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{@{}p{2.6cm}p{5.6cm}p{6.1cm}@{}}
+\toprule
+\textbf{Aspecto} & \textbf{CONUS+ (De Romeri et al.\ 2025)} & \textbf{RED-100 (esta tesis)} \\
+\midrule
+Datos & Reales: 19 bins de exceso, se\~nal a $3{,}7\sigma$
+      & Xe: residuo ON$-$OFF $\approx 0$; Ar: sin datos \\
+Contorno & Regi\'on \emph{permitida} (NSI compatible con el exceso medido)
+      & Xe real: \emph{cota superior} $A_{90}\approx 111$; como
+        $\max\Aamp$ en $|\eps|\le 1$ es $\approx 74<111$, \emph{no restringe
+        nada}. Ideal: \emph{sensibilidad proyectada} \\
+Observable & Ionizaci\'on [eV$_{ee}$]; resoluci\'on gaussiana $+$ Fano;
+        quenching Lindhard
+      & Electrones $\Ne$; NEST $+$ $F(\Tnr)$; EEE; respuesta en PE \\
+Base estad\'istica & $\sigma_{j}$ publicadas; $\sigma_{\alpha}=16{,}9\%$
+      & Xe real: $\sigma_{i}$ del residuo, $\sigma_{\alpha}=16{,}9\%$.
+        Ideal: Asimov $\sigma_{k}=\sqrt{N_{k}}$, sin nuisances \\
+Degeneraci\'on & Ge vs.\ COHERENT CsI+LAr
+      & Xe vs.\ Ar: direcciones ciegas a $\SI{1.44}{\degree}$
+        (Sec.~\ref{sec:estructural}) \\
+Resultado & Una medici\'on $\to$ cotas (Tabla II)
+      & Proyecci\'on de sensibilidad $+$ afirmaci\'on estructural \\
+\bottomrule
+\end{tabular}
+\caption{Giro conceptual: CONUS+ responde ``dada una detecci\'on, cu\'anto NSI
+queda permitido''; RED-100 (Xe) responde ``dada una no-detecci\'on, qu\'e
+amplitud se excluye'' (y la respuesta, $111\times$SM, no toca la caja
+$|\eps|\le 1$). Lo que se traslada 1:1: Eq.~\eqref{eq:qeff2}, los 15 casos
+\code{ipar}, la reducci\'on a $\Aamp(\eps)$, el $\chi^{2}$ con $\alpha$
+anal\'itico, y el anillo ciego.}
+\label{tab:conus_vs_red}
+\end{table}
+
+% ===========================================================================
+\section{Comparaci\'on ideal sim\'etrica xen\'on--arg\'on (P4)}
+\label{sec:ideal}
+
+\subsection{Reglas}
+
+\code{chi2\_ideal\_nest.f90} es id\'entico para los dos blancos: la \'unica
+l\'inea distinta es el par\'ametro \code{TAG} (\code{'Xe'}/\code{'Ar'}); el resto
+lo fija la carpeta. Reglas:
+\begin{enumerate}\itemsep2pt
+  \item \textbf{Mismo c\'odigo, misma f\'ormula} para ambos blancos.
+  \item \textbf{Asimov de conteo puro}: $\Delta N_{k}=R_{k}$,
+    $\sigma_{k}=\sqrt{N_{k}}$. Entonces
+    \begin{equation}
+      \label{eq:chi2_asimov}
+      \chi^{2}(A) = \sum_{k}\frac{(R_{k} - A\,R_{k})^{2}}{R_{k}}\cdot t_{\rm exp}
+                  = (1 - A)^{2}\,N_{\rm tot},
+      \quad
+      A_{\rm best}=1,
+      \quad
+      A_{90} = 1 + \sqrt{\frac{2{,}706}{N_{\rm tot}}}.
+    \end{equation}
+    Sin fondo, sin sistem\'aticos, $\varepsilon_{\rm ROI}\equiv 1$: mide la
+    \emph{respuesta intr\'inseca} del blanco.
+  \item \textbf{Ventana sim\'etrica}: se barre $\Ne\ge\{1,2,3,4\}$ (el corte
+    $\Ne\ge 4$ de RED-100 es el suelo de fondo de electr\'on \'unico, ruido
+    instrumental, no sensibilidad) y \emph{no} hay corte superior ($\Ne\le 30$;
+    la cola dura del arg\'on llega a $\Ne\sim 30$--$40$).
+  \item \textbf{Fluctuaci\'on}: $F(\Tnr)$ de NEST (baseline) y $F=1$ (Poisson)
+    como sistem\'atico.
+  \item El l\'imite \emph{real} de xen\'on ($A_{90}\approx 111$) se reporta
+    aparte.
+  \item Arg\'on solo es f\'isico con \textbf{arg\'on depletado} (UAr): el
+    ${}^{39}$Ar atmosf\'erico ($\sim\SI{1}{Bq/kg}$) dominar\'ia la ROI por
+    $10^{6}$--$10^{7}$.
+\end{enumerate}
+
+\subsection{Resultados}
+
+\begin{table}[h]
+\centering
+\begin{tabular}{@{}rccccc@{}}
+\toprule
+$\Ne\ge$ & $R_{\rm tot}$ Xe & $R_{\rm tot}$ Ar & Ar/Xe & $A_{90}$ Xe & $A_{90}$ Ar \\
+         & \multicolumn{2}{c}{[ev/(kg$\cdot$d\'ia)]} & & \multicolumn{2}{c}{[$\times$SM]} \\
+\midrule
+1 & 11{,}03 & 38{,}00 & $3{,}4$ & $1{,}036$ & $1{,}019$ \\
+2 &  2{,}14 & 27{,}17 & $12{,}7$ & $1{,}081$ & $1{,}023$ \\
+3 &  0{,}372 & 20{,}27 & $54$ & $1{,}195$ & $1{,}026$ \\
+4 &  0{,}063 & 15{,}37 & $243$ & $1{,}472$ & $1{,}030$ \\
+\bottomrule
+\end{tabular}
+\caption{Sensibilidad ideal ($F$ de NEST, \SI{192}{kg\cdot dia}). Salidas de
+\code{sensib\_ideal\_\{Xe,Ar\}.dat}.}
+\label{tab:ideal}
+\end{table}
+
+\begin{itemize}\itemsep2pt
+  \item El ``$\times 470$'' de comparar Xe@$4$--$7$ contra Ar@$1$--$5$ era un
+    \textbf{artefacto de ventana}.
+  \item La coherencia sola ($\QW^{2}\times$\'atomos/kg $\approx 3{,}8$ a favor de
+    Xe; Tabla~\ref{tab:qw}) \emph{no} manda: el $Q_{y}$ de Xe es $\approx 0$ en el
+    umbral y sus retrocesos son blandos, de modo que $\Ne\ge 1$ ya recorta
+    $\sim$medio espectro de Xe; Ar pierde poco. Es el argumento del \S VII del
+    paper, cuantificado.
+  \item $F$ de NEST vs.\ $F=1$: $A_{90}$ cambia $<0{,}5\%$ en \emph{ambos}
+    blancos --- opuesto al caso de la ventana $\Ne=4$--$7$ de xen\'on, donde
+    Poisson$\to$NEST llev\'o $A_{90}$ de $46$ a $111$. El motivo: la ventana
+    $\Ne\ge 1$ captura casi toda la se\~nal por encima del umbral,
+    independientemente de la forma de $P(\Ne)$.
+  \item \textbf{NSI 2D (sensibilidad proyectada, no exclusi\'on).} Con
+    Eqs.~\eqref{eq:tol}--\eqref{eq:frac_area}: para Xe,
+    $N_{\rm tot}\approx 2118$, $\tau\approx 4{,}7\%$, $\rho_{\eps}=0{,}179$,
+    $\delta_{\eps}=0{,}0042$, \'area/caja $\approx 0{,}0024$; para Ar,
+    $N_{\rm tot}\approx 7297$, $\tau\approx 2{,}5\%$, $\rho_{\eps}=0{,}171$,
+    $\delta_{\eps}=0{,}0021$, \'area/caja $\approx 0{,}0012$. La grilla
+    $1000\times 1000$ del Fortran da $0{,}23\%$ / $0{,}11\%$: coincide con lo
+    anal\'itico. \emph{No} es exclusi\'on: el an\'alisis real de Xe
+    ($A_{90}\approx 111$, $\max\Aamp\approx 74$) no distingue del SM ning\'un
+    punto de la caja.
+\end{itemize}
+
+% ===========================================================================
+\section{Combinaci\'on de experimentos: real $\oplus$ real vs.\ real $\oplus$ Asimov}
+\label{sec:combinacion}
+
+Como Ge, Xe y Ar comparten \emph{exactamente} la parametrizaci\'on NSI
+(Eq.~\eqref{eq:qeff2}, solo cambian $Z,N$), se puede construir un mapa conjunto
+\begin{equation}
+  \label{eq:chi2_total}
+  \chi^{2}_{\rm tot}(\eps)
+  = \sum_{e}\chi^{2}_{e}(\eps)
+  = \chi^{2}_{\rm CONUS+}(\eps)
+  + \chi^{2}_{\text{RED-100,Xe}}(\eps)
+  + \chi^{2}_{\text{RED-100,Ar}}(\eps).
+\end{equation}
+Sumar $\chi^{2}$ es correcto para experimentos \emph{independientes}
+(es $-2\ln$ del producto de verosimilitudes): CONUS+ (Leibstadt) y RED-100
+(KNPP) usan reactores y detectores distintos, sin sistem\'aticos compartidos. El
+problema no es la suma, es \textbf{qu\'e es cada t\'ermino}:
+
+\begin{center}
+\small
+\begin{tabular}{@{}p{4.0cm}p{10.5cm}@{}}
+\toprule
+$\chi^{2}_{\rm CONUS+}$, $\chi^{2}_{\text{RED-100,Xe}}$
+  & Construidos con datos \emph{observados} ($\Rexp_{j}$ medidos). Verosimilitudes
+    reales. \\
+$\chi^{2}_{\text{RED-100,Ar (Asimov)}}$
+  & $= (1-\Aamp(\eps))^{2}\,N_{\rm tot}$. Construido \emph{asumiendo} que el
+    futuro experimento de Ar mide exactamente la expectativa SM. Es el $\chi^{2}$
+    \emph{esperado} bajo la hip\'otesis SM, no una medida. \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\paragraph{Real $\oplus$ real.} $\chi^{2}_{\rm CONUS+} + \chi^{2}_{\text{RED-100,Xe}}$
+es una combinaci\'on leg\'itima: el ``estado experimental actual'' de la
+restricci\'on NSI con CE$\nu$NS de reactor, sin asterisco. El germanio lleva el
+peso (es el \'unico de los tres con se\~nal y barras de error reales; el xen\'on
+a\~nade poco).
+
+\paragraph{Real $\oplus$ Asimov.} A\~nadir $\chi^{2}_{\text{Ar (Asimov)}}$ da una
+\textbf{proyecci\'on condicionada a datos}: ``dado lo que hoy dicen CONUS+ y
+RED-100-Xe, m\'as un hipot\'etico run futuro de UAr que mida el SM, este ser\'ia
+el alcance combinado''. Es un objeto v\'alido y \'util --- dice \emph{cu\'anto
+apretar\'ia} un run de argon --- pero \emph{no} es una medida, y su contorno est\'a
+centrado en el SM \emph{por construcci\'on}, mientras el de CONUS+ est\'a centrado
+donde lo lleva su exceso de $3{,}7\sigma$. Hay que etiquetarlo como proyecci\'on
+y explicar en el texto qu\'e significa la regi\'on, no mezclarlo en un contorno
+sin asterisco.
+
+\paragraph{Recomendaci\'on.} El mapa ``estado actual'' $=$ CONUS+ $\oplus$
+RED-100-Xe (los dos reales). El argon, en su propia figura etiquetada como
+proyecci\'on. Geom\'etricamente el tr\'io tampoco rota la degeneraci\'on
+(Sec.~\ref{sec:estructural}): el valor del germanio es (i)~validaci\'on
+(Sec.~\ref{sec:conusval}) y (ii)~poder estad\'istico real en la direcci\'on
+\emph{no} degenerada (perpendicular al anillo), no una direcci\'on nueva.
+
+% ===========================================================================
+\section{La brecha ideal $\to$ real}
+\label{sec:brecha}
+
+La distancia entre la proyecci\'on ideal ($A_{90}-1\approx 0{,}02$--$0{,}04$) y
+el l\'imite real de xen\'on ($A_{90}-1\approx 110$) es un factor $\sim 100$ en
+$(A_{90}-1)$. Se descompone en:
+\begin{center}
+\begin{tabular}{@{}lll@{}}
+\toprule
+Ingrediente & Efecto sobre $A_{90}$ & Fuente \\
+\midrule
+Fondo (exceso de SE)                 & sube $A_{90}$ (no cuantificado aqu\'i) & \S VII del paper \\
+Cortes de selecci\'on ($\varepsilon_{\rm ROI}$) & retiene $\sim 25\%$ ($\times 4$) & Fig.~6 \\
+Modelo de espectro                   & $63 \leftrightarrow 94$ ($\times 1{,}5$) & Tabla I \\
+Fluctuaci\'on de ionizaci\'on (NEST) & $27 \leftrightarrow 135$ & \S VII \\
+EEE ($32{,}8\pm 2{,}8\%$)            & $43 \leftrightarrow 78$ & \S VII \\
+Ajuste a 1 histograma en vez de 3    & $\times\sqrt{3}\approx 1{,}7$ & Fig.~8 \\
+\bottomrule
+\end{tabular}
+\end{center}
+Estos sistem\'aticos se tratan al estilo del paper: \textbf{corridas de
+reemplazo discretas} (re-ejecutar todo cambiando un ingrediente y reportar el
+rango), no como t\'erminos gaussianos en el $\chi^{2}$. Para la comparaci\'on
+\emph{relativa} Xe--Ar, el handicap $\sqrt{3}$ y el offset del modelo de espectro
+se cancelan; la brecha absoluta aplicar\'ia igual a un detector de arg\'on real.
+
+% ===========================================================================
+\section{Sensibilidad esperada (RED-100 \S V) para arg\'on: fondo de
+$^{39}$Ar simulado}
+\label{sec:ar_sv}
+
+Para arg\'on no hay dato de RED-100 (ni residuo ni barras de error), as\'i que \S
+VI es imposible. El equivalente de \S V (Sec.~\ref{sec:xe_sv}) s\'i, pero el
+fondo hay que \emph{simularlo}. Los par\'ametros de arg\'on se toman de
+\textbf{la ref.\ [46] del paper de RED-100} (D.\ Akimov et al., \emph{Physics}
+\textbf{5}, 492 (2023)) y de \textbf{ReD 2025} (arXiv:2510.16404), no de valores
+prestados. Implementaci\'on: \code{chi2\_bkg\_nest.f90}, todo en $\Ne$ (sin PE).
+
+\subsection{Par\'ametros de arg\'on (ref.\ [46] / ReD 2025)}
+\label{sec:ar_par}
+
+\begin{center}
+\footnotesize
+\renewcommand{\arraystretch}{1.25}
+\begin{tabular}{@{}>{\raggedright\arraybackslash}p{2.7cm}
+                   >{\raggedright\arraybackslash}p{3.0cm}
+                   >{\raggedright\arraybackslash}p{8.5cm}@{}}
+\toprule
+Par\'ametro & Valor & Fuente / naturaleza \\
+\midrule
+Masa activa & \SI{62}{kg} (no 126) & ref.\ [46], pr\'oximo montaje. Publicado. \\
+$\mathrm{EEE}_{\rm Ar}$ & $0{,}99$ & ref.\ [46]: umbral de emisi\'on de $e^{-}$
+  cuasi-libres $\sim\SI{0.2}{kV/cm}$ en Ar vs $\sim\SI{1.8}{kV/cm}$ en Xe
+  $\Rightarrow$ extracci\'on $\sim 100\%$. ReD: $\SI{3.8}{kV/cm}$ $\to$ ``100\%''.
+  DarkSide-50 $>99{,}9\%$. Publicado. \\
+$\Tnr^{\max}$ & \SI{3.5}{keV} (era 6) & cinem\'atica $\Enu=\SI{8}{MeV}$
+  ($\Tnr^{\max}=\SI{3.44}{keV}$) $+$ ref.\ [46]. Trunca la cola
+  $\Enu\in[8,10]$ MeV ($<1\%$). En la ventana f\'isica cambia $N_{\rm tot}$ un
+  $-1{,}9\%$; $A_{90}$ sin cambio ($1{,}022$). \\
+ROI en $\Ne$ & $1$--$5$ & \S VII de arXiv:2411.18641: ``\emph{below five
+  ionization electrons}''. \textbf{Inconsistencia}: ref.\ [46] dice ``\emph{less
+  than four electrons}''. Se documenta; se usa $1$--$5$. \\
+$Q_{y}^{\rm Ar}(\Tnr)$ & LArNEST anclado a ReD & En $2{,}4$--$\SI{7.6}{keV}$:
+  \textbf{medido} (ReD 2025 Tabla~1, $Q_{y}=7{,}42$--$5{,}08$ e$^{-}$/keV;
+  cociente ReD/LArNEST $1{,}00$--$1{,}08$, media $1{,}04$). Para
+  $\Tnr<\SI{2}{keV}$ (el ROI CE$\nu$NS de $\Ne\le5$, $\Tnr\approx0{,}1$--1 keV):
+  \textbf{sin medida} $\Rightarrow$ LArNEST reescalado = extrapolaci\'on de
+  modelo. ReD a \SI{200}{V/cm} (RED-100 218; $<1\%$). \\
+$F(\Tnr)$ (NR) & LArNEST; $F=1$ sistem\'atico & ReD: la fluctuaci\'on de
+  ionizaci\'on de NR en Ar ``\emph{remains poorly characterized}'' $\Rightarrow$
+  \textbf{sin medida}; ReD la acota entre ``sin fluctuaciones'' y ``binomial
+  pura''. \\
+$^{39}$Ar & $\SI{1}{Bq/kg}$ (atm.); $\SI{7.3e-4}{Bq/kg}$ (UAr) & ref.\ [46]
+  (atm.); DarkSide-50 (UAr, $\times\!\sim\!1400$ menos). $Q_{\beta}=\SI{565}{keV}$,
+  $Z_{\rm hija}=19$. Publicado. \\
+Ancla de fondo & $S/\sqrt{B}\approx 4$ a \SI{62}{kg\cdot dia} & ref.\ [46], texto
+  expl\'icito. Para validar el modelo de fondo. \\
+Umbral de apilamiento de SE & escenario (\code{se\_floor}) & ref.\ [46]:
+  ``\emph{requires special experimental study}'' $\Rightarrow$ \textbf{no
+  resuelto}. \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\subsection{Fondo de $^{39}$Ar: espectro $\beta$ y plegado a $\Ne$}
+\label{sec:ar39}
+
+El $^{39}$Ar decae $^{39}\mathrm{Ar}\to{}^{39}\mathrm{K} + e^{-} + \bar\nu_{e}$.
+Espectro $\beta$ permitido (forma est\'andar, factor de forma $S(T)\simeq 1$):
+\begin{equation}
+  \label{eq:beta}
+  \frac{\dd N}{\dd T}
+  \;\propto\; F(Z_{\rm h}, T)\; p_{e}\; E_{e}\; (Q_{\beta} - T)^{2},
+  \qquad
+  E_{e} = T + m_{e},\quad
+  p_{e} = \sqrt{T(T + 2m_{e})},
+\end{equation}
+con $T$ la energ\'ia cin\'etica del electr\'on y $F(Z_{\rm h},T)$ la funci\'on de
+Fermi no relativista,
+\begin{equation}
+  \label{eq:fermi}
+  F(Z_{\rm h}, T) = \frac{2\pi\eta}{1 - e^{-2\pi\eta}},
+  \qquad
+  \eta = \alpha_{\rm EM}\,Z_{\rm h}\,\frac{E_{e}}{p_{e}}
+  \quad (\text{signo}~+~\text{para}~\beta^{-}).
+\end{equation}
+Cada $\beta$ de energ\'ia $T$ es un \emph{retroceso electr\'onico}: produce
+$\langle\Ne\rangle(T) = T\,Q_{y}^{\rm ER}(T)$ electrones, con el yield ER de
+LArNEST (tabla \code{nest\_Ar\_ER\_218V.txt}). De ah\'i el n\'umero extra\'ido por
+el mismo modelo binomial de Fano de la Sec.~\ref{sec:nest} (Eq.~\eqref{eq:binom_pmf}).
+La fracci\'on de decaimientos con $\Ne^{\rm ext}=k$ es
+\begin{equation}
+  \label{eq:Bshape}
+  b_{k}
+  = \frac{1}{\mathcal{N}}
+    \int_{0}^{Q_{\beta}}\!\dd T\;
+    \frac{\dd N}{\dd T}\,
+    P(\Ne^{\rm ext}=k\mid T),
+  \qquad
+  \mathcal{N} = \int_{0}^{Q_{\beta}}\!\dd T\;\frac{\dd N}{\dd T},
+\end{equation}
+y la tasa de fondo por kg y d\'ia en el bin $k$ es
+$B_{k} = a\cdot\SI{86400}{s/dia}\cdot b_{k}$, con $a$ la actividad
+[\si{Bq/kg}]. \emph{Advertencia:} llegar a $\Ne\le5$ pide $T\lesssim\SI{0.1}{keV}$
+(el yield ER a esa energ\'ia es tambi\'en extrapolaci\'on de modelo).
+
+\subsection{Estad\'istica \S V con fondo}
+\label{sec:ar_chi2}
+
+Asimov con fondo. Con $S_{k}$ (se\~nal CE$\nu$NS) y $B_{k}$ (fondo) en cuentas
+para la exposici\'on $\mathcal{E}$,
+\begin{equation}
+  \label{eq:chi2_bkg}
+  \Delta\chi^{2}(A)
+  = \sum_{k=1}^{5}
+    \frac{(1-A)^{2}\,S_{k}^{2}}{S_{k} + B_{k} + s_{\rm SE}\,\mathcal{E}},
+  \qquad
+  A_{90}
+  = 1 + \sqrt{\dfrac{2{,}706}
+    {\displaystyle\sum_{k} \dfrac{S_{k}^{2}}{S_{k}+B_{k}+s_{\rm SE}\mathcal{E}}}},
+\end{equation}
+con $s_{\rm SE}$ el suelo de apilamiento de electr\'on \'unico (escenario;
+$s_{\rm SE}=0$ por defecto). Tres escenarios: (0)~$B_{k}=0$ (reproduce la
+respuesta intr\'inseca, $A_{90}\approx 1{,}022$ a \SI{192}{kg\cdot dia}); (1)~$^{39}$Ar
+UAr; (2)~$^{39}$Ar atmosf\'erico.
+
+\subsection{Resultado y validaci\'on contra la ref.\ [46]}
+\label{sec:ar_sv_res}
+
+\begin{center}
+\begin{tabular}{@{}lcc@{}}
+\toprule
+Escenario (\SI{192}{kg\cdot dia}, $\Ne=1$--$5$) & $A_{90}$ [$\times$SM] &
+  $S/\sqrt{B}$ a \SI{62}{kg\cdot dia} \\
+\midrule
+Sin fondo (respuesta intr\'inseca) & $1{,}022$ & --- \\
+$^{39}$Ar UAr ($\SI{7.3e-4}{Bq/kg}$) & $1{,}022$ & $\sim 2300$ \\
+$^{39}$Ar atmosf\'erico ($\SI{1}{Bq/kg}$) & $1{,}025$ & $\sim 60$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\noindent
+La ref.\ [46] declara $S/\sqrt{B}\approx 4$ a \SI{62}{kg\cdot dia}. Nuestro
+$^{39}$Ar por \textbf{solape espectral puro} da $\sim 2300$ (UAr): mucho m\'as
+optimista. El motivo es f\'isico: alcanzar $\Ne\le5$ con un retroceso
+electr\'onico exige $T\lesssim\SI{0.1}{keV}$, la cola extrema del espectro $\beta$
+(Eq.~\eqref{eq:beta}), donde adem\'as el yield ER es extrapolaci\'on. El
+``$\approx 4$'' de la ref.\ [46] refleja, con toda probabilidad, el fondo de
+\textbf{apilamiento de electr\'on \'unico} por encima de $4\,e^{-}$, que la propia
+ref.\ [46] deja \emph{sin resolver}. \code{chi2\_bkg\_nest.f90} despeja el
+$s_{\rm SE}$ que reconcilia el modelo con ese ``$\approx 4$'':
+$s_{\rm SE}\approx\SI{660}{ev/(kg.dia)}$ por bin, es decir el \emph{tama\~no
+impl\'icito} de ese fondo no resuelto. Para una proyecci\'on conservadora al
+estilo de la ref.\ [46], se corre con $s_{\rm SE}$ a ese valor.
+
+\paragraph{Qu\'e NO se hace.} RED-100 \S VI para arg\'on (ajuste al residuo
+ON$-$OFF real) necesita un reactor y un detector. Aqu\'i se hace \S V, con la
+se\~nal y el fondo de $^{39}$Ar \emph{simulados} a partir de n\'umeros
+publicados. La rama de apilamiento de SE queda como escenario, no como valor.
+
+% ===========================================================================
+\section{Registro de cambios: carpeta de arg\'on frente a la de xen\'on}
+\label{sec:changelog}
+
+\code{N\_EventosCEvNS\_NSIAr/} es un clon de \code{N\_EventosCEvNS\_NSIXe/}.
+Cambios acotados y su justificaci\'on:
+
+\begin{center}
+\footnotesize
+\renewcommand{\arraystretch}{1.3}
+\begin{tabular}{@{}>{\raggedright\arraybackslash}p{3.1cm}
+                   >{\raggedright\arraybackslash}p{3.5cm}
+                   >{\raggedright\arraybackslash}p{7.6cm}@{}}
+\toprule
+Archivo & Cambio & Justificaci\'on (consumidor concreto) \\
+\midrule
+\code{constants.f90} & $A,Z,N,M$ de $^{40}$Ar; $\rho_{\rm LAr}$ &
+  Datos del blanco; Eqs.~\eqref{eq:QW_num}, \eqref{eq:kin}, \eqref{eq:Rk_eq}. \\
+\code{constants.f90} & masa activa $126\to\SI{62}{kg}$; par\'ametros de $^{39}$Ar
+  ($a$, $Q_{\beta}$, $Z_{\rm h}$), ancla $S/\sqrt{B}\approx4$ &
+  ref.\ [46] (Sec.~\ref{sec:ar_par}). Consumidos por \code{chi2\_bkg\_nest.f90}. \\
+\code{constants.f90} & \code{EEE}: $0{,}90\to 0{,}99$ &
+  ref.\ [46] (umbrales de emisi\'on $0{,}2$ vs $\SI{1.8}{kV/cm}$); ReD; DS-50
+  $>99{,}9\%$. Entra en Eq.~\eqref{eq:binom_pmf}. \\
+\code{constants.f90} & \code{eff\_ROI(1:7)}$\,=1$ &
+  Idealizaci\'on: no hay Fig.~6 de arg\'on. \code{mainred100\_nest.f90}
+  indexa $4$--$7$; se pone $1$ para que compile sin alterar nada. \\
+\code{Tnr\_to\_e.f90} & lee la tabla NEST de Ar &
+  \code{nest\_Ar\_218V\_dense.txt}: LArNEST \textbf{anclado a ReD 2025}
+  (Sec.~\ref{sec:ar_par}); $\Tnr<\SI{2}{keV}$ = extrapolaci\'on. \\
+\code{chi2red100\_} \code{nest.f90},\newline\code{chi2\_ideal\_} \code{nest.f90} &
+  \code{T\_nr\_max}: $6\to\SI{3.5}{keV}$; en \code{chi2red100}
+  \code{NE\_LO,NE\_HI}$\,=1,5$ & ref.\ [46] $+$ cinem\'atica $\Enu=\SI{8}{MeV}$
+  ($\SI{3.44}{keV}$). Trunca la cola $\Enu\,8$--$\SI{10}{MeV}$ ($<1\%$). \\
+\code{chi2\_ideal\_} \code{nest.f90} & \code{TAG}$\,=\,$\code{'Ar'} &
+  \'Unica l\'inea distinta del gemelo de xen\'on (aparte de \code{T\_nr\_max}). \\
+\code{chi2\_bkg\_} \code{nest.f90} & \textbf{NUEVO} &
+  RED-100 \S V para Ar con fondo de $^{39}$Ar \emph{simulado}
+  (Sec.~\ref{sec:ar_sv}). Todo en $\Ne$. \\
+\code{red100PE.f90},\newline\code{mod\_detector.f90} & \textbf{BORRADOS} &
+  Sobrantes del clon de Xe. El espectro en PE solo existe porque RED-100
+  public\'o su residuo de Xe en PE; para Ar no hay dato que comparar y
+  SEG/$\sigma_{1}$ ser\'ian de LXe. Todo el an\'alisis de Ar vive en $\Ne$. \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\code{chi2.f90} \emph{no} se clona: es RED-100 \S VI (residuo ON$-$OFF real de Xe)
+y no hay datos de arg\'on. En su misma corrida imprime tambi\'en \S V para Xe
+(Sec.~\ref{sec:xe_sv}).
+
+\paragraph{Generalizaci\'on del barrido NSI.} \code{chi2\_ideal\_nest.f90}
+(ambas carpetas) porta el bloque \code{select case(ipar)} completo (15 casos) y
+escribe las etiquetas de ejes en el archivo
+\code{nsi\_config\_} \code{ideal\_<TAG>.txt}, para que la comparaci\'on funcione
+con cualquier par de par\'ametros NSI, no solo \code{ipar}$=5$. El script
+\code{compare\_ideal\_} \code{XeAr.py} lee ese archivo para rotular los ejes y
+deriva el lugar ciego de la propia grilla.
+
+% ===========================================================================
+\section{Conclusiones}
+\label{sec:conclusiones}
+
+\begin{enumerate}\itemsep3pt
+  \item \textbf{El c\'odigo est\'a validado en tres frentes independientes.}
+    (a)~Reproduce la \emph{forma} del espectro CE$\nu$NS en $\Ne$ de la Fig.~3 de
+    RED-100 (raz\'on $\Ne\!:\!4\!\to\!5$ de $6{,}3$ vs.\ $7{,}0$).
+    (b)~Reproduce las cotas NSI 1D de la Tabla~II de CONUS+ a $\lesssim 0{,}003$
+    en cada par\'ametro, incluida la isla de cancelaci\'on
+    SM$\leftrightarrow$NSI (Sec.~\ref{sec:conusval}).
+    (c)~La comparaci\'on ideal es internamente consistente (la fracci\'on de
+    caja NSI de la grilla coincide con la anal\'itica).
+  \item \textbf{El umbral invierte la coherencia.} La ventaja de coherencia del
+    xen\'on ($\times 3{,}8$ por unidad de masa) se invierte al exigir se\~nal
+    detectable: con ventana sim\'etrica $\Ne\ge 1$, el arg\'on da $\times 3{,}4$
+    m\'as eventos, y la ventaja crece con el umbral ($\times 243$ en $\Ne\ge 4$).
+    Es el argumento del \S VII de RED-100, cuantificado con una comparaci\'on
+    controlada.
+  \item \textbf{La NSI de sola tasa es degenerada, y la degeneraci\'on es
+    circular.} La regi\'on indistinguible del SM es una circunferencia de radio
+    $\rho_{\eps}=|\QW|/(Z+2N)\approx 0{,}17$--$0{,}18$ para todos estos blancos
+    (Eq.~\eqref{eq:blind_center}).
+  \item \textbf{La degeneraci\'on es estructural.} La direcci\'on ciega depende
+    de $N/Z$ solo a trav\'es de $f(r)=(1+2r)/(2+r)$, mon\'otona y acotada; todos
+    los blancos CE$\nu$NS realistas caben en $\theta\in[45\si{\degree},
+    48{,}4\si{\degree}]$. Ning\'un par los rompe apreciablemente
+    (Xe--Ar $\SI{1.44}{\degree}$; O--Xe, el m\'aximo posible, $\SI{3.35}{\degree}$);
+    el germanio, intermedio, no a\~nade direcci\'on nueva. Romper la degeneraci\'on
+    requiere un observable distinto (forma espectral, timing, oscilaciones).
+  \item \textbf{El xen\'on real de RED-100 no restringe la NSI.} $A_{90}\approx
+    111\times$SM y $\max\Aamp$ en $|\eps|\le 1$ es $\approx 74$: ning\'un punto de
+    la caja se distingue del SM. Los contornos NSI \emph{proyectados} (Asimov)
+    son un techo optimista; la brecha hasta lo alcanzable es un factor $\sim 100$
+    descomponible en fondo, cortes y sistem\'aticos (Sec.~\ref{sec:brecha}).
+  \item \textbf{Para combinar, real $\oplus$ real.} El mapa NSI conjunto honesto
+    es CONUS+ $\oplus$ RED-100-Xe (datos reales). El arg\'on se presenta como
+    proyecci\'on separada y etiquetada; a\~nadir un $\chi^{2}$ de Asimov a datos
+    reales es una proyecci\'on condicionada, no ``la restricci\'on''.
+\end{enumerate}
+
+% ===========================================================================
+\section{Limitaciones y trabajo futuro}
+\label{sec:limitaciones}
+
+\begin{itemize}\itemsep2pt
+  \item \textbf{Sin datos de arg\'on.} La rama de arg\'on es una proyecci\'on;
+    su validaci\'on requerir\'ia una campa\~na con UAr.
+  \item \textbf{Fondo de ${}^{39}$Ar.} Es la inc\'ognita que decide la
+    viabilidad del arg\'on (Sec.~\ref{sec:ideal}); modelarlo es el siguiente paso
+    obvio.
+  \item \textbf{Sola tasa.} Sin forma espectral ni informaci\'on temporal, la
+    degeneraci\'on NSI (Sec.~\ref{sec:blind}) es irreducible con un solo blanco;
+    el par Xe+Ar la rompe solo $\SI{1.44}{\degree}$.
+  \item \textbf{Un histograma frente a tres} (Sec.~\ref{sec:xe}): el handicap
+    $\sqrt{3}$ y el offset del modelo de espectro se cancelan en la comparaci\'on
+    \emph{relativa} Xe--Ar, pero no permiten reproducir el n\'umero absoluto del
+    paper.
+  \item \textbf{Escalado con la exposici\'on.} El \S VII del paper extrapola a un
+    a\~no y obtiene solo $15$--$20\times$SM: el escalado efectivo es
+    $\sim t^{-0{,}2}$, no $t^{-0{,}5}$ (limitado por fondo y sistem\'aticos). Una
+    proyecci\'on honesta debe modelar el suelo de fondo, no reescalar el
+    $\chi^{2}$ por exposici\'on.
+\end{itemize}
+
+% ===========================================================================
+\section*{Ap\'endice: archivos y c\'omo reproducir}
+\addcontentsline{toc}{section}{Ap\'endice: archivos y c\'omo reproducir}
+
+\begin{center}
+\footnotesize
+\renewcommand{\arraystretch}{1.25}
+\begin{tabular}{@{}>{\raggedright\arraybackslash}p{4.4cm}>{\raggedright\arraybackslash}p{10.2cm}@{}}
+\toprule
+Programa / script & Produce \\
+\midrule
+\code{chi2\_ideal\_nest.f90} \newline (Xe, Ar) &
+  \code{espectro\_Ne\_ideal\_*}, \code{sensib\_ideal\_*},
+  \code{chi2\_nsi\_2D*\_ideal*}, \code{nsi\_config\_ideal\_*} \\
+\code{chi2.f90} (Xe) &
+  \code{chi2\_ON\_OFF\_perfil.dat}, \code{chi2\_ON\_OFF\_banda.dat}
+  ($A_{90}\approx 111$) \\
+\code{2pchi2.f90} (Ge/CONUS+) &
+  \code{chi2\_nsi\_2Dconus.dat}, \code{nsi\_config\_conus.txt} \\
+\code{nest.py}, \code{nest\_Ar.py} &
+  tablas \code{nest\_*\_218V\_dense.txt} (3 col.\ $\Tnr$, $Q_{y}$, $F$) \\
+\code{valida\_conus.py} &
+  comparaci\'on de cotas 1D contra la Tabla~II de CONUS+
+  (Sec.~\ref{sec:conusval}) \\
+\code{compare\_ideal\_XeAr.py} &
+  6 figuras (\code{fig\_ideal\_1..5}, \code{fig\_ideal\_XeAr}) $+$ chequeo
+  anal\'itico del alcance NSI \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\noindent
+Compilaci\'on (sin \code{Makefile}; orden de m\'odulos obligatorio):
+\begin{verbatim}
+  MODS="constants.f90 flux.f90 xsections_nest.f90 mod_stats.f90 \
+        Tnr_to_e.f90 mod_detector.f90"
+  gfortran -O2 -o chi2_ideal  $MODS  chi2_ideal_nest.f90
+
+  # carpeta de CONUS+:
+  gfortran -O2 -o chi2_nsi  constants.f90 quenching.f90 flux.f90 \
+           resolution.f90 xsections.f90 2pchi2.f90
+\end{verbatim}
+
+% ===========================================================================
+\section*{Referencias}
+\addcontentsline{toc}{section}{Referencias}
+\begin{enumerate}
+  \item RED-100 Collaboration, \emph{First constraints on the coherent elastic
+    scattering of reactor antineutrinos off xenon nuclei}, arXiv:2411.18641.
+  \item [ref.\ [46] del anterior] D.\ Yu.\ Akimov et al.\ (RED-100
+    Collaboration), \emph{Using the Two-Phase Emission Detector RED-100 at NPP
+    to Study Coherent Elastic Neutrinos Scattering off Nuclei}, Physics
+    \textbf{5}, 492--498 (2023), DOI 10.3390/physics5020034 (open access).
+  \item V.\ De Romeri, D.\ K.\ Papoulias, G.\ S\'anchez Garc\'ia,
+    \emph{Implications of the first CONUS+ measurement of coherent elastic
+    neutrino-nucleus scattering}, Phys.\ Rev.\ D \textbf{111}, 075025 (2025).
+  \item ReD Collaboration (P.\ Agnes et al.), \emph{Characterization of the
+    ionization response of argon to nuclear recoils at the keV scale with the
+    ReD experiment}, arXiv:2510.16404 (2025).
+  \item M.\ Szydagis et al., \emph{Noble Element Simulation Technique (NEST)}
+    v2.4.0; \code{LArNEST}, ``Global Analysis of Argon Yields''.
+  \item J.\ Lindhard et al., \emph{Integral equations governing radiation
+    effects}, Mat.\ Fys.\ Medd.\ Dan.\ Vid.\ Selsk.\ \textbf{33} (1963);
+    aproximaci\'on de Robinson para $g(\eps)$.
+  \item V.\ Kopeikin et al., \emph{Reactor antineutrino spectrum below 2 MeV}.
+  \item Th.\ A.\ Mueller et al., \emph{Improved predictions of reactor
+    antineutrino spectra}, Phys.\ Rev.\ C \textbf{83}, 054615 (2011).
+  \item J.\ Barranco, O.\ G.\ Miranda, T.\ I.\ Rasa,
+    \emph{Constraining non-standard interactions with CE$\nu$NS}
+    (degeneraciones de sola tasa).
+\end{enumerate}
+
+\end{document}

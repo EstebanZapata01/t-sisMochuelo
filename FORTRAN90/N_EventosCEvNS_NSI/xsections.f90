@@ -1,3 +1,13 @@
+!=======================================================================
+! Archivo : xsections.f90   (carpeta CONUS+ / Germanio)
+! Rol     : d(sigma)/dEer CE$\nu$NS ya cambiada de variable a energia de
+!           ionizacion Eer via el quenching de Lindhard (modulo quenching).
+! Tesis   : REFERENCIA; metodologia.tex Sec. 6. En RED-100 la conversion
+!           retroceso -> ionizacion la hace NEST (Tnr_to_e.f90), no un
+!           factor de quenching analitico.
+! Decision metodologica clave: la NSI entra solo por QV2 = q_eff^2, igual
+!   que en la version de RED-100.
+!=======================================================================
 module xsections
   use constants, only: dp, GF, pi, M_Ge, QV2, conv
   use quenching, only: QF, dQF_dT, T_from_Eer

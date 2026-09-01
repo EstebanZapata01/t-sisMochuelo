@@ -1,5 +1,12 @@
 !=======================================================================
 ! Programa: red100_nest (Poisson → Binomial, solo creados y extraídos)
+! Rol     : espectro en N_e (creados vs extraidos) de diagnostico, para
+!           ver el efecto del adelgazado por EEE.
+! Pipeline: etapa "retroceso -> ionizacion" -> escribe
+!           datos/ionization_electrones*.dat.
+! Tesis   : metodologia.tex Sec. 3.2-3.3.
+! Decision metodologica clave: N_e creados ~ Binom(n_F, p_F);
+!   extraidos ~ Binom(n_F, p_F*EEE)  (Ecs. 16-18 de metodologia.tex).
 !=======================================================================
 program red100_nest
   use constants
@@ -16,11 +23,12 @@ program red100_nest
   real(dp) :: tasa_Kop, tasa_Mue, tasa_Comb
   real(dp) :: atoms_per_kg, sec_per_day
   real(dp), allocatable :: array_tasa_Comb(:)
-  real(dp) :: lambda, peso, prob_c, prob_e
+  real(dp) :: peso, prob_c, prob_e, p_F
   real(dp) :: tasa_creados(0:n_ion), tasa_extraidos(0:n_ion)
   character(len=250) :: outdir, filename
-  integer :: n, k
+  integer :: n, n_F
   real(dp) :: dummy
+  real(dp) :: R_tot_kop, R_tot_mue, R_tot_comb, sum_cre, sum_ext, mean_cre, mean_ext
 
   outdir = '/home/oem/Desktop/Unipamplona/Trabajo de grado/Códigos/datos/'
 
@@ -35,7 +43,7 @@ program red100_nest
 
   dummy = flujo_diferencial(1.0_dp)
 
-  T_nr_min = 0.21_dp / 1000.0_dp
+  T_nr_min = 0.20_dp / 1000.0_dp   ! 0.20 keV = suelo de NEST v2.4.0 (antes 0.21)
   T_nr_max = 10.0_dp / 1000.0_dp
   dT = (T_nr_max - T_nr_min) / (n_T - 1)
   dT_keV = dT * 1000.0_dp
@@ -45,6 +53,8 @@ program red100_nest
   filename = trim(outdir) // 'espectro_continuoXe.dat'
   open(newunit=u_out, file=filename, status='replace')
   write(u_out, '(A)') '# T_nr[keV]   Tasa_Kop   Tasa_Mue   Tasa_Comb'
+
+  R_tot_kop = 0.0_dp; R_tot_mue = 0.0_dp; R_tot_comb = 0.0_dp
 
   do i_T = 1, n_T
      T_nr = T_nr_min + (i_T - 1) * dT
@@ -70,6 +80,10 @@ program red100_nest
      tasa_Mue  = tasa_Mue  * atoms_per_kg * sec_per_day
      tasa_Comb = tasa_Comb * atoms_per_kg * sec_per_day
      array_tasa_Comb(i_T) = tasa_Comb
+     peso = merge(0.5_dp, 1.0_dp, i_T == 1 .or. i_T == n_T)   ! trapecio en T
+     R_tot_kop  = R_tot_kop  + tasa_Kop  * dT_keV * peso
+     R_tot_mue  = R_tot_mue  + tasa_Mue  * dT_keV * peso
+     R_tot_comb = R_tot_comb + tasa_Comb * dT_keV * peso
      write(u_out, '(F10.4, 3ES15.6)') T_nr*1000.0_dp, tasa_Kop, tasa_Mue, tasa_Comb
   end do
   close(u_out)
@@ -82,22 +96,22 @@ program red100_nest
   tasa_creados   = 0.0_dp
   tasa_extraidos = 0.0_dp
 
+  ! Fluctuacion de N_e con el modelo de NEST (sub-Poissoniano):
+  !   N_e creados   ~ Binomial(n_F, p_F)          p_F = 1 - F(T)
+  !   N_e extraidos ~ Binomial(n_F, p_F*EEE)      (adelgazado binomial con EEE)
   do i_T = 1, n_T
      T_nr = T_nr_min + (i_T - 1) * dT
-     lambda = obtener_electrones_creados(T_nr * 1000.0_dp)
+     call obtener_nest_binomial(T_nr * 1000.0_dp, n_F, p_F)
      peso = merge(0.5_dp, 1.0_dp, i_T == 1 .or. i_T == n_T)
 
      do n = 0, n_ion
-        prob_c = poisson_prob(n, lambda)
-        if (prob_c <= 0.0_dp) cycle
+        prob_c = binomial_prob(n, n_F, p_F)
+        if (prob_c > 0.0_dp) &
+           tasa_creados(n) = tasa_creados(n) + array_tasa_Comb(i_T) * dT_keV * peso * prob_c
 
-        tasa_creados(n) = tasa_creados(n) + array_tasa_Comb(i_T) * dT_keV * peso * prob_c
-
-        do k = 0, n
-           prob_e = binomial_prob(k, n, EEE)   ! EEE = 0.328 en constants
-           if (prob_e <= 0.0_dp) cycle
-           tasa_extraidos(k) = tasa_extraidos(k) + array_tasa_Comb(i_T) * dT_keV * peso * prob_c * prob_e
-        end do
+        prob_e = binomial_prob(n, n_F, p_F * EEE)
+        if (prob_e > 0.0_dp) &
+           tasa_extraidos(n) = tasa_extraidos(n) + array_tasa_Comb(i_T) * dT_keV * peso * prob_e
      end do
   end do
 
@@ -106,7 +120,36 @@ program red100_nest
   end do
   close(u_out)
 
-  print*, "Tasa diferencial máxima: ", maxval(array_tasa_Comb)
-  print*, "Simulación completada."
+  sum_cre = sum(tasa_creados)
+  sum_ext = sum(tasa_extraidos)
+  ! sumas pesadas por N_e (numero medio de electrones, no de eventos)
+  mean_cre = 0.0_dp; mean_ext = 0.0_dp
+  do n = 0, n_ion
+     mean_cre = mean_cre + real(n,dp) * tasa_creados(n)
+     mean_ext = mean_ext + real(n,dp) * tasa_extraidos(n)
+  end do
+
+  write(*,'(/,A)') '=================== VALIDACION red100_nest (vs arXiv:2411.18641) ==================='
+  write(*,'(A,ES13.5,A)') ' Tasa CEvNS integrada 0.21-10 keV (Comb) = ', R_tot_comb, ' eventos/(kg dia)'
+  write(*,'(A,ES13.5)')   '   idem solo Kopeikin (KI)                = ', R_tot_kop
+  write(*,'(A,ES13.5)')   '   idem solo Mueller                     = ', R_tot_mue
+  write(*,'(A,F10.4,A,F7.3,A)') ' dR/dT max (espectro continuo)           = ', maxval(array_tasa_Comb), &
+       ' eventos/(kg dia keV) en T=', T_nr_min*1000.0_dp + (maxloc(array_tasa_Comb,1)-1)*dT_keV, ' keV'
+  write(*,'(A,F8.4)')     '   Comb/Kop (razon de tasas totales)     = ', R_tot_comb/max(R_tot_kop,1.0e-30_dp)
+  write(*,'(/,A)')        ' Cierre de la estadistica de N_e (n_ion = 15):'
+  write(*,'(A,ES13.5)')   '   Sum tasa_creados(0:15) [eventos]   = ', sum_cre
+  write(*,'(A,ES13.5)')   '   Sum tasa_extraidos(0:15) [eventos] = ', sum_ext
+  write(*,'(A,F8.4,A)')   '   Sum_cre / R_tot_comb (conservacion de eventos) = ', &
+       sum_cre/max(R_tot_comb,1.0e-30_dp), '   (~1 OK; <1 => cola perdida por n_ion)'
+  write(*,'(A,F10.4)')    '   <Ne> creados   = Sum n*tasa_creados   = ', mean_cre
+  write(*,'(A,F10.4)')    '   <Ne> extraidos = Sum n*tasa_extraidos = ', mean_ext
+  write(*,'(A,F8.4,A)')   '   <Ne>_ext / <Ne>_cre = ', mean_ext/max(mean_cre,1.0e-30_dp), &
+       '   (deberia ~ EEE = 0.328)'
+  write(*,'(/,A)')        ' creados / extraidos por bin (Evts/kg/dia):'
+  write(*,'(A)')          '   Ne    creados        extraidos'
+  do i_bin = 0, 10
+     write(*,'(I5,2ES15.6)') i_bin, tasa_creados(i_bin), tasa_extraidos(i_bin)
+  end do
+  write(*,'(A,/)')        '==================================================================================='
 
 end program red100_nest
