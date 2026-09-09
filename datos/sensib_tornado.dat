@@ -1,0 +1,6 @@
+# umbral N_e>=4 | baseline A90_Xe=1.47195 A90_Ar=1.02968 ratio=252.9142
+# parametro | A90_Xe_lo A90_Xe_hi | A90_Ar_lo A90_Ar_hi | ratio_lo ratio_hi
+Q_y yield (Xe ±15%, Ar ±8%)          1.67919   1.34231    1.02973   1.02966    521.984   133.151
+T_max Ar (3.44 ↔ 5.4 keV)            1.47195   1.47195    1.02970   1.02966    252.438   253.182
+Helm F² (1 ↔ Helm)                   1.47195   1.48049    1.02968   1.02977    252.914   260.452
+F ionización (Fano ↔ Poisson)        1.32361   1.47195    1.02968   1.02987    117.374   252.914

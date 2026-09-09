@@ -1,0 +1,13 @@
+# resumen chi2_nsi_generic
+# entrada = ../../datos/generic_input_conus.dat
+Z            =     32.000
+N            =     41.000
+ipar         =      5
+QW_SM        =       -19.7685
+A_best       =       1.040000
+chi2_min     =       7.349251
+chi2_min_ndof=       0.386803
+A_90         =         1.7000
+# --- barrido sin^2(theta_W) ---
+s_best        =     0.243833
+s_90CL_band   = [     0.158833 ,     0.331500 ]
