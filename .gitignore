@@ -1,0 +1,16 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Salidas regenerables del pipeline: grillas NSI 2D densas (1000x1000) y
+# barridos finos (perfil chi2(A), barrido en sin^2 theta_W). Se reproducen
+# corriendo los binarios Fortran / los scripts de python/ correspondientes;
+# no se versionan para no inflar el repositorio.
+# ─────────────────────────────────────────────────────────────────────────────
+datos/chi2_nsi_2D*.dat
+datos/chi2_nsi_conjunto.dat
+datos/generic_*_nsi2D.dat
+datos/generic_*_perfil.dat
+datos/generic_*_sin2theta.dat
+datos/chi2_sin2theta_ideal_*.dat
+datos/chi2_ON_OFF_perfil.dat
+
+# Backups locales de tablas de entrada (no son salidas del pipeline)
+datos/*.bak*
