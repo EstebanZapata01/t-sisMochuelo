@@ -24,13 +24,15 @@ from scipy.ndimage import uniform_filter1d
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
+from estilo_tesis import aplicar, C_XE, C_AR, C_GE, C_SM, CICLO
+aplicar()
 import matplotlib.ticker as ticker
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from kappa_eee import kappa_analytic, load_grid, EEE_NOM, EEE_SIGREL, NTHR_PHYS
 
 DATOS = "/home/oem/Desktop/Unipamplona/Trabajo de grado/Códigos/datos"
-C = {"Xe": "#1f77b4", "Ar": "#E87722"}
+C = {"Xe": "#33546e", "Ar": "#a86a43"}
 NTHRS = (1, 2, 3, 4)
 
 plt.rcParams.update({

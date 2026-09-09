@@ -18,6 +18,8 @@ Requiere:
 import re
 import numpy as np
 import matplotlib.pyplot as plt
+from estilo_tesis import aplicar, C_XE, C_AR, C_GE, C_SM, CICLO
+aplicar()
 import matplotlib.ticker as ticker
 from pathlib import Path
 
@@ -77,21 +79,18 @@ band_up  = banda[:, 2]
 dN       = banda[:, 4]
 sigma    = banda[:, 5]
 
-# --- perfil: A  chi2_sin  chi2_con
+# --- perfil: A  chi2(A)   (RED-100 ajusta solo la amplitud; sin nuisance)
 A_vals   = perfil[:, 0]
-chi2_sin = perfil[:, 1]
-chi2_con = perfil[:, 2]
+chi2_A   = perfil[:, 1]
 
 # --- metadatos
-A_best_sin = meta_b.get('A_best (sin nuisance)', np.nan)
-A_90_sin   = meta_b.get('A_90   (sin nuisance)', np.nan)
-A_best_con = meta_b.get('A_best (con nuisance)', np.nan)
-A_90_con   = meta_b.get('A_90   (con nuisance)', np.nan)
-chi2_min   = chi2_con.min()
+A_best = meta_b.get('A_best', np.nan)
+A_90   = meta_b.get('A_90',   np.nan)
+chi2_min = chi2_A.min()
 
 print(f'  Bins de datos:              {len(pe)}')
-print(f'  A_best (con nuisance) = {A_best_con:.4f}')
-print(f'  A_90   (con nuisance) = {A_90_con:.4f}')
+print(f'  A_best = {A_best:.4f}')
+print(f'  A_90   = {A_90:.4f}')
 print(f'  chi2_min              = {chi2_min:.4f}')
 
 
@@ -116,7 +115,7 @@ plt.rcParams.update({
     'ytick.minor.visible': True,
 })
 
-NARANJA = '#E87722'   # color de la banda del articulo
+NARANJA = '#a86a43'   # color de la banda del articulo
 
 
 # ============================================================
@@ -128,7 +127,7 @@ fig1, ax1 = plt.subplots(figsize=(6.8, 3.2))
 ax1.axhline(0.0, color='0.55', lw=0.6, ls='--', zorder=1)
 
 # 2. Predicción del Modelo Estándar (A=1)
-ax1.step(pe, R_SM, where='mid', color='blue', lw=1.5, 
+ax1.step(pe, R_SM, where='mid', color='#33546e', lw=1.5, 
          linestyle='-', label='Predicción CEvNS (SM)', zorder=2)
 
 # 3. Banda naranja: Limite superior al 90% C.L. (desde 0 hasta band_up)
@@ -173,45 +172,39 @@ print(f'\nFigura 8 guardada: {F_FIG8}')
 # ============================================================
 # FIGURA 2: Perfil Delta-chi2(A)  (Figura 9 del articulo)
 # ============================================================
-dchi2_sin = chi2_sin - chi2_sin.min()
-dchi2_con = chi2_con - chi2_min
+dchi2_A = chi2_A - chi2_min
 
 fig2, ax2 = plt.subplots(figsize=(5.8, 3.8))
 
-# Perfil con nuisance (principal)
-ax2.plot(A_vals, dchi2_con,
+# Perfil de la amplitud (unico parametro del ajuste RED-100)
+ax2.plot(A_vals, dchi2_A,
          color='k', lw=1.8,
-         label=r'$\Delta\chi^2$ (con nuisance 16.9%)')
-
-# Perfil sin nuisance (referencia, mas tenue)
-ax2.plot(A_vals, dchi2_sin,
-         color='0.55', lw=1.0, ls='--',
-         label=r'$\Delta\chi^2$ (sin nuisance)')
+         label=r'$\Delta\chi^2(A)$')
 
 # Nivel 90% C.L.
 ax2.axhline(2.706, color=NARANJA, lw=1.3, ls='--',
             label=r'90% C.L.  ($\Delta\chi^2 = 2.706$)')
 
 # Nivel 1 sigma
-ax2.axhline(1.000, color='steelblue', lw=0.9, ls=':',
+ax2.axhline(1.000, color='#33546e', lw=0.9, ls=':',
             label=r'$1\sigma$  ($\Delta\chi^2 = 1.000$)')
 
 # Linea vertical: A_best y A_90
-ax2.axvline(A_best_con, color='k',      lw=0.7, ls=':', alpha=0.6)
-ax2.axvline(A_90_con,   color=NARANJA,  lw=0.7, ls=':', alpha=0.8)
-ax2.axvline(1.0,        color='0.55',   lw=0.7, ls=':', alpha=0.5)
+ax2.axvline(A_best, color='k',      lw=0.7, ls=':', alpha=0.6)
+ax2.axvline(A_90,   color=NARANJA,  lw=0.7, ls=':', alpha=0.8)
+ax2.axvline(1.0,    color='0.55',   lw=0.7, ls=':', alpha=0.5)
 
 # Etiquetas en la parte superior del plot
 ymax_plot = 9.0
-ax2.annotate(f'$A_{{best}}={A_best_con:.2f}$',
-             xy=(A_best_con, 0),
-             xytext=(A_best_con + 0.08, ymax_plot * 0.72),
+ax2.annotate(f'$A_{{best}}={A_best:.2f}$',
+             xy=(A_best, 0),
+             xytext=(A_best + 0.08, ymax_plot * 0.72),
              fontsize=8.5, color='k',
              arrowprops=dict(arrowstyle='->', color='k', lw=0.7))
 
-ax2.annotate(f'$A_{{90\\%}}={A_90_con:.2f}$',
-             xy=(A_90_con, 2.706),
-             xytext=(A_90_con - 2.5, ymax_plot * 0.50), # Movido a la izquierda para no tapar si el número es grande
+ax2.annotate(f'$A_{{90\\%}}={A_90:.2f}$',
+             xy=(A_90, 2.706),
+             xytext=(A_90 - 2.5, ymax_plot * 0.50), # Movido a la izquierda para no tapar si el número es grande
              fontsize=8.5, color=NARANJA,
              arrowprops=dict(arrowstyle='->', color=NARANJA, lw=0.7))
 
@@ -220,8 +213,8 @@ ax2.text(1.0, ymax_plot * 0.05, 'SM\n(A=1)',
          ha='center', va='bottom', fontsize=7.5, color='0.5')
 
 # Decoracion
-ax2.set_xlim(max(-0.8, A_best_con - 1.5),
-             min(A_90_con + 1.0, A_vals.max()))
+ax2.set_xlim(max(-0.8, A_best - 1.5),
+             min(A_90 + 1.0, A_vals.max()))
 ax2.set_ylim(-0.3, ymax_plot)
 ax2.set_xlabel(r'Amplitud de la senal CEvNS  $A$')
 ax2.set_ylabel(r'$\Delta\chi^2 = \chi^2(A) - \chi^2_{\min}$')
@@ -248,14 +241,13 @@ ndof = len(pe)
 print(f'\n=== RESUMEN ===')
 print(f'  Bins usados:              {ndof}')
 print(f'  chi2_min / ndof:          {chi2_min:.3f} / {ndof} = {chi2_min/ndof:.3f}')
-print(f'  A_best (sin nuisance):    {A_best_sin:.4f}')
-print(f'  A_90   (sin nuisance):    {A_90_sin:.4f}  x SM')
-print(f'  A_best (con nuisance):    {A_best_con:.4f}')
-print(f'  A_90   (con nuisance):    {A_90_con:.4f}  x SM')
-if not np.isnan(A_best_con):
-    if 0.0 <= A_best_con <= 1.5:
+print(f'  A_best:                   {A_best:.4f}')
+print(f'  A_90:                     {A_90:.4f}  x SM')
+if not np.isnan(A_best):
+    if 0.0 <= A_best <= 1.5:
         print('  Interpretacion: compatible con la prediccion SM')
-    elif A_best_con < 0.0 or A_best_con == 0.0:
+    else:
         print('  Interpretacion: senal no requerida, solo limite superior')
 
-plt.show()
+if __name__ == '__main__' and not plt.get_backend().lower().startswith('agg'):
+    plt.show()

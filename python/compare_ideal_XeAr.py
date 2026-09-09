@@ -28,6 +28,8 @@ import numpy as np
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
+from estilo_tesis import aplicar, C_XE, C_AR, C_GE, C_SM, CICLO
+aplicar()
 from matplotlib.ticker import LogLocator, NullFormatter
 from matplotlib.lines import Line2D
 from matplotlib.patches import Patch, Circle
@@ -103,23 +105,13 @@ _,  ra, _ = load_spec("Ar")
 THR = np.array([1, 2, 3, 4])
 expo = EXPO_BASE * MULT
 
-# --------------------------------------------------------------- helper figura+caption
-def new_fig(w=7.8, h=8.0, ratio=(2.25, 1.25)):
-    fig, (ax, cx) = plt.subplots(
-        2, 1, figsize=(w, h), layout="constrained",
-        gridspec_kw=dict(height_ratios=list(ratio)))
-    fig.get_layout_engine().set(h_pad=0.14, hspace=0.10)
-    cx.axis("off")
-    cx.set_xlim(0, 1); cx.set_ylim(0, 1)
-    return fig, ax, cx
-
-def put_caption(cx, head, body):
-    cx.add_patch(plt.Rectangle((0.005, 0.02), 0.99, 0.96, transform=cx.transAxes,
-                               fill=False, ec="0.75", lw=0.7))
-    cx.text(0.03, 0.90, head, transform=cx.transAxes, va="top", ha="left",
-            fontsize=9, fontweight="bold")
-    cx.text(0.03, 0.72, body, transform=cx.transAxes, va="top", ha="left",
-            fontsize=8, linespacing=1.55)
+# --------------------------------------------------------------- helper figura
+# Figuras "formales": solo el panel de datos (titulo, ejes, leyenda, anotaciones
+# breves si hacen falta). La interpretacion extendida va en la prosa de
+# doc/metodologia.tex, no incrustada como bloque de texto en la imagen.
+def new_fig(w=7.4, h=5.6):
+    fig, ax = plt.subplots(figsize=(w, h), layout="constrained")
+    return fig, ax
 
 def save(fig, name):
     out = f"{BASE}/{name}"
@@ -141,7 +133,7 @@ print("Generando figuras separadas...")
 # =====================================================================
 # 1) ESPECTRO DE IONIZACION
 # =====================================================================
-fig, ax, cx = new_fig()
+fig, ax = new_fig()
 ax.step(ne, rx, where="mid", color="black", lw=1.7)
 ax.step(ne, ra, where="mid", color="0.45", ls="--", lw=1.7)
 xe_plot(ax, ne, rx, ls="none", label="Xe (LXe)")
@@ -151,92 +143,66 @@ for t in (2, 3, 4):
 ax.set_yscale("log"); ax.set_xlim(0.4, 21); ax.set_ylim(3e-6, 40)
 ax.set_xlabel(r"$N_e$   (electrones de ionización extraídos)")
 ax.set_ylabel(r"tasa CEvNS SM   $R(N_e)$   [ev / (kg$\cdot$día)]")
-ax.set_title("Espectro de ionización  —  Xe y Ar por el MISMO código")
+ax.set_title("Espectro en electrones de ionización — Xe y Ar")
 ax.legend(loc="upper right")
-ax.annotate("Xe: ~80 % de la señal\nen $N_e\\,{=}\\,1$; luego se hunde",
-            xy=(1.0, rx[0]), xytext=(4.6, 3.2), fontsize=8.2, color="0.15",
+ax.annotate(r"Xe: $\approx\!80\%$ en $N_e{=}1$",
+            xy=(1.0, rx[0]), xytext=(4.6, 3.2), fontsize=8.5, color="0.15",
             arrowprops=dict(arrowstyle="->", color="0.4", lw=0.8,
                             connectionstyle="arc3,rad=-0.25"))
-ax.annotate("Ar: decae suave,\ncola hasta $N_e\\sim20$",
-            xy=(13, ra[12]), xytext=(9.5, 6e-3), fontsize=8.2, color="0.15",
+ax.annotate(r"Ar: cola hasta $N_e\!\sim\!20$",
+            xy=(13, ra[12]), xytext=(9.5, 6e-3), fontsize=8.5, color="0.15",
             arrowprops=dict(arrowstyle="->", color="0.4", lw=0.8))
-put_caption(cx, "Qué muestra",
-    "Tasa de eventos CEvNS del Modelo Estándar por número de electrones de ionización,\n"
-    "con el MISMO programa (chi2_ideal_nest.f90) para los dos blancos: sólo cambian $Q_W$,\n"
-    "la masa nuclear y la tabla de yield de NEST.  Punteadas: umbrales $N_e\\!\\geq\\!2,3,4$.\n"
-    "\n"
-    "Lectura: los retrocesos de Xe son blandos ($T_{max}\\!\\sim\\!1$ keV) y su yield es $\\sim$0 en\n"
-    "el umbral $\\Rightarrow$ ~80 % de la señal cae en $N_e\\!=\\!1$.  Los de Ar son más duros\n"
-    "($T_{max}\\!\\sim\\!3.4$ keV) $\\Rightarrow$ el espectro se reparte hasta $N_e\\!\\sim\\!20$.  Esta forma\n"
-    "explica todos los resultados siguientes.")
 save(fig, "fig_ideal_1_espectro_Ne.png")
 
 # =====================================================================
 # 2) RETENCION DE SENAL vs UMBRAL
 # =====================================================================
-fig, ax, cx = new_fig()
+fig, ax = new_fig()
 fxv = np.array([sx[(t, "Fnest")]["frac"] for t in THR]) * 100
 fav = np.array([sa[(t, "Fnest")]["frac"] for t in THR]) * 100
 xe_plot(ax, THR, fxv, ms=7); ar_plot(ax, THR, fav, ms=6.5)
 for t, v in zip(THR, fxv):
-    ax.annotate(f"{v:.1f} %", (t, v), textcoords="offset points", xytext=(0, 10),
+    ax.annotate(f"{v:.1f}%", (t, v), textcoords="offset points", xytext=(0, 10),
                 ha="center", fontsize=8.5)
 for t, v in zip(THR, fav):
-    ax.annotate(f"{v:.0f} %", (t, v), textcoords="offset points", xytext=(0, -15),
+    ax.annotate(f"{v:.0f}%", (t, v), textcoords="offset points", xytext=(0, -15),
                 ha="center", fontsize=8.5, color="0.30")
 ax.set_yscale("log"); ax.set_xticks(THR); ax.set_xlim(0.75, 4.25); ax.set_ylim(0.3, 260)
 ax.set_xlabel(r"umbral inferior aplicado   $N_e \geq$")
 ax.set_ylabel(r"señal CEvNS retenida   [% de la de $N_e\!\geq\!1$]")
-ax.set_title("Coste de subir el umbral inferior")
+ax.set_title("Retención de señal frente al umbral inferior")
 ax.legend(["Xe (LXe)", "Ar (LAr)"], loc="lower left")
-put_caption(cx, "Qué muestra",
-    "Fracción de la tasa CEvNS total que sobrevive al exigir un umbral inferior en $N_e$,\n"
-    "relativa a la ventana más amplia $N_e\\geq1$.  El umbral $N_e\\geq4$ es el de RED-100-Xe,\n"
-    "impuesto por el fondo de electrón único (ruido instrumental), NO por sensibilidad.\n"
-    "Lectura: subir a $N_e\\geq4$ deja al Xe con el 0.6 % de su señal (cae en $N_e\\!=\\!1$),\n"
-    "mientras el Ar conserva el 40 %.  Por eso comparar Xe@4..7 con Ar@1..5 daba un\n"
-    "factor artificial ~470 a favor de Ar: era la ventana, no la física.")
 save(fig, "fig_ideal_2_retencion_umbral.png")
 
 # =====================================================================
 # 3) SENSIBILIDAD PROYECTADA vs EXPOSICION
 # =====================================================================
-fig, ax, cx = new_fig()
-xe_plot(ax, expo, sx[(1, "Fnest")]["A90"], label=r"Xe  proyección ($N_e\!\geq\!1$)")
-ar_plot(ax, expo, sa[(1, "Fnest")]["A90"], label=r"Ar  proyección ($N_e\!\geq\!1$)")
+fig, ax = new_fig()
+xe_plot(ax, expo, sx[(1, "Fnest")]["A90"], label=r"Xe, proyección ($N_e\!\geq\!1$)")
+ar_plot(ax, expo, sa[(1, "Fnest")]["A90"], label=r"Ar, proyección ($N_e\!\geq\!1$)")
 ax.plot(expo, sx[(4, "Fnest")]["A90"], color="black", ls=":", marker="^",
-        mfc="black", mec="black", ms=5, lw=1.1, label=r"Xe  proyección ($N_e\!\geq\!4$)")
+        mfc="black", mec="black", ms=5, lw=1.1, label=r"Xe, proyección ($N_e\!\geq\!4$)")
 ax.axhline(XE_REAL_A90, color="black", lw=1.3, ls=(0, (7, 3)))
 ax.text(expo[0] * 1.08, XE_REAL_A90 * 0.60,
-        f"Xe con DATOS reales (ajuste ON$-$OFF 2024)  $\\approx$ {XE_REAL_A90:.0f} $\\times$ SM",
+        f"Xe, dato real (RED-100 2024) $\\approx$ {XE_REAL_A90:.0f}$\\times$SM",
         fontsize=8.6, va="top")
 ax.annotate("", xy=(expo[3], XE_REAL_A90 * 0.78), xytext=(expo[3], 1.7),
             arrowprops=dict(arrowstyle="<->", color="0.35", lw=1.1))
-ax.text(expo[3] * 1.18, 13,
-        "brecha $\\approx\\times100$:\nfondo real + cortes\n+ sistemáticos\n+ ajuste a 1 histograma",
-        fontsize=8.1, color="0.15", va="center")
+ax.text(expo[3] * 1.18, 13, r"brecha $\approx\!\times100$",
+        fontsize=8.5, color="0.15", va="center")
 ax.set_xscale("log"); ax.set_yscale("log"); ax.set_ylim(0.95, 270)
-ax.set_xlabel(r"exposición reactor ON   [kg$\cdot$día]      (192 = dato 2024;  64 000 $\approx$ 1 año)")
-ax.set_ylabel(r"$A_{90}$   [amplitud CEvNS  $\times$ SM,  90 % C.L.]")
-ax.set_title("Sensibilidad PROYECTADA a la amplitud CEvNS")
+ax.set_xlabel(r"exposición reactor ON   [kg$\cdot$día]")
+ax.set_ylabel(r"$A_{90}$   [$\times$ SM,  90 % C.L.]")
+ax.set_title("Sensibilidad proyectada a la amplitud CEvNS vs. exposición")
 ax.legend(loc="center left")
 ax.yaxis.set_major_locator(LogLocator(base=10, subs=(1, 2, 5)))
 ax.yaxis.set_minor_formatter(NullFormatter())
-put_caption(cx, "Qué muestra — y por qué es un LÍMITE DE SENSIBILIDAD, no una medida",
-    "$A_{90}$ = cuánto tendría que desviarse la amplitud CEvNS ($\\propto Q_W^2$) del SM para\n"
-    "ser detectada al 90 % C.L.  Las curvas son una proyección Asimov de estadística\n"
-    "pura (sin fondo, sin sistemáticos, eff = 1): el MEJOR caso posible, no lo alcanzable.\n"
-    "La línea a trazos es el único número con datos reales (RED-100 con Xe).\n"
-    "\n"
-    "Lectura: la proyección ideal roza $A_{90}\\!\\approx\\!1.02$–1.04; el Xe real está en 111,\n"
-    "$\\sim\\!100\\times$ peor.  Por eso la comparación Xe vs Ar sólo es legítima entre las dos\n"
-    "proyecciones ideales, NUNCA contra el 111.")
 save(fig, "fig_ideal_3_sensibilidad_exposicion.png")
 
 # =====================================================================
 # 4) FIGURA DE MERITO INTRINSECA
 # =====================================================================
-fig, ax, cx = new_fig()
+fig, ax = new_fig()
 rn = np.array([sa[(t, "Fnest")]["R_tot"] / sx[(t, "Fnest")]["R_tot"] for t in THR])
 r1 = np.array([sa[(t, "F1")]["R_tot"] / sx[(t, "F1")]["R_tot"] for t in THR])
 ax.plot(THR, rn, color="black", ls="-", marker="D", mfc="white", mec="black",
@@ -245,40 +211,28 @@ ax.plot(THR, r1, color="0.5", ls="--", marker="D", mfc="0.5", mec="0.5",
         ms=5.5, label=r"$F=1$ (Poisson) en ambos")
 ax.axhline(1.0, color="0.6", lw=0.8)
 ax.axhline(COH_ONLY, color="black", lw=1.0, ls=":")
-ax.text(2.5, COH_ONLY * 1.13,
-        r"predicción de la coherencia sola:  Xe $\times3.8$  (Ar/Xe = 1/3.8 $\approx$ 0.26)",
-        fontsize=7.9, ha="center")
+ax.text(2.5, COH_ONLY * 1.13, r"coherencia sola: Xe $\times 3{,}8$",
+        fontsize=8.3, ha="center")
 for t, v in zip(THR, rn):
     ax.annotate(f"{v:.0f}" if v >= 10 else f"{v:.1f}", (t, v),
                 textcoords="offset points", xytext=(8, -2), fontsize=8.5, fontweight="bold")
 ax.set_yscale("log"); ax.set_xticks(THR); ax.set_xlim(0.75, 4.4); ax.set_ylim(0.7, 400)
 ax.set_xlabel(r"umbral inferior   $N_e \geq$")
 ax.set_ylabel(r"eventos CEvNS detectados   Ar / Xe")
-ax.set_title("Figura de mérito intrínseca:  ¿cuántos eventos ve cada blanco?")
+ax.set_title("Figura de mérito intrínseca: eventos detectados Ar/Xe")
 ax.legend(loc="upper left")
-put_caption(cx, "Qué muestra",
-    "Cociente del número total de eventos CEvNS detectados (Ar entre Xe), con la misma\n"
-    "exposición y ventana, en función del umbral.  Como $A_{90}\\!-\\!1 \\propto 1/\\sqrt{N}$, este\n"
-    "cociente ES la ventaja relativa en sensibilidad.\n"
-    "Lectura: la coherencia sola ($Q_W^2\\times$átomos/kg) predice Xe $\\times3.8$.  Se INVIERTE al\n"
-    "exigir señal detectable: en $N_e\\geq1$ el Ar ya ve $\\times3.4$ más eventos, y la ventaja\n"
-    "crece con el umbral (hasta $\\times243$ en $N_e\\geq4$) porque el Xe se queda sin espectro.\n"
-    "F de NEST vs F=1: el cociente casi no cambia $\\Rightarrow$ el resultado no depende del modelo de fluctuación.")
 save(fig, "fig_ideal_4_figura_merito.png")
 
 # =====================================================================
 # 5) PLANO NSI 2D  (sensibilidad proyectada)
 # =====================================================================
-fig, axs = plt.subplots(3, 2, figsize=(9.8, 8.2), layout="constrained",
-                        gridspec_kw=dict(height_ratios=[2.35, 0.32, 1.15]))
-fig.get_layout_engine().set(h_pad=0.10, hspace=0.06)
+fig, axs = plt.subplots(2, 2, figsize=(9.8, 5.7), layout="constrained",
+                        gridspec_kw=dict(height_ratios=[2.35, 0.35]))
+fig.get_layout_engine().set(h_pad=0.10, hspace=0.05)
 axX, axA = axs[0, 0], axs[0, 1]
 gs = axs[0, 0].get_gridspec()
-for r in (1, 2):
-    axs[r, 0].remove(); axs[r, 1].remove()
+axs[1, 0].remove(); axs[1, 1].remove()
 lx = fig.add_subplot(gs[1, :]); lx.axis("off")
-cx = fig.add_subplot(gs[2, :])
-cx.axis("off"); cx.set_xlim(0, 1); cx.set_ylim(0, 1)
 ZOOM_X, ZOOM_Y = (-0.15, 0.55), (-0.35, 0.35)
 info = {}
 blind_info = {}
@@ -316,18 +270,10 @@ handles = [
     Line2D([0], [0], color="0.35", ls=(0, (4, 3)), lw=1.1,
            label=r"locus ciego $q_{\rm eff}^2\!=\!Q_W^2$  ($\times$ = corte con $\varepsilon_y\!=\!0$)"),
 ]
+fig.suptitle("Plano NSI: sensibilidad proyectada (Asimov, sin fondo ni sistemáticos)",
+             fontsize=11.5)
 lx.legend(handles=handles, loc="center", ncol=2, fontsize=8.5,
           handletextpad=0.6, columnspacing=1.6, borderaxespad=0.0)
-put_caption(cx,
-    "Por qué el alcance cubre casi todo el plano — y por qué es SÓLO una proyección",
-    "El CEvNS mide la tasa total; la NSI de quark down entra multiplicada por $Z\\!+\\!2N$\n"
-    "($\\approx$ 208 en Xe, 62 en Ar) y compite con $Q_W\\!\\approx\\!-37$ / $-11$.  Con ese brazo de\n"
-    "palanca un $|\\varepsilon|\\!\\sim\\!0.05$ ya cambia la tasa $>2\\times$: con miles de eventos Asimov y\n"
-    "sin fondo, casi cualquier $\\varepsilon$ se separa del SM.  Sólo sobrevive el anillo 'punto\n"
-    "ciego', donde $q_{\\rm eff}^2$ vuelve a valer $Q_W^2$ y la tasa es idéntica al SM.\n"
-    "CLAVE: NO es una exclusión, es sensibilidad de estadística pura (fondo perfecto,\n"
-    "cero sistemáticos).  El análisis REAL de Xe ($A_{90}\\!\\approx\\!111$) no separa del SM\n"
-    "ningún punto de esta caja: el alcance real está mucho más cerca de 'nada'.")
 save(fig, "fig_ideal_5_plano_NSI.png")
 
 # =====================================================================
@@ -412,46 +358,10 @@ fig.savefig(f"{BASE}/fig_ideal_XeAr.png")
 plt.close(fig)
 print(f"\n  {BASE}/fig_ideal_XeAr.png  (resumen 2x2)")
 
-# =====================================================================
-# 6) Ar: A_90 vs exposicion en los 3 escenarios de fondo de 39Ar
-#    (RED-100 SV con fondo simulado; salida de chi2_bkg_nest.f90)
-# =====================================================================
-try:
-    bk = {}
-    for ln in open(f"{BASE}/sensib_bkg_Ar.dat"):
-        if ln.lstrip().startswith("#") or not ln.strip():
-            continue
-        p = ln.split()
-        bk.setdefault(p[0], []).append((float(p[1]), float(p[2])))
-    fig, ax, cx = new_fig(w=7.8, h=7.6, ratio=(2.3, 1.2))
-    sty = {"sin_fondo": ("black", "-", "o", "sin fondo (respuesta intrínseca)"),
-           "Ar39_UAr": ("0.35", "--", "s", r"$^{39}$Ar UAr ($7{,}3\times10^{-4}$ Bq/kg)"),
-           "Ar39_atmosferico": ("0.6", ":", "^", r"$^{39}$Ar atmosférico (1 Bq/kg)")}
-    for key, (col, ls, mk, lab) in sty.items():
-        if key not in bk:
-            continue
-        xs = [e for e, _ in bk[key]]
-        ys = [(a - 1.0) for _, a in bk[key]]   # A_90 - 1 (log util)
-        ax.plot(xs, ys, ls=ls, marker=mk, color=col, ms=5, mfc="white", label=lab)
-    ax.set_xscale("log"); ax.set_yscale("log")
-    ax.set_xlabel(r"exposición reactor ON   [kg$\cdot$día]")
-    ax.set_ylabel(r"$A_{90}-1$   [exceso sobre el SM,  90 % C.L.]")
-    ax.set_title(r"Ar — sensibilidad esperada (RED-100 §V) con fondo de $^{39}$Ar simulado")
-    ax.legend(loc="upper right", fontsize=8.2)
-    ax.text(0.03, 0.06,
-            r"referencia: Xe con DATOS reales  $A_{90}\!-\!1 \approx 110$"
-            "\n" r"(rama chi2.f90, fuera de escala)",
-            transform=ax.transAxes, fontsize=8, va="bottom")
-    put_caption(cx,
-        "Qué muestra  /  Lectura",
-        "Método RED-100 §V: señal CEvNS SIMULADA + fondo + Asimov ($\\Delta\\chi^2=2{,}706$).\n"
-        "El fondo de $^{39}$Ar se SIMULA (isótopo conocido, $Q_\\beta=565$ keV, actividad\n"
-        "publicada) — no se inventa. Escenario 0 = sin fondo (respuesta intrínseca del\n"
-        "blanco). El $^{39}$Ar por solape espectral puro apenas mueve $A_{90}$: llegar a\n"
-        "$N_e\\!\\leq\\!5$ pide $E_{er}\\!\\lesssim\\!0{,}1$ keV, la cola extrema del espectro $\\beta$.\n"
-        "El fondo de apilamiento de electrón único (ref.[46] lo deja SIN RESOLVER)\n"
-        "entra como escenario aparte ($s_{\\rm SE}$), no como número: ver README_Ar.txt.\n"
-        "NO se reproduce §VI (reactor ON): necesita un detector y un reactor.")
-    save(fig, "fig_ideal_6_fondo_Ar.png")
-except FileNotFoundError:
-    print("  (sensib_bkg_Ar.dat no encontrado; corre chi2_bkg_nest primero)")
+# NOTA: la antigua seccion 6 (Ar: A_90 vs exposicion con fondo de 39Ar,
+# fig_ideal_6_fondo_Ar.png) se elimino: barria una exposicion (192 kg*dia)
+# prestada de Xe sin justificacion propia para Ar, y comparaba contra el
+# dato real de Xe. La reemplaza python/ar_fondo_validacion.py, que usa la
+# UNICA exposicion real y publicada de Ar (62 kg*dia, ref.[46]) y compara
+# solo contra el propio S/sqrt(B)~4 que ref.[46] declara -- sin exposicion
+# barrida ni comparacion con Xe.

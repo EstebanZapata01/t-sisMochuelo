@@ -9,6 +9,8 @@ Genera:
 
 import numpy as np
 import matplotlib.pyplot as plt
+from estilo_tesis import aplicar, C_XE, C_AR, C_GE, C_SM, CICLO
+aplicar()
 import os
 
 # ===================== CONFIGURACIÓN =====================
@@ -76,13 +78,13 @@ if os.path.exists(file_ion):
 
     # Tus datos (simulación)
     ax2.scatter(Ne, creados, c='k', marker='o', label='Creados (sim.)', s=30, zorder=3)
-    ax2.scatter(Ne, extraidos, c='r', marker='s', label=f'Extraídos (sim., EEE≈0.33)', s=30, zorder=3)
+    ax2.scatter(Ne, extraidos, c='#8f4444', marker='s', label=f'Extraídos (sim., EEE≈0.33)', s=30, zorder=3)
     ax2.plot(Ne, creados, color='k', alpha=0.2, lw=1, zorder=2)
-    ax2.plot(Ne, extraidos, color='r', alpha=0.2, lw=1, zorder=2)
+    ax2.plot(Ne, extraidos, color='#8f4444', alpha=0.2, lw=1, zorder=2)
 
     # Datos del paper RED-100
-    ax2.scatter(Ne_paper, creados_paper, c='blue', marker='^', label='Creados (paper)', s=40, zorder=4)
-    ax2.scatter(Ne_paper, extraidos_paper, c='green', marker='v', label='Extraídos (paper)', s=40, zorder=4)
+    ax2.scatter(Ne_paper, creados_paper, c='#33546e', marker='^', label='Creados (paper)', s=40, zorder=4)
+    ax2.scatter(Ne_paper, extraidos_paper, c='#5c7053', marker='v', label='Extraídos (paper)', s=40, zorder=4)
 
     ax2.set_xlabel('Número de electrones de ionización')
     ax2.set_ylabel('Eventos / (kg · día)')
