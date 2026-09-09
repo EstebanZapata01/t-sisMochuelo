@@ -75,6 +75,8 @@ program chi2_ideal_nest
 
   ! ----- Ntot_roi guardado para el barrido NSI (F de NEST, im=1) -----
   real(dp) :: Ntot_ne1, Ntot_ne4
+  real(dp) :: Ntot_thr(4)      ! Ntot_roi por umbral (F de NEST), para el barrido en sin^2(theta_W)
+  real(dp) :: qy_scale         ! perilla de sensibilidad: factor sobre <N_e> (banda de yield)
 
   ! ----- NSI 2D -----
   integer,  parameter :: ipar = 5     ! <-- par de parametros NSI (1..15); ver select case
@@ -139,6 +141,25 @@ program chi2_ideal_nest
   T_nr_max = 3.5_dp  / 1000.0_dp     ! ref.[46] + cinematica E_nu=8 MeV (T_max=3.44 keV);
                                      ! trunca la cola E_nu 8-10 MeV (<1 %). Antes 6.0. En Xe el
                                      ! corte cinematico anula el integrando > ~1.6 keV
+
+  ! ---- perillas de sensibilidad (variables de entorno; ausentes => base) ----
+  qy_scale = 1.0_dp
+  block
+    character(len=32) :: env
+    real(dp) :: tmax_kev
+    call get_environment_variable('IDEAL_QY_SCALE', env)
+    if (len_trim(env) > 0) read(env,*) qy_scale
+    call get_environment_variable('IDEAL_TMAX_KEV', env)
+    if (len_trim(env) > 0) then
+       read(env,*) tmax_kev
+       T_nr_max = tmax_kev / 1000.0_dp
+    end if
+    if (abs(qy_scale - 1.0_dp) > 1.0e-9_dp) &
+       write(*,'(A,F7.4)')      ' [sensib] IDEAL_QY_SCALE = ', qy_scale
+    if (len_trim(env) > 0) &
+       write(*,'(A,F7.3,A)')    ' [sensib] IDEAL_TMAX_KEV = ', T_nr_max*1000.0_dp, ' keV'
+  end block
+
   dT = (T_nr_max - T_nr_min) / (n_T - 1); dT_keV = dT * 1000.0_dp
   dE = E_nu_max / (n_E - 1)
 
@@ -172,6 +193,8 @@ program chi2_ideal_nest
            n_F = nint(lambda / p_F)
            if (n_F < 1) n_F = 1
         end if
+        ! perilla de yield: escala <N_e> por qy_scale (mantiene p_F / forma de Fano)
+        if (abs(qy_scale - 1.0_dp) > 1.0e-9_dp) n_F = max(1, nint(qy_scale * real(n_F, dp)))
         do k = 1, NE_HI
            R_bin(k, im) = R_bin(k, im) + array_tasa_Comb(i_T) * dT_keV * peso * &
                           binomial_prob(k, n_F, p_F * EEE)
@@ -186,6 +209,49 @@ program chi2_ideal_nest
      write(u,'(I4,2ES18.8)') k, R_bin(k,1), R_bin(k,2)
   end do
   close(u)
+
+  ! ==================================================================
+  ! 2b. VOLCADO DIAGNOSTICO para kappa_EEE (factor de amplificacion de la
+  !     incertidumbre de la eficiencia de extraccion EEE). ADITIVO Y
+  !     OPCIONAL: solo escribe el archivo si la variable de entorno
+  !     DUMP_EEE_KAPPA == "1"; sin ella el programa se comporta exactamente
+  !     igual que antes (salida bit-identica, verificado contra
+  !     sensib_ideal_<TAG>.dat).
+  !     Vuelca, por cada nodo de la malla en T_nr, el peso del espectro de
+  !     retroceso w_T y los parametros binomiales (n_F, p_F) que el paso
+  !     NEST ya calculo en la Sec. 2 -- son las MISMAS cantidades que
+  !     multiplican binomial_prob(k, n_F, p_F*EEE). Con esto
+  !     python/kappa_eee.py evalua la derivada exacta de la funcion de
+  !     supervivencia binomial d/dp Pr[Bin(n,p) >= n_thr] sin re-derivar
+  !     ni aproximar nada.
+  ! ==================================================================
+  block
+    character(len=8) :: env_kappa
+    integer  :: u_k, nF_k
+    real(dp) :: pF_k, lam_k, w_k
+    call get_environment_variable('DUMP_EEE_KAPPA', env_kappa)
+    if (trim(env_kappa) == '1') then
+       open(newunit=u_k, file=trim(datadir)//'eee_kappa_grid_'//TAG//'.dat', &
+            status='replace')
+       write(u_k,'(A,F10.6,A,I0,A,I0)') '# EEE = ', EEE, '   n_T = ', n_T, &
+            '   NE_HI = ', NE_HI
+       write(u_k,'(A)') '# T_keV                w_T[ev/(kg dia)]        n_F   '// &
+            'p_F                     lambda_creados'
+       do i_T = 1, n_T
+          T_nr = T_nr_min + (i_T - 1) * dT
+          peso = merge(0.5_dp, 1.0_dp, i_T == 1 .or. i_T == n_T)
+          call obtener_nest_binomial(T_nr * 1000.0_dp, nF_k, pF_k)
+          if (abs(qy_scale - 1.0_dp) > 1.0e-9_dp) &
+             nF_k = max(1, nint(qy_scale * real(nF_k, dp)))
+          lam_k = obtener_electrones_creados(T_nr * 1000.0_dp)
+          w_k   = array_tasa_Comb(i_T) * dT_keV * peso
+          write(u_k,'(ES20.12, ES24.14, I8, ES24.14, ES24.14)') &
+               T_nr*1000.0_dp, w_k, nF_k, pF_k, lam_k
+       end do
+       close(u_k)
+       write(*,'(A)') ' [DUMP_EEE_KAPPA] escrito datos/eee_kappa_grid_'//TAG//'.dat'
+    end if
+  end block
 
   ! ==================================================================
   ! 3. SENSIBILIDAD Asimov de conteo puro: barrido de umbral y de F
@@ -227,9 +293,49 @@ program chi2_ideal_nest
 
         if (im == 1 .and. NE_LO_scan(is) == 1) Ntot_ne1 = Ntot_roi
         if (im == 1 .and. NE_LO_scan(is) == 4) Ntot_ne4 = Ntot_roi
+        if (im == 1) Ntot_thr(is) = Ntot_roi
      end do
   end do
   close(u)
+
+  ! ==================================================================
+  ! 3b. BARRIDO EN sin^2(theta_W)  (Asimov, proyeccion)
+  !   sin^2(theta_W) entra en la prediccion CEvNS solo via
+  !     Q_W(s) = -N/2 + (1-4s)/2 * Z ,
+  !   asi que la amplitud efectiva es A(s) = [Q_W(s)/Q_W(s0)]^2 y
+  !     Delta_chi2(s) = (1 - A(s))^2 * Ntot_ROI     (Asimov, A_best=1).
+  !   Se hace por cada umbral N_e >= {1,2,3,4} (F de NEST).
+  !   Salida: chi2_sin2theta_ideal_<TAG>.dat
+  ! ==================================================================
+  block
+    integer, parameter :: n_s = 3000
+    real(dp) :: s, QWs, As, ds
+    real(dp) :: s_lo(4), s_hi(4)
+    integer  :: iss, us, it
+    s_lo = -1.0_dp; s_hi = -1.0_dp
+    open(newunit=us, file=trim(datadir)//'chi2_sin2theta_ideal_'//TAG//'.dat', &
+         status='replace')
+    write(us,'(A)') '# NE_LO   sin2theta_W   A(s)   dchi2'
+    do iss = 0, n_s
+       s   = real(iss,dp) * 0.5_dp / real(n_s,dp)
+       QWs = -N_Ge/2.0_dp + (1.0_dp - 4.0_dp*s)/2.0_dp * Z_Ge
+       As  = (QWs / QW_SM)**2
+       do it = 1, 4
+          ds = (1.0_dp - As)**2 * Ntot_thr(it)
+          write(us,'(I5,3ES16.6)') NE_LO_scan(it), s, As, ds
+          if (ds <= 2.706_dp) then
+             if (s_lo(it) < 0.0_dp) s_lo(it) = s
+             s_hi(it) = s
+          end if
+       end do
+    end do
+    close(us)
+    write(*,'(/,A)') ' --- banda 90% CL de sin^2(theta_W) (Asimov, por umbral) ---'
+    do it = 1, 4
+       write(*,'(A,I0,A,F9.5,A,F9.5,A)') '   N_e>=', NE_LO_scan(it), ' : [', &
+            s_lo(it), ', ', s_hi(it), ']'
+    end do
+  end block
 
   ! ==================================================================
   ! 4. BARRIDO NSI 2D  (ipar=5)  para N_e>=1 y N_e>=4  (F de NEST)

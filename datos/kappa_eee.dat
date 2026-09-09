@@ -1,0 +1,67 @@
+============================================================================================
+ kappa_EEE = (EEE/S) dS/dEEE   --   amplificacion de la incertidumbre de EEE
+============================================================================================
+ EEE_nom:  Xe = 0.328  (sigma_rel = 8.54%, arXiv:2411.18641)
+           Ar = 0.99  (sigma NO reportada; ReD dice extraccion ~100% por diseno de campo)
+ delta (diferencia finita) = 1.0%   |   malla T: n_T=800 (identica a chi2_ideal_nest)
+
+--------------------------------------------------------------------------------------------
+ [Xe]  METODO ANALITICO  (identidad exacta de la binomial)
+--------------------------------------------------------------------------------------------
+  nodos de malla con senal (n_F>0): 798/800   | <T>_w = 0.309 keV   | p_F rango = [0.414, 0.593]
+  P0(n_e0) = Binomial(n_F(T), p_F(T)) -- primeros 10 n_e0, en T dominante:
+    T_dom = 0.6210 keV   n_F = 7   p_F = 0.5845   p_eff = p_F*EEE = 0.1917
+    n_e0 :         0         1         2         3         4         5         6         7         8         9
+    P0   :   0.00214   0.02104   0.08881   0.20827   0.29303   0.24738   0.11602   0.02332   0.00000   0.00000
+    <N_e creados> = n_F*p_F = 4.092 ;  media de Bin(n_F-1, p_eff) = 1.150
+
+   n_thr    S (int w*S_T)          dS/dEEE    kappa_EEE   T_dom[keV]  n_F_dom  p_eff_dom  frac_dom   interpretacion
+       1     1.103360e+01     2.711424e+01       0.8060       0.2581        2     0.1784     0.044   
+       2     2.140126e+00     1.077957e+01       1.6521       0.3379        3     0.1809     0.029   
+       3     3.722765e-01     2.826220e+00       2.4901       0.4758        5     0.1889     0.027   
+       4     6.327638e-02     6.512600e-01       3.3759       0.6210        7     0.1917     0.025   <-- piso fisico del ROI
+
+--------------------------------------------------------------------------------------------
+ [Ar]  METODO ANALITICO  (identidad exacta de la binomial)
+--------------------------------------------------------------------------------------------
+  nodos de malla con senal (n_F>0): 800/800   | <T>_w = 0.508 keV   | p_F rango = [0.367, 0.930]
+  P0(n_e0) = Binomial(n_F(T), p_F(T)) -- primeros 10 n_e0, en T dominante:
+    T_dom = 0.2537 keV   n_F = 1   p_F = 0.8447   p_eff = p_F*EEE = 0.8363
+    n_e0 :         0         1         2         3         4         5         6         7         8         9
+    P0   :   0.15528   0.84472   0.00000   0.00000   0.00000   0.00000   0.00000   0.00000   0.00000   0.00000
+    <N_e creados> = n_F*p_F = 0.845 ;  media de Bin(n_F-1, p_eff) = 0.000
+
+   n_thr    S (int w*S_T)          dS/dEEE    kappa_EEE   T_dom[keV]  n_F_dom  p_eff_dom  frac_dom   interpretacion
+       1     3.813850e+01     1.040750e+01       0.2702       0.2537        1     0.8363     0.042   <-- piso fisico del ROI
+       2     2.783508e+01     1.371791e+01       0.4879       0.2867        2     0.8198     0.044   
+       3     2.104472e+01     1.527644e+01       0.7186       0.3611        3     0.8398     0.038   
+       4     1.600349e+01     1.587963e+01       0.9823       0.4354        4     0.8493     0.032   
+
+--------------------------------------------------------------------------------------------
+ METODO DE DIFERENCIA FINITA  (pipeline compilado, delta = 1%)
+--------------------------------------------------------------------------------------------
+  [Xe] ideal  (S = R_tot_ROI de sensib_ideal_Xe.dat, F de NEST):
+     n_thr=1:  kappa_analitico =    0.8060   kappa_dif.finita =    0.8061   |dif| rel =  0.00%
+     n_thr=2:  kappa_analitico =    1.6521   kappa_dif.finita =    1.6522   |dif| rel =  0.00%
+     n_thr=3:  kappa_analitico =    2.4901   kappa_dif.finita =    2.4902   |dif| rel =  0.00%
+     n_thr=4:  kappa_analitico =    3.3759   kappa_dif.finita =    3.3760   |dif| rel =  0.00%
+  [Ar] ideal  (S = R_tot_ROI de sensib_ideal_Ar.dat, F de NEST):
+     n_thr=1:  kappa_analitico =    0.2702   kappa_dif.finita =    0.2702   |dif| rel =  0.00%
+     n_thr=2:  kappa_analitico =    0.4879   kappa_dif.finita =    0.4879   |dif| rel =  0.01%
+     n_thr=3:  kappa_analitico =    0.7186   kappa_dif.finita =    0.7187   |dif| rel =  0.01%
+     n_thr=4:  kappa_analitico =    0.9823   kappa_dif.finita =    0.9824   |dif| rel =  0.01%
+
+  [Xe] cadena COMPLETA red100PE -> chi2  (binomial + convolucion SE + eff_ROI):
+     S = 'Sum R_SM (pred. ROI)' [entra al ajuste chi2] :  kappa = 3.7854
+     S = 'Sum ROI Ne4-7' [pre eff_ROI, control]        :  kappa = 3.3767
+     (comparar con ideal N_e>=4:  analitico 3.3759 / dif.finita 3.3760)
+
+============================================================================================
+ RESULTADO  (kappa * sigma_rel(EEE) = incertidumbre relativa inducida en la senal)
+============================================================================================
+  [Xe] n_thr=4 (ideal):  kappa = 3.376 (analitico) / 3.376 (dif.finita)
+        sigma_rel(EEE) = 8.54%  ->  kappa*sigma_rel = 28.82% de incertidumbre relativa en S.
+  [Ar] n_thr=1 (ideal):  kappa = 0.270 (analitico) / 0.270 (dif.finita)
+        sigma_rel(EEE) NO reportada para Ar -> sistematico EEE NO modelado (dominante en Ar: Q_y).
+
+  [Xe] cadena completa (real, N_e 4-7 + SE + eff_ROI):  kappa = 3.785  ->  kappa*sigma_rel = 32.31%
