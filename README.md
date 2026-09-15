@@ -34,7 +34,30 @@ ver también `FORTRAN90/N_EventosCEvNS_NSIAr/README_Ar.txt` para el registro
 detallado de la rama de argón (parámetros, validación contra ref. [46],
 resultados de referencia).
 
-## Compilar (gfortran, sin Makefile)
+## Reproducir todo de un tirón
+
+```bash
+./correr_todo.sh          # compila, corre el pipeline y genera las figuras/tablas
+./correr_todo.sh figuras  # solo regenera figuras/tablas (asume binarios ya corridos)
+```
+
+Al final verifica que estén todas las figuras/tablas citadas en
+`doc/metodologia.tex`. Dos cosas a tener en cuenta:
+
+- `python/nest.py` y `python/nest_Ar.py` muestrean NEST por Monte Carlo (sin
+  semilla fija), así que una corrida completa desde cero da números con
+  ruido estadístico de ~0,1 % respecto a los ya publicados en la tesis —
+  normal, no es un error.
+- El script **no** regenera `datos/chi2_sin2theta.dat`: el binario que lo
+  produce (`FORTRAN90/N_EventosCEvNS/chi2.f90`, un archivo que este proyecto
+  trata como intocable) tiene una variable local (`log_s`) que `gfortran
+  -Wuninitialized` marca como posiblemente sin inicializar, y recompilarlo
+  desde cero puede dar un $\chi^2(s)$ degenerado (plano) en vez del perfil
+  real — ya pasó una vez en esta sesión. El `.dat` se deja versionado, ya
+  validado (χ²_min=7,349, s_best=0,248). Si algún día se autoriza tocar ese
+  archivo, ahí está la pista para arreglarlo.
+
+## Compilar a mano (gfortran, sin Makefile)
 
 El orden de los módulos en la línea de compilación es obligatorio (cada uno
 depende del anterior). Ejemplo para xenón:
@@ -42,12 +65,12 @@ depende del anterior). Ejemplo para xenón:
 ```bash
 cd FORTRAN90/N_EventosCEvNS_NSIXe
 MODS="constants.f90 flux.f90 xsections_nest.f90 mod_stats.f90 Tnr_to_e.f90"
-gfortran -O2 -o chi2_ideal        $MODS chi2_ideal_nest.f90
-gfortran -O2 -o chi2red100_nest   $MODS chi2red100_nest.f90
-gfortran -O2 -o mainred100_nest   $MODS mainred100_nest.f90
-gfortran -O2 -o red100_nest       $MODS red100_nest.f90
-gfortran -O2 -o red100PE          $MODS mod_detector.f90 red100PE.f90
-gfortran -O2 -o chi2              constants.f90 chi2.f90   # ajuste ON-OFF real (dato 2024)
+gfortran -O2 -ffree-line-length-none -o chi2_ideal        $MODS chi2_ideal_nest.f90
+gfortran -O2 -ffree-line-length-none -o chi2red100_nest   $MODS chi2red100_nest.f90
+gfortran -O2 -ffree-line-length-none -o mainred100_nest   $MODS mainred100_nest.f90
+gfortran -O2 -ffree-line-length-none -o red100_nest       $MODS red100_nest.f90
+gfortran -O2 -ffree-line-length-none -o red100PE          $MODS mod_detector.f90 red100PE.f90
+gfortran -O2 -ffree-line-length-none -o chi2              constants.f90 chi2.f90   # ajuste ON-OFF real (dato 2024)
 ```
 
 Para argón (mismo patrón, sin `mod_detector.f90`/`red100PE.f90`: el argón no
@@ -57,10 +80,10 @@ de argón no pasa por el espectro en fotoelectrones"):
 ```bash
 cd FORTRAN90/N_EventosCEvNS_NSIAr
 MODS="constants.f90 flux.f90 xsections_nest.f90 mod_stats.f90 Tnr_to_e.f90"
-gfortran -O2 -o chi2_ideal   $MODS chi2_ideal_nest.f90
-gfortran -O2 -o chi2_bkg     $MODS chi2_bkg_nest.f90     # §V con fondo de ³⁹Ar
-gfortran -O2 -o mainred100_nest $MODS mainred100_nest.f90
-gfortran -O2 -o red100_nest  $MODS red100_nest.f90
+gfortran -O2 -ffree-line-length-none -o chi2_ideal   $MODS chi2_ideal_nest.f90
+gfortran -O2 -ffree-line-length-none -o chi2_bkg     $MODS chi2_bkg_nest.f90     # §V con fondo de ³⁹Ar
+gfortran -O2 -ffree-line-length-none -o mainred100_nest $MODS mainred100_nest.f90
+gfortran -O2 -ffree-line-length-none -o red100_nest  $MODS red100_nest.f90
 ```
 
 `chi2_nsi_generic/`, `N_EventosCEvNS/` y `N_EventosCEvNS_NSI/` (Ge/CONUS+) se
@@ -71,7 +94,10 @@ compilan igual, un binario por programa principal; los módulos compartidos
 Los binarios, `.mod` y `.o` no se versionan (ver `.gitignore`): son
 específicos de cada compilador/máquina y se regeneran con lo de arriba.
 
-## Correr el pipeline y regenerar las figuras
+## Correr el pipeline y regenerar las figuras a mano (paso a paso)
+
+`./correr_todo.sh` hace justo esto; se detalla por si se quiere correr solo
+una parte:
 
 1. Compilar los binarios de la sección anterior.
 2. Generar las tablas de NEST que consume Fortran:
@@ -84,9 +110,8 @@ específicos de cada compilador/máquina y se regeneran con lo de arriba.
    docstring qué `.dat` lee y qué figura/tabla en `datos/` escribe). El
    estilo visual único de todas las figuras vive en `python/estilo_tesis.py`.
 
-No hay un único script "correr todo": el Apéndice de `doc/metodologia.tex`
-("programa → qué produce") es la tabla de referencia completa
-entrada→script→salida.
+El Apéndice de `doc/metodologia.tex` ("programa → qué produce") es la tabla
+de referencia completa entrada→script→salida.
 
 ## Convenciones de la física implementada (resumen; detalle en el .tex)
 

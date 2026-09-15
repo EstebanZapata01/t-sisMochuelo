@@ -15,6 +15,11 @@ datos/chi2_ON_OFF_perfil.dat
 # Backups locales de tablas de entrada (no son salidas del pipeline)
 datos/*.bak*
 
+# Volcado de depuracion de eventos_conus (main.f90), sin lector alguno
+"datos/eventos_C2 .dat"
+"datos/eventos_C3 .dat"
+"datos/eventos_C5 .dat"
+
 # Salidas de scripts que se mantienen (sirven para citar numeros en el texto)
 # pero cuya figura/tabla ya no entra en metodologia.tex
 datos/fig_convergencia.png
@@ -32,6 +37,8 @@ FORTRAN90/*/chi2_bkg
 FORTRAN90/*/chi2_nsi
 FORTRAN90/*/chi2_nsi_generic
 FORTRAN90/*/chi2_sin2theta
+FORTRAN90/*/chi2_nsi_2D
+FORTRAN90/*/chi2_ON_OFF_1D
 FORTRAN90/*/chi2red100_nest
 FORTRAN90/*/red100_nest
 FORTRAN90/*/red100PE
