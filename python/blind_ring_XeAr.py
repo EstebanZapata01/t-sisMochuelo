@@ -89,6 +89,9 @@ def contour_from_grid(path):
     x = np.unique(d[:, 0]); y = np.unique(d[:, 1])
     return x, y, d[:, 2].reshape(len(y), len(x))
 
+# Delta_chi2 critico (2 g.d.l.) para 68%, 90% y 95% C.L.
+CL_LEVELS = [(2.30, "68%", ":"), (4.605, "90%", "-"), (5.99, "95%", "-.")]
+
 ph = np.linspace(0, 2 * np.pi, 512)
 def dibuja_anillo(ax, name, lw_a=1.8):
     d = RING[name]
@@ -96,7 +99,9 @@ def dibuja_anillo(ax, name, lw_a=1.8):
             color=d["c"], lw=lw_a, ls=(0, (5, 2)))
     try:
         x, y, Zg = contour_from_grid(f"{BASE}/chi2_nsi_2D{name}_ideal.dat")
-        ax.contour(x, y, Zg, levels=[4.605], colors=[d["c"]], linewidths=0.9)
+        for dchi2, _, ls in CL_LEVELS:
+            ax.contour(x, y, Zg, levels=[dchi2], colors=[d["c"]],
+                       linewidths=0.9, linestyles=[ls])
     except Exception as e:
         print(f"  (sin grilla numerica para {name}: {e})")
 
@@ -104,13 +109,15 @@ for name in ("Xe", "Ar"):
     dibuja_anillo(aB, name)
     aB.plot([], [], color=RING[name]["c"], lw=1.8, ls=(0, (5, 2)),
             label=fr"{name}: $\rho_\varepsilon = {RING[name]['rho']:.3f}$")
+for _, lab, ls in CL_LEVELS:
+    aB.plot([], [], color=GRIS, lw=0.9, ls=ls, label=lab + " C.L.")
 aB.plot(0, 0, "+", ms=10, mew=1.4, color=NEGRO)
 aB.set_xlim(-0.12, 0.52)
 aB.set_ylim(-0.32, 0.32)
 aB.set_aspect("equal")
 aB.set_xlabel(r"$\varepsilon_{ee}^{dV}$")
 aB.set_ylabel(r"$\varepsilon_{e\mu}^{dV}$")
-aB.legend(loc="upper left")
+aB.legend(loc="upper left", ncol=2, fontsize=7.6)
 
 # --- inset: el borde del anillo, analítico (--) sobre el numérico ---
 axB = zoom(aB, [0.60, 0.06, 0.38, 0.38], (0.30, 0.40), (-0.05, 0.05))
