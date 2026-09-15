@@ -24,7 +24,7 @@ EXPO = 192.0                       # kg*dia, tabla tab:ideal
 ROI = {"Xe": (4, 7), "Ar": (1, 5)}
 KMAX = {"Xe": 10, "Ar": 15}
 
-fig, axes = plt.subplots(1, 2, figsize=(10.4, 4.2), sharey=False)
+fig, axes = plt.subplots(1, 2, figsize=(10.4, 4.2), sharey=True)
 
 for ax, (tag, col) in zip(axes, (("Xe", C_XE), ("Ar", C_AR))):
     d = np.loadtxt(f"{BASE}/espectro_Ne_ideal_{tag}.dat", comments="#")
