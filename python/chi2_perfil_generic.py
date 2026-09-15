@@ -27,19 +27,6 @@ import matplotlib.ticker as ticker
 BASE = "/home/oem/Desktop/Unipamplona/Trabajo de grado/Códigos/datos"
 NARANJA = "#a86a43"
 
-plt.rcParams.update({
-    "font.family": "serif", "mathtext.fontset": "dejavuserif",
-    "font.size": 10, "axes.titlesize": 11, "axes.labelsize": 10.5,
-    "axes.linewidth": 0.9,
-    "xtick.direction": "in", "ytick.direction": "in",
-    "xtick.top": True, "ytick.right": True,
-    "xtick.minor.visible": True, "ytick.minor.visible": True,
-    "legend.frameon": True, "legend.framealpha": 0.95,
-    "legend.edgecolor": "0.75", "legend.fontsize": 8,
-    "lines.linewidth": 1.6,
-    "figure.facecolor": "white", "savefig.facecolor": "white",
-    "savefig.dpi": 220, "savefig.bbox": "tight",
-})
 
 def leer_perfil(path):
     filas = []
@@ -103,7 +90,6 @@ def panel(ax, tag, titulo, xmax_extra):
     ax.set_xlabel(r"Amplitud $A$")
     ax.set_title(titulo)
     ax.xaxis.set_major_locator(ticker.MaxNLocator(integer=True, nbins=6))
-    ax.grid(True, ls=":", lw=0.35, color="0.8", zorder=0)
     return A_best, A_90, chi2_min
 
 fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(11.0, 4.4))

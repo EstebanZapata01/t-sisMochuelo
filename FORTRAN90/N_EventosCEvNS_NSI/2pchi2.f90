@@ -68,6 +68,25 @@ program chi2_nsi_2D
 
   QW_SM = -N_Ge/2.0_dp + (1.0_dp - 4.0_dp*sin2th_SM)/2.0_dp * Z_Ge
 
+  ! ================== 1b. VOLCADO ADITIVO para chi2_nsi_generic ==================
+  ! Validacion cruzada Xe <-> CONUS+ con el MISMO motor chi2+NSI (ver
+  ! metodologia.tex). NO altera ningun calculo/archivo anterior: solo agrega
+  ! este archivo nuevo con los datos crudos de entrada. R_pred se guarda como
+  ! R_unit(bin)*QW_SM^2, es decir la prediccion SM completa (eps=0), en la
+  ! misma convencion que R_SM en chi2.f90 (Xe).
+  block
+    integer :: u_gen, ib
+    open(newunit=u_gen, file=trim(outdir)//'generic_input_conus.dat', status='replace')
+    write(u_gen,'(A)') '# Z  N  sigma_alpha  n_bins  ipar'
+    write(u_gen,'(F8.2,F8.2,F8.4,2I6)') real(Z_Ge,dp), N_Ge, sigma_alpha, nbins, ipar
+    write(u_gen,'(A)') '# bin  R_exp  sigma_exp  R_pred(=R_unit*QW_SM^2)'
+    do ib = 1, nbins
+       write(u_gen,'(I5,3ES16.7)') ib, R_exp(ib), sigma_exp(ib), R_unit(ib)*QW_SM**2
+    end do
+    close(u_gen)
+    write(*,*) 'Volcado generic_input_conus.dat (validacion cruzada, aditivo)'
+  end block
+
   ! ================== 2. DEFINICIÓN DE CASOS (EE EN EJE X) ==================
   select case(ipar)
   case(1);  xlabel='$\epsilon_{ee}^{dV}$'; ylabel='$\epsilon_{ee}^{uV}$'

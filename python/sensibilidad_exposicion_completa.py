@@ -31,26 +31,13 @@ import numpy as np
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-from estilo_tesis import aplicar, C_XE, C_AR, C_GE, C_SM, CICLO
+from estilo_tesis import aplicar, C_XE, GRIS, NEGRO
 aplicar()
 
 BASE = "/home/oem/Desktop/Unipamplona/Trabajo de grado/Códigos/datos"
 EXPO_BASE = 192.0          # kg*dia, exposicion base real (volumen fiducial 2024)
 A90_REAL_2024 = 107.32     # chi2.f90, ajuste ON-OFF real (sin nuisance)
 
-plt.rcParams.update({
-    "font.family": "serif", "mathtext.fontset": "dejavuserif",
-    "font.size": 10, "axes.titlesize": 11.5, "axes.labelsize": 10.5,
-    "axes.linewidth": 0.9, "axes.grid": True,
-    "grid.color": "0.82", "grid.linewidth": 0.5,
-    "xtick.direction": "in", "ytick.direction": "in",
-    "xtick.top": True, "ytick.right": True,
-    "xtick.minor.visible": True, "ytick.minor.visible": True,
-    "legend.frameon": False, "legend.fontsize": 8.2,
-    "lines.linewidth": 1.7,
-    "figure.facecolor": "white", "savefig.facecolor": "white",
-    "savefig.dpi": 220, "savefig.bbox": "tight",
-})
 
 def load_real_xe():
     """sensib_real_Xe.dat -> expo[kg dia], A90_esperado."""
@@ -83,34 +70,33 @@ SYS_NEST    = (27.0, 135.0)  # yield NEST a los bordes de banda, SVII
 SYS_EEE     = (43.0, 78.0)   # EEE 32.8 +/- 2.8%, SVII
 
 # --------------------------------------------------------------- figura
-fig, ax = plt.subplots(figsize=(7.6, 5.6))
+fig, ax = plt.subplots(figsize=(7.2, 5.0))
 
 # banda de sistematicos discretos (rango envolvente), franja horizontal
 sys_lo = min(SYS_SPECTRO[0], SYS_NEST[0], SYS_EEE[0])
 sys_hi = max(SYS_SPECTRO[1], SYS_NEST[1], SYS_EEE[1])
-ax.axhspan(sys_lo, sys_hi, color="0.85", zorder=0,
-           label=f"Sistemáticos discretos del paper ({sys_lo:.0f}–{sys_hi:.0f}×SM)")
+ax.axhspan(sys_lo, sys_hi, color=GRIS, alpha=0.16, lw=0, zorder=0,
+           label=f"sistemáticos discretos ({sys_lo:.0f}–{sys_hi:.0f}×SM)")
 
-ax.plot(expo_xe, a90_esp, "o-", color="black", ms=5,
-        label=r"Xe, proyección esperada (Asimov): $1+\sqrt{2.706/(\mu S_2)}$")
+ax.plot(expo_xe, a90_esp, "o-", color=C_XE, ms=4,
+        label="Xe, proyección esperada (Asimov)")
 
-ax.plot([EXPO_BASE], [A90_REAL_2024], "D", color="black", ms=7, mfc="white", mew=1.3,
-        label=rf"Xe, dato real 2024 ($A_{{90}}\!\approx\!{A90_REAL_2024:.0f}$)")
+ax.plot([EXPO_BASE], [A90_REAL_2024], "D", color=NEGRO, ms=7, mfc="white", mew=1.3,
+        label="Xe, dato real 2024")
 ax.errorbar([PAPER_1YR_EXPO], [np.mean(PAPER_1YR_A90)],
             yerr=[[np.mean(PAPER_1YR_A90) - PAPER_1YR_A90[0]],
                   [PAPER_1YR_A90[1] - np.mean(PAPER_1YR_A90)]],
-            fmt="^", color="0.2", ms=8, capsize=4, lw=1.3,
-            label="Extrapolación a 1 año, RED-100 §VII (15–20×SM)")
+            fmt="^", color=GRIS, ms=8, capsize=3, lw=1.1,
+            label="extrapolación a 1 año, §VII")
 
-ax.axhline(1.0, color="#33546e", lw=1.0, ls=":")
+ax.axhline(1.0, color=C_XE, lw=0.9, ls=":")
 ax.text(expo_xe[1], 1.03, r"límite estadístico ($A_{90}\to 1$)",
-        fontsize=8.0, va="bottom", color="#33546e")
+        fontsize=8.0, va="bottom", color=C_XE)
 
 ax.set_xscale("log"); ax.set_yscale("log")
 ax.set_xlabel("Exposición reactor ON [kg·día]")
 ax.set_ylabel(r"$A_{90}$ [$\times$SM]")
-ax.set_title("Xe: proyección estadística vs. límite por sistemáticos")
-ax.legend(loc="upper right", fontsize=8.0)
+ax.legend(loc="upper right")
 ax.set_ylim(0.9, 200)
 
 fig.tight_layout()

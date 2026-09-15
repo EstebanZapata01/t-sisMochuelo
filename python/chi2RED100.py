@@ -18,7 +18,7 @@ Requiere:
 import re
 import numpy as np
 import matplotlib.pyplot as plt
-from estilo_tesis import aplicar, C_XE, C_AR, C_GE, C_SM, CICLO
+from estilo_tesis import aplicar, C_XE, C_AR, C_GE, C_SM, CICLO, AZUL, NARANJA
 aplicar()
 import matplotlib.ticker as ticker
 from pathlib import Path
@@ -97,29 +97,6 @@ print(f'  chi2_min              = {chi2_min:.4f}')
 # ============================================================
 # ESTILO GLOBAL  (imita el estilo limpio del articulo)
 # ============================================================
-plt.rcParams.update({
-    'font.family'     : 'serif',
-    'font.size'       : 10,
-    'axes.labelsize'  : 11,
-    'axes.titlesize'  : 11,
-    'xtick.labelsize' : 9,
-    'ytick.labelsize' : 9,
-    'legend.fontsize' : 9,
-    'figure.dpi'      : 150,
-    'axes.linewidth'  : 0.8,
-    'xtick.direction' : 'in',
-    'ytick.direction' : 'in',
-    'xtick.top'       : True,
-    'ytick.right'     : True,
-    'xtick.minor.visible': True,
-    'ytick.minor.visible': True,
-})
-
-NARANJA = '#a86a43'   # color de la banda del articulo
-
-
-# ============================================================
-# FIGURA 1: Residuo ON-OFF  (Figura 8 del articulo)
 # ============================================================
 fig1, ax1 = plt.subplots(figsize=(6.8, 3.2))
 
@@ -127,7 +104,7 @@ fig1, ax1 = plt.subplots(figsize=(6.8, 3.2))
 ax1.axhline(0.0, color='0.55', lw=0.6, ls='--', zorder=1)
 
 # 2. Predicción del Modelo Estándar (A=1)
-ax1.step(pe, R_SM, where='mid', color='#33546e', lw=1.5, 
+ax1.step(pe, R_SM, where='mid', color=AZUL, lw=1.5, 
          linestyle='-', label='Predicción CEvNS (SM)', zorder=2)
 
 # 3. Banda naranja: Limite superior al 90% C.L. (desde 0 hasta band_up)
@@ -158,10 +135,9 @@ ax1.set_ylabel(r'Counts$\cdot$kg$^{-1}\cdot$day$^{-1}$')
 ax1.xaxis.set_major_locator(ticker.MultipleLocator(10))
 ax1.xaxis.set_minor_locator(ticker.MultipleLocator(5))
 ax1.yaxis.set_major_locator(ticker.MaxNLocator(5))
-ax1.grid(True, ls=':', lw=0.35, color='0.75', zorder=0)
 
 # Legend con 'ncol=2' para que quede más horizontal y limpio si quieres
-leg1 = ax1.legend(framealpha=0.95, edgecolor='0.75',
+leg1 = ax1.legend(frameon=False,
                   loc='upper right', handlelength=1.4)
 
 fig1.tight_layout()
@@ -186,7 +162,7 @@ ax2.axhline(2.706, color=NARANJA, lw=1.3, ls='--',
             label=r'90% C.L.  ($\Delta\chi^2 = 2.706$)')
 
 # Nivel 1 sigma
-ax2.axhline(1.000, color='#33546e', lw=0.9, ls=':',
+ax2.axhline(1.000, color=AZUL, lw=0.9, ls=':',
             label=r'$1\sigma$  ($\Delta\chi^2 = 1.000$)')
 
 # Linea vertical: A_best y A_90
@@ -225,9 +201,8 @@ ax2.xaxis.set_minor_locator(ticker.AutoMinorLocator())
 
 ax2.yaxis.set_major_locator(ticker.MultipleLocator(2))
 ax2.yaxis.set_minor_locator(ticker.MultipleLocator(1))
-ax2.grid(True, ls=':', lw=0.35, color='0.75', zorder=0)
 
-leg2 = ax2.legend(framealpha=0.95, edgecolor='0.75',
+leg2 = ax2.legend(frameon=False,
                   loc='upper left', handlelength=1.8)
 
 fig2.tight_layout()

@@ -213,8 +213,12 @@ Post-proceso:
   python/nest_Ar.py               genera datos/nest_Ar_218V_dense.txt (yield NR
                                   anclado a ReD) y datos/nest_Ar_ER_218V.txt
                                   (yield ER, para el fondo de 39Ar)
-  python/compare_ideal_XeAr.py    tabla + chequeo analitico del alcance NSI +
-                                  6 figuras
+  python/waterfall_XeAr.py        cascada Xe->Ar (donde el umbral invierte la
+                                  ventaja); python/threshold_table.py y
+                                  python/expo_to_A90.py generan las tablas
+                                  cuantitativas de esta comparacion ideal.
+  (python/compare_ideal_XeAr.py y sus 6 figuras fig_ideal_*.png / fig_ideal_XeAr.png
+   quedaron retirados: el waterfall + las tablas cubren lo mismo sin duplicar.)
 
 
 Salidas en datos/
@@ -227,12 +231,8 @@ Salidas en datos/
   chi2_nsi_2DAr_ideal.dat       eps_x eps_y Dchi2   (N_e>=1, F de NEST)
   chi2_nsi_2DAr_ideal_ne4.dat   eps_x eps_y Dchi2   (N_e>=4, F de NEST)
   chi2_nsi_2DXe_ideal[_ne4].dat idem para Xe
-  fig_ideal_1_espectro_Ne.png            espectro R(N_e) de Xe y Ar
-  fig_ideal_2_retencion_umbral.png       % de senal retenida vs umbral
-  fig_ideal_3_sensibilidad_exposicion.png A_90 proyectado vs exposicion + Xe real
-  fig_ideal_4_figura_merito.png          cociente de eventos Ar/Xe vs umbral
-  fig_ideal_5_plano_NSI.png              plano NSI 2D (sensibilidad proyectada)
-  fig_ideal_XeAr.png                     resumen 2x2
+  fig_waterfall_XeAr.png        cascada Xe->Ar (python/waterfall_XeAr.py)
+  tabla_umbral.tex, tabla_expo_A90.tex   version tabulada de la comparacion
 
   --- variante "ventana fisica de Ar" (chi2red100_nest.f90) ---
   chi2_nsi_2DAr.dat        eps_x  eps_y  Delta_chi2   (barrido NSI 2D, N_e=1..5)

@@ -1,5 +1,5 @@
 # resumen chi2_nsi_generic
-# entrada = ../../datos/generic_input_Xe.dat
+# entrada = /home/oem/Desktop/Unipamplona/Trabajo de grado/Códigos/datos/generic_input_Xe.dat
 Z            =     54.000
 N            =     77.000
 ipar         =      5

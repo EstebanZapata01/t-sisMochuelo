@@ -1,27 +1,26 @@
 !=======================================================================
 ! Programa: chi2_ON_OFF_1D.f90
-! Propósito: Leer los datos ON-OFF digitalizados de arXiv:2403.12645
-!            y hacer el análisis chi² 1D sobre la amplitud de señal CEvNS.
+! Propósito: Leer los datos ON-OFF digitalizados de la Fig. 7 de
+!            arXiv:2411.18641 y hacer el análisis chi² 1D sobre la
+!            amplitud de señal CEvNS.
 !
-! Método:
-!   chi²(A, alpha) = Σ (ΔNᵢ - A*(1+alpha)*Rᵢ)² / σᵢ²  +  alpha²/sigma_F²
+! Método (RED-100 ajusta solo la amplitud A; sin nuisance de flujo):
+!   chi²(A) = Σ (ΔNᵢ - A*Rᵢ)² / σᵢ²  =  S3 - 2*A*S1 + A²*S2
 !
 !   Donde:
 !     A      = amplitud de la señal CEvNS  (A=1 → predicción SM exacta)
-!     alpha  = nuisance de normalización de flujo  (pull term)
 !     ΔNᵢ   = residuo ON-OFF digitalizado del artículo [cuentas/kg/día]
 !     σᵢ    = incertidumbre estadística en cada bin  [cuentas/kg/día]
 !     Rᵢ    = predicción CEvNS SM en bin i  [cuentas/kg/día]
-!     sigma_F = incertidumbre sistemática del flujo = 16.9%
 !
-!   Para cada valor de A, se minimiza analíticamente sobre alpha.
-!   El límite al 90% C.L. es donde Δchi² = chi²(A) - chi²_min = 2.706
+!   A_best = S1/S2 ; chi²_min = S3 - S1²/S2 ;
+!   A_90   = A_best + sqrt(2.706/S2)   (límite superior, una cola)
 !
 ! Archivos de entrada:
 !   ionization_spectra_detallado.dat → predicción de red100PE.f90
 !
 ! Archivos de salida:
-!   chi2_ON_OFF_perfil.dat → A  chi2_sinNuisance  chi2_conNuisance
+!   chi2_ON_OFF_perfil.dat → A  chi2(A)
 !   chi2_ON_OFF_banda.dat  → PE  R_SM  banda_sup  banda_inf  datos  sigma
 !=======================================================================
 program chi2_ON_OFF_1D
@@ -42,7 +41,6 @@ program chi2_ON_OFF_1D
   real(dp) :: R_SM(NMAX)
 
   ! ── Parámetros del análisis ────────────────────────────────────────
-  real(dp), parameter :: sigma_F  = 0.169_dp   ! sist. flujo 16.9%
   real(dp), parameter :: dchi2_90 = 2.706_dp   ! Δchi² → 90% CL (1 cola)
   integer,  parameter :: N_alpha  = 10000      ! puntos del barrido en A
 
@@ -50,11 +48,10 @@ program chi2_ON_OFF_1D
   real(dp) :: S1, S2, S3            ! sumas para la minimización analítica
   real(dp) :: A, dA                 ! amplitud de señal y paso del barrido
   real(dp) :: A_min, A_max
-  real(dp) :: alpha_nu              ! nuisance de flujo minimizado en A
-  real(dp) :: chi2_sin, chi2_con    ! chi² sin y con nuisance de flujo
-  real(dp) :: chi2_min_sin, chi2_min_con
-  real(dp) :: A_best_sin, A_best_con
-  real(dp) :: A_90_sin, A_90_con
+  real(dp) :: chi2_sin
+  real(dp) :: chi2_min_sin
+  real(dp) :: A_best_sin
+  real(dp) :: A_90_sin
 
   ! ── Archivos ──────────────────────────────────────────────────────
   integer  :: u_pred, u_perfil, u_banda
@@ -199,91 +196,34 @@ program chi2_ON_OFF_1D
   A_90_sin    = A_best_sin + sqrt(dchi2_90 / S2)
 
   write(*,'(/,A)') '  ┌─────────────────────────────────────────────────┐'
-  write(*,'(A)')   '  │         RESULTADOS SIN NUISANCE DE FLUJO        │'
+  write(*,'(A)')   '  │   RESULTADO (ajuste de 1 parámetro: A)          │'
   write(*,'(A)')   '  ├─────────────────────────────────────────────────┤'
   write(*,'(A,F10.5,A)') '  │  A_best         = ', A_best_sin,  '                  │'
   write(*,'(A,F10.5,A)') '  │  chi²_min       = ', chi2_min_sin,'                  │'
   write(*,'(A,F10.5,A)') '  │  A_90% (sup)    = ', A_90_sin,    '                  │'
   write(*,'(A)')   '  └─────────────────────────────────────────────────┘'
 
+  if (A_best_sin >= 0.0_dp .and. A_best_sin <= 1.5_dp) then
+    write(*,'(/,A)') '  → Resultado compatible con la predicción SM (A~1)'
+  else if (A_best_sin < 0.0_dp) then
+    write(*,'(/,A)') '  → Mejor ajuste en A<0: señal no requerida por los datos'
+  end if
+
   ! ══════════════════════════════════════════════════════════════════
-  ! 5b. RESULTADO CON NUISANCE DE FLUJO (minimizado analíticamente)
-  !
-  !     chi²(A, alpha) = Σ(ΔNᵢ - A*(1+alpha)*Rᵢ)²/σᵢ² + alpha²/sigma_F²
-  !
-  !     Minimizando ∂chi²/∂alpha = 0:
-  !       alpha_min(A) = A*(S1 - A*S2) / (1/sigma_F² + A²*S2)
-  !
-  !     Se obtiene chi²_eff(A) = chi²(A, alpha_min(A)) evaluado numéricamente.
-  !     Se busca A_best_con minimizando chi²_eff en el barrido.
+  ! 5b. PERFIL chi²(A)  (parábola exacta, sin nuisance)
   ! ══════════════════════════════════════════════════════════════════
   A_min = -1.5_dp
   A_max =  5.0_dp
   dA    = (A_max - A_min) / real(N_alpha - 1, dp)
 
-  chi2_min_con = 1.0d30
-  A_best_con   = 0.0_dp
-  A_90_con     = A_max      ! se actualizará en el barrido
-
   open(newunit=u_perfil, file=f_perfil, status='replace')
-  write(u_perfil,'(A)') '# A   chi2_sinNuisance   chi2_conNuisance'
-
+  write(u_perfil,'(A)') '# A   chi2(A)'
   do i = 0, N_alpha - 1
     A = A_min + i * dA
-
-    ! ── chi² sin nuisance (parábola analítica) ──
     chi2_sin = S3 - 2.0_dp*A*S1 + A**2*S2
-
-    ! ── nuisance optimizado analíticamente ──────
-    alpha_nu = A * (S1 - A*S2) / (1.0_dp/sigma_F**2 + A**2*S2)
-
-    ! ── chi² con nuisance ────────────────────────
-    chi2_con = 0.0_dp
-    do j = 1, n_datos
-      chi2_con = chi2_con + ((dN_dat(j) - A*(1.0_dp + alpha_nu)*R_SM(j)) / sigma_dat(j))**2
-    end do
-    chi2_con = chi2_con + (alpha_nu / sigma_F)**2
-
-    write(u_perfil,'(3(ES14.6,2X))') A, chi2_sin, chi2_con
-
-    ! Buscar mínimo y A_best con nuisance
-    if (chi2_con < chi2_min_con) then
-      chi2_min_con = chi2_con
-      A_best_con   = A
-    end if
+    write(u_perfil,'(2(ES14.6,2X))') A, chi2_sin
   end do
   close(u_perfil)
-
-  ! Segundo pase para A_90 con nuisance (buscar cruce Δchi² = 2.706)
-  A_90_con = A_max   ! default conservador
-  do i = 0, N_alpha - 1
-    A = A_min + i * dA
-    if (A < A_best_con) cycle   ! buscar solo hacia arriba (límite superior)
-    alpha_nu = A * (S1 - A*S2) / (1.0_dp/sigma_F**2 + A**2*S2)
-    chi2_con = 0.0_dp
-    do j = 1, n_datos
-      chi2_con = chi2_con + ((dN_dat(j) - A*(1.0_dp + alpha_nu)*R_SM(j))/sigma_dat(j))**2
-    end do
-    chi2_con = chi2_con + (alpha_nu/sigma_F)**2
-    if (chi2_con - chi2_min_con >= dchi2_90) then
-      A_90_con = A
-      exit
-    end if
-  end do
-
-  write(*,'(/,A)') '  ┌─────────────────────────────────────────────────┐'
-  write(*,'(A)')   '  │        RESULTADOS CON NUISANCE DE FLUJO 16.9%   │'
-  write(*,'(A)')   '  ├─────────────────────────────────────────────────┤'
-  write(*,'(A,F10.5,A)') '  │  A_best         = ', A_best_con,  '                  │'
-  write(*,'(A,F10.5,A)') '  │  chi²_min       = ', chi2_min_con,'                  │'
-  write(*,'(A,F10.5,A)') '  │  A_90% (sup)    = ', A_90_con,    '                  │'
-  write(*,'(A)')   '  └─────────────────────────────────────────────────┘'
-
-  if (A_best_con >= 0.0_dp .and. A_best_con <= 1.5_dp) then
-    write(*,'(/,A)') '  → Resultado compatible con la predicción SM (A~1)'
-  else if (A_best_con < 0.0_dp) then
-    write(*,'(/,A)') '  → Mejor ajuste en A<0: señal no requerida por los datos'
-  end if
 
   ! ══════════════════════════════════════════════════════════════════
   ! 6. GUARDAR BANDA PARA LA FIGURA
@@ -291,15 +231,13 @@ program chi2_ON_OFF_1D
   ! ══════════════════════════════════════════════════════════════════
   open(newunit=u_banda, file=f_banda, status='replace')
   write(u_banda,'(A)') &
-    '# PE_center   R_SM   A90_con*R_SM   -A90_con*R_SM   delta_ON_OFF   sigma_stat'
-  write(u_banda,'(A,F8.5)') '# A_best (sin nuisance) = ', A_best_sin
-  write(u_banda,'(A,F8.5)') '# A_90   (sin nuisance) = ', A_90_sin
-  write(u_banda,'(A,F8.5)') '# A_best (con nuisance) = ', A_best_con
-  write(u_banda,'(A,F8.5)') '# A_90   (con nuisance) = ', A_90_con
+    '# PE_center   R_SM   A90*R_SM   -A90*R_SM   delta_ON_OFF   sigma_stat'
+  write(u_banda,'(A,F8.5)') '# A_best = ', A_best_sin
+  write(u_banda,'(A,F8.5)') '# A_90   = ', A_90_sin
   do i = 1, n_datos
     write(u_banda,'(6(ES14.6,2X))') &
       pe_dat(i), R_SM(i), &
-      A_90_con * R_SM(i), -A_90_con * R_SM(i), &
+      A_90_sin * R_SM(i), -A_90_sin * R_SM(i), &
       dN_dat(i), sigma_dat(i)
   end do
   close(u_banda)

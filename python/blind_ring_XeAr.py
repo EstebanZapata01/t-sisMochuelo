@@ -3,13 +3,12 @@
 """
 El anillo ciego de la NSI de sola tasa, para Xe y Ar en el MISMO plano.
 
-Panel A -- plano (eps_ee^uV, eps_ee^dV): la carga diagonal es
-    q_ee = eps_u (2Z+N) + eps_d (Z+2N),
-asi que la "direccion ciega" (q_ee tal que Q_W + q_ee = 0) es una recta
-por el origen con angulo theta(Z,N) = arctan[(Z+2N)/(2Z+N)]. Se dibujan
-las rectas ciegas de Xe, Ge y Ar; el angulo Xe-Ar (1.44 deg) y el maximo
-posible O-Xe (3.35 deg, O-16 con Z=N) se anotan. Es la degeneracion
-ESTRUCTURAL: ningun par de blancos reales la rompe apreciablemente.
+Panel A -- caracter ESTRUCTURAL de la direccion ciega. El angulo ciego es
+    theta = arctan f(r),   f(r) = (1+2r)/(2+r),   r = N/Z,
+monotona creciente y acotada en [45 deg, arctan(2)=63.43 deg]. Todos los
+nucleos estables viven en el tramo casi plano (r ~ 1-1.6), de modo que
+ningun par de blancos CE$\nu$NS reales separa sus direcciones ciegas mas
+de ~3 deg. Inset: el zoom con Delta_phi(Xe,Ar) = 1.44 deg.
 
 Panel B -- plano (eps_ee^dV, eps_emu^dV) (ipar=5): el lugar geometrico
 q_eff^2 = Q_W^2 es una circunferencia por el SM, centro
@@ -25,103 +24,107 @@ import numpy as np
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-from estilo_tesis import aplicar, C_XE, C_AR, C_GE, C_SM, CICLO
+from estilo_tesis import aplicar, C_XE, C_AR, C_GE, C_SM, CICLO, GRIS, NEGRO, zoom, nota, sombra
 aplicar()
 
 BASE = "/home/oem/Desktop/Unipamplona/Trabajo de grado/Códigos/datos"
 S2W = 0.23857
-C_XE, C_AR, C_GE = "#33546e", "#a86a43", "#5c7053"
-
-plt.rcParams.update({
-    "font.family": "serif", "mathtext.fontset": "dejavuserif",
-    "font.size": 10, "axes.titlesize": 11, "axes.labelsize": 10.5,
-    "axes.linewidth": 0.9,
-    "xtick.direction": "in", "ytick.direction": "in",
-    "xtick.top": True, "ytick.right": True,
-    "xtick.minor.visible": True, "ytick.minor.visible": True,
-    "legend.frameon": False, "legend.fontsize": 8.3,
-    "figure.facecolor": "white", "savefig.facecolor": "white",
-    "savefig.dpi": 220, "savefig.bbox": "tight",
-})
 
 TARG = {
-    "Xe": dict(Z=54, N=77, c=C_XE),
-    "Ge": dict(Z=32, N=41, c=C_GE),
-    "Ar": dict(Z=18, N=22, c=C_AR),
+    "$^{16}$O":  dict(Z=8,  N=8.0,  c="0.55"),
+    "$^{23}$Na": dict(Z=11, N=12.0, c="0.55"),
+    "$^{40}$Ar": dict(Z=18, N=22.0, c=C_AR),
+    "$^{73}$Ge": dict(Z=32, N=41.0, c=C_GE),
+    "$^{127}$I": dict(Z=53, N=74.0, c="0.55"),
+    "$^{131}$Xe":dict(Z=54, N=77.0, c=C_XE),
 }
 for name, d in TARG.items():
     Z, N = d["Z"], d["N"]
     d["QW"] = -N / 2.0 + (1.0 - 4.0 * S2W) / 2.0 * Z
     d["ZN2"] = Z + 2 * N
+    d["r"] = N / Z
     d["theta"] = np.degrees(np.arctan2(Z + 2 * N, 2 * Z + N))
     d["rho"] = abs(d["QW"]) / d["ZN2"]
 
-th_O = np.degrees(np.arctan2(24, 24))   # O-16: Z=N=8 -> arctan(24/24) = 45 deg
+RING = {"Xe": TARG["$^{131}$Xe"], "Ar": TARG["$^{40}$Ar"]}
+th_xe, th_ar = TARG["$^{131}$Xe"]["theta"], TARG["$^{40}$Ar"]["theta"]
+th_O = TARG["$^{16}$O"]["theta"]
 
-fig, (aA, aB) = plt.subplots(1, 2, figsize=(11.0, 5.2))
+fig, (aA, aB) = plt.subplots(1, 2, figsize=(11.2, 5.0))
 
-# ================================================= Panel A: direccion ciega
-t = np.linspace(-1.2, 1.2, 10)
+def theta_f(rr):
+    return np.degrees(np.arctan((1.0 + 2.0 * rr) / (2.0 + rr)))
+
+# ============================== Panel A: theta = arctan f(r), estructural
+r = np.linspace(0.9, 3.2, 500)
+aA.plot(r, theta_f(r), color=NEGRO, lw=1.8)
+aA.axhline(theta_f(1e6), color=GRIS, ls="--", lw=0.8)
+aA.text(3.15, theta_f(1e6) - 1.4, r"$\theta\to 63{,}4^\circ$", ha="right",
+        fontsize=8, color=GRIS)
+sombra(aA, 1.0, 1.6, color=C_XE, alpha=0.09)
+aA.text(1.30, 41.5, "valle de\nestabilidad", ha="center", fontsize=8, color=C_XE)
 for name, d in TARG.items():
-    ang = np.radians(d["theta"])
-    aA.plot(t * np.cos(ang), t * np.sin(ang), color=d["c"], lw=2.0,
-            label=fr"{name}: $\theta={d['theta']:.2f}^\circ$")
-# referencia O-16 (maximo posible)
-angO = np.radians(th_O)
-aA.plot(t * np.cos(angO), t * np.sin(angO), color="0.55", lw=1.0, ls="--",
-        label=fr"$^{{16}}$O (máx.): $\theta={th_O:.2f}^\circ$")
-aA.plot(0, 0, "k+", ms=11, mew=1.6)
-aA.set_xlim(-1.2, 1.2)
-aA.set_ylim(-1.2, 1.2)
-aA.set_aspect("equal")
-aA.set_xlabel(r"$\varepsilon_{ee}^{uV}$")
-aA.set_ylabel(r"$\varepsilon_{ee}^{dV}$")
-aA.set_title("(A) Dirección ciega: la degeneración es estructural")
-aA.legend(loc="lower right")
-aA.annotate(fr"Xe$-$Ar: ${TARG['Xe']['theta']-TARG['Ar']['theta']:.2f}^\circ$",
-            xy=(0.62, 0.66), xytext=(0.40, 0.98),
-            fontsize=9, ha="left",
-            arrowprops=dict(arrowstyle="-", color="0.4", lw=0.7))
+    aA.plot(d["r"], d["theta"], "o", ms=4.5, color=d["c"], zorder=5)
+aA.set_xlim(0.9, 3.2)
+aA.set_ylim(40, 65)
+aA.set_xlabel(r"$r = N/Z$")
+aA.set_ylabel(r"$\theta(r) = \arctan\dfrac{1+2r}{2+r}$   [$^\circ$]")
+
+# --- inset: zoom al cúmulo de blancos reales, con Delta_phi Xe-Ar ---
+axA = zoom(aA, [0.50, 0.08, 0.46, 0.46], (1.16, 1.52), (46.6, 48.9))
+axA.plot(r, theta_f(r), color=NEGRO, lw=1.4)
+for key, col in (("$^{40}$Ar", C_AR), ("$^{73}$Ge", C_GE), ("$^{131}$Xe", C_XE)):
+    d = TARG[key]
+    axA.plot(d["r"], d["theta"], "o", ms=5, color=col)
+    axA.axhline(d["theta"], color=col, lw=0.5, ls=":")
+axA.annotate("", xy=(1.185, th_xe), xytext=(1.185, th_ar),
+             arrowprops=dict(arrowstyle="<->", lw=1.0, color=NEGRO))
+axA.text(1.20, (th_xe + th_ar) / 2,
+         rf"$\Delta\phi_{{\rm Xe,Ar}} = {th_xe - th_ar:.2f}^\circ$",
+         va="center", fontsize=8.2)
 
 # ================================================= Panel B: anillo ciego (ipar=5)
-def contour_from_grid(path, level=4.605):
+def contour_from_grid(path):
     d = np.loadtxt(path, comments="#")
-    x = np.unique(d[:, 0])
-    y = np.unique(d[:, 1])
-    Z = d[:, 2].reshape(len(y), len(x))
-    return x, y, Z
+    x = np.unique(d[:, 0]); y = np.unique(d[:, 1])
+    return x, y, d[:, 2].reshape(len(y), len(x))
 
-for name in ("Xe", "Ar"):
-    d = TARG[name]
-    # circunferencia analitica
-    ph = np.linspace(0, 2 * np.pi, 400)
-    aB.plot(d["rho"] + d["rho"] * np.cos(ph), d["rho"] * np.sin(ph),
-            color=d["c"], lw=2.0, ls="--",
-            label=fr"{name} analítico ($\rho_\varepsilon={d['rho']:.3f}$)")
-    # contorno numerico
+ph = np.linspace(0, 2 * np.pi, 512)
+def dibuja_anillo(ax, name, lw_a=1.8):
+    d = RING[name]
+    ax.plot(d["rho"] * (1 + np.cos(ph)), d["rho"] * np.sin(ph),
+            color=d["c"], lw=lw_a, ls=(0, (5, 2)))
     try:
         x, y, Zg = contour_from_grid(f"{BASE}/chi2_nsi_2D{name}_ideal.dat")
-        cs = aB.contour(x, y, Zg, levels=[4.605], colors=[d["c"]], linewidths=1.0)
+        ax.contour(x, y, Zg, levels=[4.605], colors=[d["c"]], linewidths=0.9)
     except Exception as e:
         print(f"  (sin grilla numerica para {name}: {e})")
 
-aB.plot(0, 0, "k+", ms=11, mew=1.6, label="SM")
-aB.set_xlim(-0.15, 0.55)
-aB.set_ylim(-0.35, 0.35)
+for name in ("Xe", "Ar"):
+    dibuja_anillo(aB, name)
+    aB.plot([], [], color=RING[name]["c"], lw=1.8, ls=(0, (5, 2)),
+            label=fr"{name}: $\rho_\varepsilon = {RING[name]['rho']:.3f}$")
+aB.plot(0, 0, "+", ms=10, mew=1.4, color=NEGRO)
+aB.set_xlim(-0.12, 0.52)
+aB.set_ylim(-0.32, 0.32)
 aB.set_aspect("equal")
 aB.set_xlabel(r"$\varepsilon_{ee}^{dV}$")
 aB.set_ylabel(r"$\varepsilon_{e\mu}^{dV}$")
-aB.set_title("(B) Anillo ciego: analítico (--) sobre el numérico")
-aB.legend(loc="upper right")
+aB.legend(loc="upper left")
 
-fig.suptitle("La NSI de sola tasa es degenerada: un anillo, y ningún par de "
-             "blancos rompe la dirección", y=1.00, fontsize=11.5)
+# --- inset: el borde del anillo, analítico (--) sobre el numérico ---
+axB = zoom(aB, [0.60, 0.06, 0.38, 0.38], (0.30, 0.40), (-0.05, 0.05))
+for name in ("Xe", "Ar"):
+    dibuja_anillo(axB, name, lw_a=1.6)
+axB.set_aspect("equal")
+
 fig.tight_layout()
 fig.savefig(f"{BASE}/fig_blind_ring_XeAr.png")
 
+dphi = th_xe - th_ar
 print("=" * 68)
 for name, d in TARG.items():
-    print(f"  {name}: Q_W={d['QW']:8.3f}  theta={d['theta']:.3f} deg  rho_eps={d['rho']:.4f}")
-print(f"  Xe-Ar = {TARG['Xe']['theta']-TARG['Ar']['theta']:.2f} deg   "
-      f"O-Xe = {th_O-TARG['Xe']['theta']:.2f} deg (max)")
+    print(f"  {name:10s}: r={d['r']:.3f}  theta={d['theta']:.3f} deg  rho_eps={d['rho']:.4f}")
+print(f"  Delta_phi(Xe,Ar) = {dphi:.3f} deg   1/sin = {1/np.sin(np.radians(dphi)):.1f}")
+print(f"  O-Xe = {th_xe-th_O:.2f} deg (max)   1/sin = {1/np.sin(np.radians(th_xe-th_O)):.1f}")
 print(f"\n  {BASE}/fig_blind_ring_XeAr.png")

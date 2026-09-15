@@ -1,5 +1,5 @@
 # resumen chi2_nsi_generic
-# entrada = ../../datos/generic_input_conus.dat
+# entrada = /home/oem/Desktop/Unipamplona/Trabajo de grado/Códigos/datos/generic_input_conus.dat
 Z            =     32.000
 N            =     41.000
 ipar         =      5

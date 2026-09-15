@@ -42,7 +42,7 @@ contains
     real(dp) :: dx, mu, sig, norm_check
 
     write(*,*) "----------------------------------------------------------"
-    write(*,*) "   MOD_DETECTOR: Gaussianas analiticas (arXiv:2403.12645) "
+    write(*,*) "   MOD_DETECTOR: Gaussianas analiticas (arXiv:2411.18641) "
     write(*,*) "   SEG  = ", SEG_val, " PE/e-"
     write(*,*) "   sig1 = ", sig1,    " PE"
     write(*,*) "   (archivo ignorado: ", trim(filename), ")"
@@ -100,19 +100,5 @@ contains
           * (S - x_grid(lo)) / (x_grid(hi) - x_grid(lo))
 
   end function respuesta_empirica
-  
-  function eficiencia_deteccion(N_ext, umbral_PE) result(eff)
-    integer, intent(in) :: N_ext
-    real(dp), intent(in) :: umbral_PE
-    real(dp) :: eff, media, sigma
-    if (N_ext <= 0) then
-       eff = 0.0_dp
-       return
-    end if
-    media = real(N_ext, dp) * SEG_val
-    sigma = sqrt(real(N_ext, dp)) * sig1
-    ! Probabilidad de que S2 > umbral usando la función error complementaria
-    eff = 0.5_dp * erfc((umbral_PE - media) / (sigma * sqrt(2.0_dp)))
-  end function eficiencia_deteccion
 
 end module mod_detector

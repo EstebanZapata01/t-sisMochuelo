@@ -17,23 +17,41 @@
 !   Fondo   B(N_e): espectro beta de 39Ar  dN/dT ~ F(Z,T) p_e E_e (Q-T)^2,
 !                   plegado por el yield ER (tabla nest_Ar_ER_218V.txt) +
 !                   binomial + EEE.  Normalizado por actividad x masa x tiempo.
-!   Estadistica:    Delta chi2(A) = sum_k (1-A)^2 S_k^2/(S_k + B_k + se_floor*E)
+!   Estadistica:    Delta chi2(A) = sum_k (1-A)^2 S_k^2/(S_k + B_k + s_SE*E)
 !                   A_90 = 1 + sqrt(2.706 / sum_k S_k^2/(S_k+B_k+...))
 !
-!   Escenarios de fondo:  (0) sin fondo [= respuesta intrinseca, reproduce
-!   chi2red100_nest],  (1) 39Ar UAr (7.3e-4 Bq/kg),  (2) 39Ar atmosferico
-!   (1 Bq/kg).  se_floor (apilamiento de electron unico, ref.[46] lo deja
-!   ABIERTO) = knob de escenario, por defecto 0.
+!   EXPOSICION: UNA SOLA, real y justificada -- 62 kg (masa del "proximo
+!   montaje" de ref.[46]) x 1 dia = 62 kg*dia, el MISMO numero que ref.[46]
+!   declara para su propio S/sqrt(B)~4.  NO se toma prestada la exposicion
+!   de Xe (192 kg*dia, sin ningun plan publicado de correr Ar esa cantidad
+!   de tiempo) y NO se barre la exposicion (no hay ningun otro numero
+!   publicado para barrer). El parametro que SI se mueve es el escenario de
+!   FONDO -- un error/incertidumbre discreta y justificada, no la exposicion.
 !
-!   Validacion del fondo: imprime S/sqrt(B) a 62 kg*dia (UAr) y lo compara
-!   con el ~4 de ref.[46] (Physics 5, 492 (2023)).
+!   Cuatro escenarios discretos, todos a 62 kg*dia ("corridas de reemplazo",
+!   Sec. brecha ideal->real de metodologia.tex, no una curva continua):
+!     (0) sin fondo       -- techo intrinseco, reproduce chi2red100_nest.
+!     (1) 39Ar UAr         -- actividad publicada (DarkSide-50, 7.3e-4 Bq/kg).
+!     (2) 39Ar atmosferico -- actividad publicada (ref.[46], 1 Bq/kg).
+!     (3) UAr + s_SE       -- (1) mas el piso de apilamiento de electron
+!         unico CALIBRADO para reproducir el S/sqrt(B)~4 que ref.[46]
+!         declara (ref.[46] deja ese fondo sin resolver; se infiere su
+!         tamano implicito a partir del propio numero publicado, no se
+!         supone nada mas). Este escenario SI se ejecuta (antes solo se
+!         imprimia el s_SE necesario como diagnostico, sin volver a correr
+!         el ajuste con el).
+!
+!   Observable fisico que se reporta (el mismo que usa ref.[46], no uno
+!   inventado): S/sqrt(B) por escenario, mas A_90. Ambos se calculan SOLO a
+!   partir de la prediccion SM (S_k) y del fondo simulado de actividades
+!   publicadas (B_k) -- ninguna comparacion con datos de Xe.
 !
 !   Entrada : datos/nest_Ar_218V_dense.txt      (via mod_tnr_to_e, yield NR)
 !             datos/nest_Ar_ER_218V.txt         (yield ER, lector propio)
 !   Salida  : datos/sensib_bkg_Ar.dat
-!             (escenario  exposicion_kgd  A_90  S_tot  B_tot  S/sqrtB)
+!             (escenario  exposicion_kgd(=62 fijo)  A_90  S_tot  B_tot  S/sqrtB)
 !
-! Tesis   : metodologia.tex (Sec. estadistica, SV para Xe y Ar) y Sec. 9.
+! Tesis   : metodologia.tex Sec. "Resultado y validacion contra la ref. [46]".
 !=======================================================================
 program chi2_bkg_nest
   use constants
@@ -67,17 +85,12 @@ program chi2_bkg_nest
   real(dp), parameter :: me_keV = 510.99895_dp
   real(dp), parameter :: alpha_fs = 1.0_dp / 137.035999_dp
   real(dp), parameter :: dchi2_90 = 2.706_dp
-  real(dp), parameter :: mult(8) = &
-       (/ 1.0_dp, 2.0_dp, 5.0_dp, 10.0_dp, 50.0_dp, 100.0_dp, 335.0_dp, 1000.0_dp /)
-  real(dp), parameter :: se_floor = 0.0_dp   ! ev/(kg dia) de apilamiento SE (escenario)
 
-  real(dp) :: expo, W, A90, S_tot, B_tot, expo_val
-  integer  :: is, im, u
+  real(dp) :: A90, S_tot, B_tot, expo_val, sef_needed
+  integer  :: im, u
 
   character(len=300) :: datadir, f_er, f_out
-  character(len=16)  :: esc_nom(0:2) = (/ 'sin_fondo       ', &
-                                          'Ar39_UAr        ', &
-                                          'Ar39_atmosferico' /)
+  character(len=32)  :: lbl
   real(dp) :: dummy
 
   datadir = '/home/oem/Desktop/Unipamplona/Trabajo de grado/Códigos/datos/'
@@ -157,13 +170,17 @@ program chi2_bkg_nest
   end do
 
   ! ==================================================================
-  ! 3. A_90 vs exposicion, 3 escenarios de fondo
+  ! 3. EXPOSICION UNICA Y JUSTIFICADA: 62 kg (ref.[46], "proximo montaje")
+  !    x 1 dia = 62 kg*dia -- el mismo numero que ref.[46] declara para su
+  !    S/sqrt(B)~4. NO se toma prestada la exposicion de Xe (192 kg*dia) y
+  !    NO se barre la exposicion (no hay ningun otro numero publicado).
   ! ==================================================================
+  expo_val = mass_Ar_kg * 1.0_dp
+
   write(*,'(/,A)') '===== SENSIBILIDAD ESPERADA (RED-100 SV) con FONDO 39Ar simulado - ARGON ====='
-  write(*,'(A,I0,A,I0)')  ' ROI en N_e                 = ', NE_LO, ' .. ', NE_HI
-  write(*,'(A,F8.4)')     ' EEE                        = ', EEE
-  write(*,'(A,F8.1,A)')   ' Exposicion base            = ', exposure_ON_kgd, ' kg*dia'
-  write(*,'(A,F8.1,A)')   ' Masa de Ar (ref.[46])      = ', mass_Ar_kg, ' kg'
+  write(*,'(A,I0,A,I0)')  ' ROI en N_e                            = ', NE_LO, ' .. ', NE_HI
+  write(*,'(A,F8.4)')     ' EEE                                   = ', EEE
+  write(*,'(A,F8.1,A)')   ' Exposicion (ref.[46]: 62 kg x 1 dia)  = ', expo_val, ' kg*dia'
   write(*,'(A)')          ' --- senal CEvNS SM por bin (ev/(kg dia)) ---'
   S_tot = 0.0_dp
   do k = NE_LO, NE_HI
@@ -176,53 +193,68 @@ program chi2_bkg_nest
      write(*,'(A,I2,A,2ES13.5)') '   N_e = ', k, ' : ', B_rate_uar(k), B_rate_atm(k)
   end do
 
-  open(newunit=u, file=f_out, status='replace')
-  write(u,'(A)') '# escenario   exposicion_kgd   A_90(xSM, Dchi2=2.706)   S_tot   B_tot   S/sqrtB'
-
-  do im = 0, 2
-     write(*,'(/,A)') ' --- escenario: '//trim(esc_nom(im))//' ---'
-     write(*,'(A)')   '   exposicion[kg dia]   A_90        S/sqrt(B)'
-     do is = 1, size(mult)
-        expo = exposure_ON_kgd * mult(is)
-        call a90_con_fondo(im, expo, S_bin, B_rate_uar, B_rate_atm, &
-                           NE_LO, NE_HI, se_floor, A90, S_tot, B_tot)
-        write(*,'(ES16.5,F14.4,ES14.4)') expo, A90, &
-             merge(S_tot/sqrt(max(B_tot,1.0e-300_dp)), -1.0_dp, im > 0)
-        write(u,'(A18,ES16.6,F14.5,3ES14.5)') adjustl(esc_nom(im)), expo, A90, &
-             S_tot, B_tot, merge(S_tot/sqrt(max(B_tot,1.0e-300_dp)), 0.0_dp, im > 0)
-     end do
-  end do
-  close(u)
-
   ! ==================================================================
-  ! 4. VALIDACION contra ref.[46]:  S/sqrt(B) a 62 kg*dia (1 dia), UAr
+  ! 4. CALIBRAR el piso de apilamiento de electron unico (s_SE) contra el
+  !    S/sqrt(B)~4 que ref.[46] declara a 62 kg*dia (UAr): es la unica
+  !    forma de fijar ese parametro con un numero publicado, sin suponer
+  !    nada mas. sef_needed = tamano IMPLICITO del fondo de apilamiento
+  !    que ref.[46] deja sin resolver.
   ! ==================================================================
   block
-    real(dp) :: B39_62, B_target, sef_needed
+    real(dp) :: B39_62, B_target
     integer  :: nb
     nb = NE_HI - NE_LO + 1
-    expo_val = mass_Ar_kg * 1.0_dp   ! 62 kg * 1 dia
     call a90_con_fondo(1, expo_val, S_bin, B_rate_uar, B_rate_atm, &
-                       NE_LO, NE_HI, 0.0_dp, A90, S_tot, B_tot)
-    B39_62 = B_tot                                   ! fondo 39Ar UAr a 62 kg*dia
+                       NE_LO, NE_HI, 0.0_dp, A90, S_tot, B39_62)
     B_target   = (S_tot / SB_ref46)**2               ! B que da S/sqrt(B) = 4
-    sef_needed = (B_target - B39_62) / (expo_val * real(nb, dp))
-    write(*,'(/,A)') ' ===== VALIDACION contra ref.[46] (Physics 5, 492 (2023)) ====='
-    write(*,'(A,F8.1,A)')  '   Exposicion             = ', expo_val, ' kg*dia (62 kg x 1 dia)'
-    write(*,'(A,ES12.4)')  '   S_tot (CEvNS)          = ', S_tot
-    write(*,'(A,ES12.4)')  '   B_tot (39Ar UAr solo)  = ', B39_62
-    write(*,'(A,F12.2)')   '   S / sqrt(B)  (modelo)  = ', S_tot/sqrt(max(B39_62,1.0e-300_dp))
-    write(*,'(A,F12.2)')   '   ref.[46] declara ~     = ', SB_ref46
+    sef_needed = max((B_target - B39_62) / (expo_val * real(nb, dp)), 0.0_dp)
+    write(*,'(/,A)') ' ===== CALIBRACION del piso s_SE contra ref.[46] (Physics 5, 492 (2023)) ====='
+    write(*,'(A,ES12.4)')  '   B_tot (39Ar UAr solo, sin s_SE)   = ', B39_62
+    write(*,'(A,F12.2)')   '   S / sqrt(B)  (solo 39Ar UAr)      = ', S_tot/sqrt(max(B39_62,1.0e-300_dp))
+    write(*,'(A,F12.2)')   '   ref.[46] declara ~                = ', SB_ref46
     write(*,'(A)')         '   -> el 39Ar por solape espectral puro es MUCHO menor de lo que'
     write(*,'(A)')         '      sugiere ref.[46]: llegar a N_e<=5 pide E_er <~ 0.1 keV (cola'
     write(*,'(A)')         '      extrema del espectro beta + extrapolacion del yield ER).'
-    write(*,'(A,ES12.4,A)')'   se_floor que reconcilia con ref.[46] (S/sqrt(B)=4) = ', &
-                             max(sef_needed, 0.0_dp), ' ev/(kg dia) por bin'
-    write(*,'(A)')         '      (= tamano implicito del fondo de apilamiento de SE, que'
-    write(*,'(A)')         '       ref.[46] deja SIN RESOLVER; correr con se_floor a ese valor'
-    write(*,'(A)')         '       para una proyeccion conservadora tipo ref.[46].)'
+    write(*,'(A,ES12.4,A)')'   s_SE que reconcilia con ref.[46]  = ', sef_needed, ' ev/(kg dia) por bin'
+    write(*,'(A)')         '      (= tamano implicito del apilamiento de SE que ref.[46] deja'
+    write(*,'(A)')         '       SIN RESOLVER; se ejecuta como escenario (3) abajo.)'
   end block
-  write(*,'(/,A)') '  Salida: datos/sensib_bkg_Ar.dat'
+
+  ! ==================================================================
+  ! 5. CUATRO ESCENARIOS DISCRETOS, TODOS a la MISMA exposicion (62
+  !    kg*dia): el "parametro de error" que se mueve es el fondo, no la
+  !    exposicion ("corridas de reemplazo", no una curva continua).
+  ! ==================================================================
+  open(newunit=u, file=f_out, status='replace')
+  write(u,'(A)') '# escenario                     exposicion_kgd   A_90(xSM,Dchi2=2.706)   S_tot   B_tot   S/sqrtB'
+  write(*,'(/,A)') ' --- escenario                       A_90        S/sqrt(B) ---'
+
+  do im = 0, 3
+     select case(im)
+     case(0)
+        lbl = 'sin_fondo'
+        call a90_con_fondo(0, expo_val, S_bin, B_rate_uar, B_rate_atm, &
+                           NE_LO, NE_HI, 0.0_dp, A90, S_tot, B_tot)
+     case(1)
+        lbl = 'Ar39_UAr'
+        call a90_con_fondo(1, expo_val, S_bin, B_rate_uar, B_rate_atm, &
+                           NE_LO, NE_HI, 0.0_dp, A90, S_tot, B_tot)
+     case(2)
+        lbl = 'Ar39_atmosferico'
+        call a90_con_fondo(2, expo_val, S_bin, B_rate_uar, B_rate_atm, &
+                           NE_LO, NE_HI, 0.0_dp, A90, S_tot, B_tot)
+     case(3)
+        lbl = 'UAr_SEfloor_ref46'
+        call a90_con_fondo(1, expo_val, S_bin, B_rate_uar, B_rate_atm, &
+                           NE_LO, NE_HI, sef_needed, A90, S_tot, B_tot)
+     end select
+     write(*,'(A,A20,F12.4,ES14.4)') '   ', lbl, A90, &
+          merge(S_tot/sqrt(max(B_tot,1.0e-300_dp)), -1.0_dp, im /= 0)
+     write(u,'(A24,ES16.6,F14.5,3ES14.5)') adjustl(lbl), expo_val, A90, &
+          S_tot, B_tot, merge(S_tot/sqrt(max(B_tot,1.0e-300_dp)), 0.0_dp, im /= 0)
+  end do
+  close(u)
+  write(*,'(/,A)') '  Salida: datos/sensib_bkg_Ar.dat (4 escenarios, 62 kg*dia fijo)'
 
   deallocate(Eer_t, Qyer_t, Fer_t)
 

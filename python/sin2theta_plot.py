@@ -41,25 +41,14 @@ aplicar()
 
 BASE = "/home/oem/Desktop/Unipamplona/Trabajo de grado/Códigos/datos"
 S0 = 0.23857
-C_XE, C_AR = "#33546e", "#a86a43"
-CL = [(1.00, r"$1\sigma$"), (2.706, "90%"), (3.84, r"$2\sigma$")]
-
-plt.rcParams.update({
-    "font.family": "serif", "mathtext.fontset": "dejavuserif",
-    "font.size": 9.5, "axes.titlesize": 10.5, "axes.labelsize": 10,
-    "axes.linewidth": 0.9,
-    "xtick.direction": "in", "ytick.direction": "in",
-    "xtick.top": True, "ytick.right": True,
-    "xtick.minor.visible": True, "ytick.minor.visible": True,
-    "legend.frameon": False, "legend.fontsize": 8.2,
-    "lines.linewidth": 1.7,
-    "figure.facecolor": "white", "savefig.facecolor": "white",
-    "savefig.dpi": 220, "savefig.bbox": "tight",
-})
+CL = [(1.00, r"$1\sigma$"), (2.706, r"$90\%$"), (3.84, r"$2\sigma$")]
 
 
 def cl_lines(ax):
+    ymax = ax.get_ylim()[1]
     for y, lab in CL:
+        if y > ymax:
+            continue
         ax.axhline(y, color="0.55", lw=0.8, ls="-" if y == 2.706 else ":")
         ax.text(1.005, y, lab, transform=ax.get_yaxis_transform(),
                 ha="left", va="center", fontsize=7.6, color="0.4")
@@ -76,42 +65,42 @@ fig, ax = plt.subplots(1, 3, figsize=(13.4, 4.2))
 d = np.loadtxt(f"{BASE}/generic_Xe_sin2theta.dat", comments="#")
 s, As, dchi2 = d[:, 0], d[:, 1], d[:, 3]
 a = ax[0]
-a.plot(s, dchi2, color=C_XE)
-cl_lines(a)
-a.axvline(S0, color="0.4", ls="--", lw=1.0)
 a.set_xlim(0, 0.5)
-a.set_ylim(0, 5)
+a.set_ylim(0, 3.2)
+a.plot(s, dchi2, color=C_XE, lw=2.0)
+a.axvline(S0, color="0.4", ls="--", lw=1.0)
+cl_lines(a)
 a.set_xlabel(r"$\sin^2\theta_W$")
 a.set_ylabel(r"$\Delta\chi^2(s)$")
 a.set_title("(A) Xe, dato real: sin restricción")
-a.text(0.03, 0.94, "todo $s\\in[0,0.5]$ permitido\n"
-       f"($A(s)$ mín $\\approx {As.min():.3f}$: un\ncorrimiento EW no llega a $A=0$)",
-       transform=a.transAxes, va="top", fontsize=8.0,
-       bbox=dict(boxstyle="round,pad=0.3", fc="white", ec="0.75", lw=0.7))
-a.text(S0, 4.6, "SM", ha="center", fontsize=8, color="0.4")
+a.text(0.04, 0.90, r"todo $s\in[0,0.5]$ permitido",
+       transform=a.transAxes, va="top", fontsize=8.4)
+a.text(S0 + 0.015, 2.55, "SM", ha="left", fontsize=8, color="0.4")
 
-# ---------- Panel B: Xe & Ar ideal (N_e>=1)
+# ---------- Panel B: Xe & Ar ideal (N_e>=1). Eje x = desviacion % respecto al SM
 a = ax[1]
+a.set_xlim(-4, 4)
+a.set_ylim(0, 5)
 for tag, col in (("Xe", C_XE), ("Ar", C_AR)):
     di = np.loadtxt(f"{BASE}/chi2_sin2theta_ideal_{tag}.dat", comments="#")
     m1 = di[:, 0] == 1
     si, dci = di[m1, 1], di[m1, 3]
     lo, hi = band(dci, si)
-    a.plot(si, dci, color=col,
-           label=fr"{tag} ideal: $[{lo:.3f},\,{hi:.3f}]$ "
-                 fr"(${100*(hi-lo)/2/S0:.1f}\%$)")
-    a.axvspan(lo, hi, color=col, alpha=0.12)
+    half = 100.0 * (hi - lo) / 2 / S0
+    a.plot(100.0 * (si - S0) / S0, dci, color=col,
+           label=fr"{tag} ideal:  $\pm{half:.1f}\%$")
+    a.axvspan(100 * (lo - S0) / S0, 100 * (hi - S0) / S0, color=col, alpha=0.14)
+a.axvline(0.0, color="0.4", ls="--", lw=1.0)
 cl_lines(a)
-a.axvline(S0, color="0.4", ls="--", lw=1.0)
-a.set_xlim(0.18, 0.30)
-a.set_ylim(0, 5)
-a.set_xlabel(r"$\sin^2\theta_W$")
-a.set_title(r"(B) Proyección Asimov ($N_e\geq1$): Ar acota a $\sim\pm1\%$")
+a.set_xlabel(r"desviación de $\sin^2\theta_W$ respecto al SM  [%]")
+a.set_title(r"(B) Proyección Asimov ($N_e\geq1$)")
 a.legend(loc="upper center")
-a.text(S0, 4.6, "SM", ha="center", fontsize=8, color="0.4")
+a.text(0.12, 0.35, "SM", ha="left", fontsize=8, color="0.4")
 
 # ---------- Panel C: validacion CONUS+
 a = ax[2]
+a.set_xlim(0.13, 0.35)
+a.set_ylim(0, 6)
 dg = np.loadtxt(f"{BASE}/generic_conus_sin2theta.dat", comments="#")
 sg, dcg = dg[:, 0], dg[:, 3]
 ds_ = np.loadtxt(f"{BASE}/chi2_sin2theta.dat", comments="#")
@@ -119,22 +108,19 @@ ss, cs = ds_[:, 0], ds_[:, 1]
 dcs = cs - cs.min()
 a.plot(ss, dcs, color="black", lw=2.2, label="chi2_sin2theta (directo)")
 a.plot(sg, dcg, color="#8f4444", lw=1.2, ls="--", label="motor genérico (s-scan)")
-cl_lines(a)
 a.axvline(S0, color="0.4", ls="--", lw=1.0)
-a.set_xlim(0.10, 0.40)
-a.set_ylim(0, 6)
+cl_lines(a)
 a.set_xlabel(r"$\sin^2\theta_W$")
 a.set_title("(C) Validación del método con CONUS+")
-a.legend(loc="lower center")
+a.legend(loc="upper center")
 sbest_g = sg[np.argmin(dcg)]
 sbest_s = ss[np.argmin(dcs)]
-a.text(0.97, 0.94, f"$s_{{\\rm best}}$: {sbest_s:.4f} vs {sbest_g:.4f}\n"
-       f"$\\chi^2_{{\\min}}$ idéntico ($7.35$)",
-       transform=a.transAxes, va="top", ha="right", fontsize=8.0,
-       bbox=dict(boxstyle="round,pad=0.3", fc="white", ec="0.75", lw=0.7))
+a.text(0.97, 0.06, f"$s_{{\\rm best}} = {sbest_s:.3f}$ vs $ {sbest_g:.3f}$;  "
+       f"$\\chi^2_{{\\min}}$ idéntico",
+       transform=a.transAxes, va="bottom", ha="right", fontsize=7.8, color="0.35")
 
-fig.suptitle(r"$A_{90}$ reinterpretado como cota sobre $\sin^2\theta_W$ "
-             r"($A(s)=[Q_W(s)/Q_W(s_0)]^2$)", y=1.02, fontsize=12)
+fig.suptitle(r"Cota sobre $\sin^2\theta_W$ vía $A(s)=[Q_W(s)/Q_W(s_0)]^2$",
+             y=1.02, fontsize=12)
 fig.tight_layout()
 fig.savefig(f"{BASE}/fig_sin2theta_XeAr.png")
 

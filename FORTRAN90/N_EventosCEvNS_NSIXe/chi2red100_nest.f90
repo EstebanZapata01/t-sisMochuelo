@@ -9,8 +9,8 @@
 !      (datos digitalizados + errores estadisticos reales, que ya
 !      reproducen la sensibilidad ~46xSM del paper arXiv:2411.18641).
 !
-!   chi2(A, alpha) = Sum_i (dNi - A*(1+alpha)*Ri)^2/si^2 + (alpha/sigF)^2
-!     minimizado analiticamente sobre alpha (nuisance de flujo 16.9%).
+!   chi2(A) = Sum_i (dNi - A*Ri)^2/si^2   (RED-100 ajusta solo la
+!     amplitud; sin nuisance de flujo, ver chi2.f90 y metodologia.tex).
 !
 !   Entrada : ionization_spectra_detallado.dat  (espectro PE teorico, red100PE.f90)
 !   Salida  : chi2_nsi_2DXe.dat  (eps_x  eps_y  chi2)
@@ -41,12 +41,11 @@ program chi2red100
 
   ! ----- analisis -----
   real(dp), parameter :: sin2th_SM  = 0.23857_dp
-  real(dp), parameter :: sigma_F    = 0.169_dp        ! nuisance de normalizacion de flujo
   integer,  parameter :: ipar       = 5              ! <-- caso NSI
   integer,  parameter :: n_u = 1000, n_d = 1000
 
   real(dp) :: S1, S2, S3, QW_SM
-  real(dp) :: q_nsi_ee, q_nsi_emu, q_nsi_etau, q_eff2, A_amp, alpha_best, chi2
+  real(dp) :: q_nsi_ee, q_nsi_emu, q_nsi_etau, q_eff2, A_amp, chi2
   real(dp) :: eps_x, eps_y, eps_min, eps_max, deps
   real(dp) :: slope, cols(9)
   integer  :: i, j, j0, ios, u_pred, u_out, u_conf
@@ -246,14 +245,10 @@ program chi2red100
         q_eff2 = (QW_SM + q_nsi_ee)**2 + q_nsi_emu**2 + q_nsi_etau**2
         A_amp  = q_eff2 / QW_SM**2          ! amplitud CEvNS efectiva (A=1 -> SM)
 
-        ! minimo analitico sobre el nuisance de flujo alpha
-        alpha_best = A_amp*(S1 - A_amp*S2) / (1.0_dp/sigma_F**2 + A_amp**2*S2)
-
         chi2 = 0.0_dp
         do j0 = 1, n_datos
-           chi2 = chi2 + ((dN_dat(j0) - A_amp*(1.0_dp + alpha_best)*R_SM(j0)) / sigma_dat(j0))**2
+           chi2 = chi2 + ((dN_dat(j0) - A_amp*R_SM(j0)) / sigma_dat(j0))**2
         end do
-        chi2 = chi2 + (alpha_best/sigma_F)**2
 
         n_tot = n_tot + 1
         if (chi2 - chi2_1d_min <= 4.605_dp) n_in90 = n_in90 + 1   ! 90% 2 g.d.l.
@@ -280,17 +275,15 @@ program chi2red100
 
 contains
 
-  ! chi2 del ajuste ON-OFF para una amplitud CEvNS A (min analitico sobre alpha)
+  ! chi2 del ajuste ON-OFF para una amplitud CEvNS A (sin nuisance)
   function chi2_of_A(A) result(c)
     real(dp), intent(in) :: A
-    real(dp) :: c, al
+    real(dp) :: c
     integer  :: m
-    al = A*(S1 - A*S2) / (1.0_dp/sigma_F**2 + A**2*S2)
     c = 0.0_dp
     do m = 1, n_datos
-       c = c + ((dN_dat(m) - A*(1.0_dp + al)*R_SM(m)) / sigma_dat(m))**2
+       c = c + ((dN_dat(m) - A*R_SM(m)) / sigma_dat(m))**2
     end do
-    c = c + (al/sigma_F)**2
   end function chi2_of_A
 
 end program chi2red100

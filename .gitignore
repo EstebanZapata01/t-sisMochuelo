@@ -14,3 +14,38 @@ datos/chi2_ON_OFF_perfil.dat
 
 # Backups locales de tablas de entrada (no son salidas del pipeline)
 datos/*.bak*
+
+# Salidas de scripts que se mantienen (sirven para citar numeros en el texto)
+# pero cuya figura/tabla ya no entra en metodologia.tex
+datos/fig_convergencia.png
+datos/fig_discovery_Z.png
+datos/tabla_discovery_Z.tex
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Artefactos de compilacion Fortran: binarios, modulos .mod y objetos .o.
+# Se regeneran compilando los .f90 (ver README.md); no aportan nada a un
+# revisor y son especificos de cada maquina/compilador.
+# ─────────────────────────────────────────────────────────────────────────────
+FORTRAN90/*/chi2
+FORTRAN90/*/chi2_ideal
+FORTRAN90/*/chi2_bkg
+FORTRAN90/*/chi2_nsi
+FORTRAN90/*/chi2_nsi_generic
+FORTRAN90/*/chi2_sin2theta
+FORTRAN90/*/chi2red100_nest
+FORTRAN90/*/red100_nest
+FORTRAN90/*/red100PE
+FORTRAN90/*/mainred100_nest
+FORTRAN90/*/eventos_conus
+FORTRAN90/*/*.mod
+FORTRAN90/*/*.o
+FORTRAN90/*/*~
+FORTRAN90/*/\#*\#
+
+# Cache de bytecode de Python
+python/__pycache__/
+python/*.pyc
+
+# Backups de editor
+*~
+\#*\#

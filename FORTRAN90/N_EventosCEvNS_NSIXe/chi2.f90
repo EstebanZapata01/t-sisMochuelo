@@ -1,37 +1,41 @@
 !=======================================================================
 ! Programa: chi2_ON_OFF_1D.f90
-! Proposito: Leer los datos ON-OFF digitalizados de arXiv:2403.12645
-!            y hacer el analisis chi2 1D sobre la amplitud de senal CEvNS.
+! Proposito: Leer los datos ON-OFF digitalizados de la Fig. 7 de
+!            arXiv:2411.18641 (paper de resultados de RED-100) y hacer
+!            el analisis chi2 1D sobre la amplitud de senal CEvNS.
 !
-! Metodo:
-!   chi2(A, alpha) = Sum (dNi - A*(1+alpha)*Ri)^2/si^2 + alpha^2/sigF^2
+! Metodo (RED-100 SV/SVI: la amplitud A es el UNICO parametro del ajuste;
+!         "the amplitude ... the only parameter varied in a fit"):
+!   chi2(A) = Sum (dNi - A*Ri)^2/si^2  =  S3 - 2*A*S1 + A^2*S2
 !
 !   Donde:
 !     A      = amplitud de la senal CEvNS  (A=1 -> prediccion SM exacta)
-!     alpha  = nuisance de normalizacion de flujo  (pull term)
 !     dNi    = residuo ON-OFF digitalizado del articulo [cuentas/kg/dia]
 !     si     = incertidumbre estadistica en cada bin  [cuentas/kg/dia]
 !     Ri     = prediccion CEvNS SM en bin i  [cuentas/kg/dia]
-!     sigF   = incertidumbre sistematica del flujo = 16.9%
 !
-!   Para cada valor de A, se minimiza analiticamante sobre alpha.
-!   El limite al 90% C.L. es donde Dchi2 = chi2(A) - chi2_min = 2.706
+!   NO se anade nuisance de flujo: el 16.9% que usa el analisis de CONUS+
+!   (De Romeri et al., PRD 111, 075025, Ec. 33) es un presupuesto
+!   sistematico especifico de germanio (umbral de Ge 14.1%, quenching de
+!   Ge 7.3%, ...) y RED-100 no usa nuisance. Sus sistematicos se tratan
+!   como corridas de reemplazo discretas (ver metodologia.tex).
+!
+!   Solucion cerrada:
+!     A_best  = S1/S2 ;  chi2_min = S3 - S1^2/S2
+!     A_90    = A_best + sqrt(2.706/S2)   (test de una cola, 1 g.d.l.)
 !
 ! Archivos de entrada:
 !   ionization_spectra_detallado.dat  ->  prediccion de red100PE.f90
 !
 ! Archivos de salida:
-!   chi2_ON_OFF_perfil.dat  ->  A  chi2_sinNuisance  chi2_conNuisance
+!   chi2_ON_OFF_perfil.dat  ->  A  chi2(A)
 !   chi2_ON_OFF_banda.dat   ->  PE R_SM banda_sup banda_inf datos sigma
 !
 ! Pipeline: unica rama con DATOS REALES de RED-100. NO se clona a Ar.
 ! Tesis   : metodologia.tex Sec. 4 (reproduccion del analisis de Xe, P1).
-!           Resultado A_90 ~ 111 xSM; la diferencia con la Tabla I del
+!           Resultado A_90 ~ 107 xSM; la diferencia con la Tabla I del
 !           paper = 1/3 histogramas (sqrt3) + modelo de espectro +
 !           aceptancia del detector (Fig.3 vs Fig.6).
-! Decision metodologica clave: alpha minimizado analiticamente,
-!   alpha_hat(A) = A(S1 - A S2)/(1/sigF^2 + A^2 S2); sin nuisance,
-!   A_90 = S1/S2 + sqrt(2.706/S2)  (Ecs. 20-22 de metodologia.tex).
 !=======================================================================
 program chi2_ON_OFF_1D
   use constants, only: dp, eff_ROI
@@ -51,18 +55,19 @@ program chi2_ON_OFF_1D
   real(dp) :: R_SM(NMAX)
 
   ! Parametros del analisis
-  real(dp), parameter :: sigma_F  = 0.169_dp
   real(dp), parameter :: dchi2_90 = 2.706_dp
+  ! exposicion base 2024: volumen fiducial (arXiv:2411.18641: 331 kg*dia
+  ! totales, 192 en FV)
+  real(dp), parameter :: exposure_kgd = 192.0_dp
   integer,  parameter :: N_scan   = 10000
 
   ! Cantidades intermedias
   real(dp) :: S1, S2, S3
-  real(dp) :: A, dA, A_min, A_max
-  real(dp) :: alpha_nu
-  real(dp) :: chi2_sin, chi2_con
-  real(dp) :: chi2_min_sin, chi2_min_con
-  real(dp) :: A_best_sin, A_best_con
-  real(dp) :: A_90_sin,   A_90_con
+  real(dp) :: A
+  real(dp) :: chi2_sin
+  real(dp) :: chi2_min_sin
+  real(dp) :: A_best_sin
+  real(dp) :: A_90_sin
   real(dp) :: slope, pe_temp, cols(9)
 
   ! Archivos
@@ -174,6 +179,31 @@ program chi2_ON_OFF_1D
   end do
 
   ! ==================================================================
+  ! 3b. VOLCADO ADITIVO para chi2_nsi_generic (validacion cruzada
+  !     Xe <-> CONUS+ con el MISMO motor chi2+NSI, ver metodologia.tex).
+  !     NO altera ningun calculo/archivo anterior; solo agrega este
+  !     archivo nuevo con los datos crudos de entrada (dN, sigma, R_SM)
+  !     que ya se acaban de calcular arriba. Z=54, N=77 son los mismos
+  !     valores de constants.f90 de esta carpeta (no importados aqui
+  !     para no tocar la clausula `use` existente).
+  ! ==================================================================
+  block
+    integer :: u_gen, ig
+    ! sigma_alpha = -1 => centinela "sin nuisance de flujo" para
+    ! chi2_nsi_generic (RED-100 ajusta solo la amplitud). CONUS+ escribe
+    ! 0.169 en su propio generic_input_conus.dat.
+    open(newunit=u_gen, file=trim(datadir)//'generic_input_Xe.dat', status='replace')
+    write(u_gen,'(A)') '# Z  N  sigma_alpha  n_bins  ipar'
+    write(u_gen,'(2F8.2,F8.4,2I6)') 54.0_dp, 77.0_dp, -1.0_dp, n_datos, 5
+    write(u_gen,'(A)') '# bin  dN_dat  sigma_dat  R_SM'
+    do ig = 1, n_datos
+       write(u_gen,'(I5,3ES16.7)') ig, dN_dat(ig), sigma_dat(ig), R_SM(ig)
+    end do
+    close(u_gen)
+    write(*,'(A)') '  [3b] Volcado generic_input_Xe.dat (validacion cruzada, aditivo)'
+  end block
+
+  ! ==================================================================
   ! 4. SUMAS AUXILIARES (independientes de A)
   !    S1 = Sum dNi*Ri/si^2
   !    S2 = Sum Ri^2/si^2
@@ -187,23 +217,44 @@ program chi2_ON_OFF_1D
   end do
 
   ! ==================================================================
-  ! 5a. CHI2 SIN NUISANCE (analitico)
-  !     chi2(A) = S3 - 2*A*S1 + A^2*S2
-  !     A_best  = S1/S2
-  !     chi2_min = S3 - S1^2/S2
-  !     A_90 = A_best + sqrt(2.706/S2)
+  ! 5a. RESULTADO (analitico, sin nuisance)
+  !     chi2(A) = S3 - 2*A*S1 + A^2*S2   (parabola exacta)
+  !     El minimo sin restringir esta en S1/S2; como una amplitud CEvNS
+  !     es fisicamente >= 0 (es un reescalado de tasa), se toma
+  !       A_best = max(S1/S2, 0)
+  !     y el limite se mide desde ese A_best fisico:
+  !       Dchi2(A) = chi2(A) - chi2(A_best) = 2.706
+  !     Con A_best = 0 (dato negativo/compatible con cero senal):
+  !       A_90 = [ S1 + sqrt(S1^2 + 2.706*S2) ] / S2
   ! ==================================================================
-  A_best_sin   = S1 / S2
-  chi2_min_sin = S3 - S1**2 / S2
-  A_90_sin     = A_best_sin + sqrt(dchi2_90 / S2)
+  block
+    real(dp) :: A_best_raw
+    A_best_raw = S1 / S2
+    A_best_sin = max(A_best_raw, 0.0_dp)
+    if (A_best_raw > 0.0_dp) then
+      chi2_min_sin = S3 - S1**2 / S2
+      A_90_sin     = A_best_sin + sqrt(dchi2_90 / S2)
+    else
+      chi2_min_sin = S3                                   ! chi2(A=0)
+      A_90_sin     = (S1 + sqrt(S1**2 + dchi2_90*S2)) / S2
+    end if
 
-  write(*,'(/,A)') '  +--------------------------------------------------+'
-  write(*,'(A)')   '  |       RESULTADOS SIN NUISANCE DE FLUJO           |'
-  write(*,'(A)')   '  +--------------------------------------------------+'
-  write(*,'(A,F10.5)') '  |  A_best      = ', A_best_sin
-  write(*,'(A,F10.5)') '  |  chi2_min    = ', chi2_min_sin
-  write(*,'(A,F10.5,A)') '  |  A_90% (sup) = ', A_90_sin, '   (OBSERVADO, RED-100 SVI)'
-  write(*,'(A)')   '  +--------------------------------------------------+'
+    write(*,'(/,A)') '  +--------------------------------------------------+'
+    write(*,'(A)')   '  |   RESULTADO (RED-100 SVI, limite observado)      |'
+    write(*,'(A)')   '  |   ajuste de 1 solo parametro: la amplitud A      |'
+    write(*,'(A)')   '  +--------------------------------------------------+'
+    write(*,'(A,F12.5,A)') '  |  A_best (S1/S2, sin restringir) = ', A_best_raw
+    write(*,'(A,F12.5,A)') '  |  A_best (fisico, >= 0)          = ', A_best_sin
+    write(*,'(A,F12.5,A)') '  |  chi2_min                       = ', chi2_min_sin
+    write(*,'(A,F12.5,A)') '  |  A_90% (sup)                    = ', A_90_sin, '   (OBSERVADO)'
+    write(*,'(A)')   '  +--------------------------------------------------+'
+
+    if (A_best_raw < 0.0_dp) then
+      write(*,'(/,A)') '  -> Mejor ajuste en A<0: senal CEvNS no requerida por los datos'
+    else if (A_best_raw <= 1.5_dp) then
+      write(*,'(/,A)') '  -> Resultado compatible con la prediccion SM (A~1)'
+    end if
+  end block
 
   ! ==================================================================
   ! 5c. SENSIBILIDAD ESPERADA  (RED-100 SV)
@@ -226,107 +277,78 @@ program chi2_ON_OFF_1D
   write(*,'(A)')       '  +--------------------------------------------------+'
 
   ! ==================================================================
-  ! 5b. CHI2 CON NUISANCE DE FLUJO (barrido numerico + min analitico)
-  !
-  !     Minimizando d(chi2)/d(alpha) = 0:
-  !       alpha_min(A) = A*(S1 - A*S2) / (1/sigF^2 + A^2*S2)
+  ! 5b. PERFIL chi2(A) (sin nuisance: RED-100 ajusta solo la amplitud)
+  !     chi2(A) = S3 - 2*A*S1 + A^2*S2   (parabola exacta en A)
   ! ==================================================================
-  A_min = 0.0_dp
-  A_max =  300.0_dp
-  dA    = (A_max - A_min) / real(N_scan - 1, dp)
-
-  chi2_min_con = 1.0d30
-  A_best_con   = 0.0_dp
-  A_90_con     = A_max
-
   open(newunit=u_perfil, file=f_perfil, status='replace')
-  write(u_perfil,'(A)') '# A   chi2_sinNuisance   chi2_conNuisance'
-
+  write(u_perfil,'(A)') '# A   chi2(A)'
   do i = 0, N_scan - 1
-    A = A_min + i * dA
-
+    A = 0.0_dp + real(i, dp) * (300.0_dp / real(N_scan - 1, dp))
     chi2_sin = S3 - 2.0_dp*A*S1 + A**2*S2
-
-    alpha_nu = A*(S1 - A*S2) / (1.0_dp/sigma_F**2 + A**2*S2)
-
-    chi2_con = 0.0_dp
-    do j = 1, n_datos
-      chi2_con = chi2_con + &
-        ((dN_dat(j) - A*(1.0_dp + alpha_nu)*R_SM(j)) / sigma_dat(j))**2
-    end do
-    chi2_con = chi2_con + (alpha_nu/sigma_F)**2
-
-    write(u_perfil,'(3(ES14.6,2X))') A, chi2_sin, chi2_con
-
-    if (chi2_con < chi2_min_con) then
-      chi2_min_con = chi2_con
-      A_best_con   = A
-    end if
+    write(u_perfil,'(2(ES14.6,2X))') A, chi2_sin
   end do
   close(u_perfil)
-
-  ! Buscar A_90 con nuisance (cruce Dchi2 = 2.706 hacia arriba)
-  do i = 0, N_scan - 1
-    A = A_min + i * dA
-    if (A < A_best_con) cycle
-    alpha_nu = A*(S1 - A*S2) / (1.0_dp/sigma_F**2 + A**2*S2)
-    chi2_con = 0.0_dp
-    do j = 1, n_datos
-      chi2_con = chi2_con + &
-        ((dN_dat(j) - A*(1.0_dp + alpha_nu)*R_SM(j))/sigma_dat(j))**2
-    end do
-    chi2_con = chi2_con + (alpha_nu/sigma_F)**2
-    if (chi2_con - chi2_min_con >= dchi2_90) then
-      A_90_con = A; exit
-    end if
-  end do
-
-  write(*,'(/,A)') '  +--------------------------------------------------+'
-  write(*,'(A)')   '  |     RESULTADOS CON NUISANCE DE FLUJO 16.9%       |'
-  write(*,'(A)')   '  +--------------------------------------------------+'
-  write(*,'(A,F10.5)') '  |  A_best      = ', A_best_con
-  write(*,'(A,F10.5)') '  |  chi2_min    = ', chi2_min_con
-  write(*,'(A,F10.5)') '  |  A_90% (sup) = ', A_90_con
-  write(*,'(A)')   '  +--------------------------------------------------+'
-
-  if (A_best_con >= 0.0_dp .and. A_best_con <= 1.5_dp) then
-    write(*,'(/,A)') '  -> Resultado compatible con la prediccion SM (A~1)'
-  else if (A_best_con < 0.0_dp) then
-    write(*,'(/,A)') '  -> Mejor ajuste en A<0: senal no requerida por los datos'
-  end if
 
   ! ==================================================================
   !            VALIDACION EXTRA (vs arXiv:2411.18641)
   ! ==================================================================
   block
-    real(dp) :: alpha1, chi2_1, dchi2_SM, sumRSM, sumAbsdN, contrib
+    real(dp) :: chi2_1, dchi2_SM, sumRSM, sumAbsdN, contrib
     integer  :: nb
-    alpha1 = 1.0_dp*(S1 - 1.0_dp*S2) / (1.0_dp/sigma_F**2 + 1.0_dp*S2)
-    chi2_1 = 0.0_dp
-    do nb = 1, n_datos
-      chi2_1 = chi2_1 + ((dN_dat(nb) - 1.0_dp*(1.0_dp+alpha1)*R_SM(nb))/sigma_dat(nb))**2
-    end do
-    chi2_1 = chi2_1 + (alpha1/sigma_F)**2
-    dchi2_SM = chi2_1 - chi2_min_con
+    chi2_1   = S3 - 2.0_dp*S1 + S2          ! chi2(A=1), sin nuisance
+    dchi2_SM = chi2_1 - chi2_min_sin
     sumRSM = sum(R_SM(1:n_datos)); sumAbsdN = sum(abs(dN_dat(1:n_datos)))
 
     write(*,'(/,A)') '  =============== VALIDACION EXTRA ==============='
-    write(*,'(A,F9.3,A,I0)') '   chi2_min / ndof        = ', chi2_min_con/real(n_datos,dp), &
+    write(*,'(A,F9.3,A,I0)') '   chi2_min / ndof        = ', chi2_min_sin/real(n_datos,dp), &
          '   ndof = ', n_datos
     write(*,'(A,3ES12.4)')   '   S1, S2, S3             = ', S1, S2, S3
     write(*,'(A,ES12.4,A)')  '   Sum R_SM (pred. ROI)   = ', sumRSM, ' counts/(kg dia)'
     write(*,'(A,ES12.4)')    '   Sum |dN_dat| (datos)   = ', sumAbsdN
-    write(*,'(A,F8.3)')      '   alpha(A=1)             = ', alpha1
     write(*,'(A,F8.3)')      '   Delta chi2 en SM (A=1) = ', dchi2_SM
     write(*,'(A,F6.2,A)')    '   -> SM compatible a     ~ ', sqrt(max(dchi2_SM,0.0_dp)), ' sigma'
     write(*,'(A)')           '   contribucion por bin a chi2 con A=A_best (buscar outliers de digitalizacion):'
     write(*,'(A)')           '     bin   PE_center   (dN/sigma)^2   R_SM'
     do nb = 1, n_datos
-      contrib = ((dN_dat(nb) - A_best_con*(1.0_dp+0.0_dp)*R_SM(nb))/sigma_dat(nb))**2
+      contrib = ((dN_dat(nb) - A_best_sin*R_SM(nb))/sigma_dat(nb))**2
       write(*,'(I6,F12.3,F14.3,ES13.4,A)') nb, pe_dat(nb), contrib, R_SM(nb), &
            merge(' <-- >4', '       ', contrib > 4.0_dp)
     end do
     write(*,'(A)')           '  ==============================================='
+  end block
+
+  ! ==================================================================
+  ! 5d. PROYECCION de A_90 vs. EXPOSICION (rama esperada, Asimov, SIN
+  !     nuisance; aditivo, no altera nada de arriba).
+  !
+  !     Sustituyendo el residuo medido por la prediccion SM (dN_i -> R_i)
+  !     se tiene S1 = S2 = S3 y A_best = 1. Aumentar la exposicion un
+  !     factor mult equivale, en estadistica de conteo, a
+  !     sigma_i -> sigma_i/sqrt(mult), es decir S2 -> mult*S2, de modo que
+  !
+  !         A_90_esperado(mult) = 1 + sqrt(2.706 / (mult * S2)).
+  !
+  !     Monotona decreciente y -> 1 cuando mult -> infinito: la estadistica
+  !     sola NO impone piso. El limite real de RED-100 lo ponen los
+  !     sistematicos discretos (modelo de espectro 63-94, yield NEST
+  !     27-135, EEE 43-78 xSM; ver metodologia.tex "brecha ideal->real")
+  !     y la extrapolacion a 1 anio del propio SVII (15-20 xSM).
+  ! ==================================================================
+  block
+    integer, parameter :: n_mult = 8
+    real(dp) :: mult_arr(n_mult), A90_esp
+    integer  :: im, u_real
+    mult_arr = [1.0_dp, 2.0_dp, 5.0_dp, 10.0_dp, 50.0_dp, 100.0_dp, 335.0_dp, 1000.0_dp]
+
+    open(newunit=u_real, file=trim(datadir)//'sensib_real_Xe.dat', status='replace')
+    write(u_real,'(A)') '# mult  exposicion_kgd  A_90_esperado'
+    write(*,'(/,A)') '  --- Proyeccion esperada vs exposicion (mult, expo_kgd, A90_esperado) ---'
+    do im = 1, n_mult
+      A90_esp = 1.0_dp + sqrt(dchi2_90 / (mult_arr(im) * S2))
+      write(u_real,'(F8.1,2F16.5)') mult_arr(im), exposure_kgd*mult_arr(im), A90_esp
+      write(*,'(F8.1,2F16.5)')      mult_arr(im), exposure_kgd*mult_arr(im), A90_esp
+    end do
+    close(u_real)
   end block
 
   ! ==================================================================
@@ -336,15 +358,13 @@ program chi2_ON_OFF_1D
   open(newunit=u_banda, file=f_banda, status='replace')
   write(u_banda,'(A)') &
     '# PE_center  R_SM  A90*R_SM  -A90*R_SM  delta_ON_OFF  sigma_stat'
-  write(u_banda,'(A,F12.4)') '# A_best (sin nuisance) = ', A_best_sin
-  write(u_banda,'(A,F12.4)') '# A_90   (sin nuisance) = ', A_90_sin
-  write(u_banda,'(A,F12.4)') '# A_best (con nuisance) = ', A_best_con
-  write(u_banda,'(A,F12.4)') '# A_90   (con nuisance) = ', A_90_con
+  write(u_banda,'(A,F12.4)') '# A_best = ', A_best_sin
+  write(u_banda,'(A,F12.4)') '# A_90   = ', A_90_sin
   do i = 1, n_datos
     write(u_banda,'(6(ES14.6,2X))') &
       pe_dat(i), R_SM(i),           &
-      A_90_con * R_SM(i),           &
-     -A_90_con * R_SM(i),           &
+      A_90_sin * R_SM(i),           &
+     -A_90_sin * R_SM(i),           &
       dN_dat(i), sigma_dat(i)
   end do
   close(u_banda)
@@ -354,4 +374,5 @@ program chi2_ON_OFF_1D
   write(*,'(A)') '  chi2_ON_OFF_banda.dat   -> banda naranja para la figura'
 
   deallocate(pe_pred, R_pred)
+
 end program chi2_ON_OFF_1D

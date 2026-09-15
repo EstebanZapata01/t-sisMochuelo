@@ -38,17 +38,6 @@ aplicar()
 BASE = "/home/oem/Desktop/Unipamplona/Trabajo de grado/Códigos/datos"
 C_XE, C_AR = "#33546e", "#a86a43"
 
-plt.rcParams.update({
-    "font.family": "serif", "mathtext.fontset": "dejavuserif",
-    "font.size": 9.5, "axes.titlesize": 10.5, "axes.labelsize": 10,
-    "axes.linewidth": 0.9,
-    "xtick.direction": "in", "ytick.direction": "in",
-    "xtick.top": True, "ytick.right": True,
-    "legend.frameon": False, "legend.fontsize": 8.5,
-    "lines.linewidth": 1.7,
-    "figure.facecolor": "white", "savefig.facecolor": "white",
-    "savefig.dpi": 220, "savefig.bbox": "tight",
-})
 
 
 def load(path):

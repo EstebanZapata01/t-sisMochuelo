@@ -31,23 +31,12 @@ import numpy as np
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-from estilo_tesis import aplicar, C_XE, C_AR, C_GE, C_SM, CICLO
+from estilo_tesis import aplicar, C_AR, GRIS, NEGRO
 aplicar()
 
 BASE = "/home/oem/Desktop/Unipamplona/Trabajo de grado/Códigos/datos"
 SB_REF46 = 4.0
 
-plt.rcParams.update({
-    "font.family": "serif", "mathtext.fontset": "dejavuserif",
-    "font.size": 10, "axes.titlesize": 11.5, "axes.labelsize": 10.5,
-    "axes.linewidth": 0.9, "axes.grid": True,
-    "grid.color": "0.82", "grid.linewidth": 0.5,
-    "xtick.direction": "in", "ytick.direction": "in",
-    "ytick.right": True,
-    "legend.frameon": False, "legend.fontsize": 8.5,
-    "figure.facecolor": "white", "savefig.facecolor": "white",
-    "savefig.dpi": 220, "savefig.bbox": "tight",
-})
 
 LABELS = {
     "sin_fondo": "Sin fondo\n(techo intrínseco)",
@@ -87,23 +76,23 @@ a90_vals = [rows[e]["a90"] for e in ORDER_SB]
 labels = [LABELS[e] for e in ORDER_SB]
 x = np.arange(len(ORDER_SB))
 
-fig, ax = plt.subplots(figsize=(7.2, 5.2))
-ax.bar(x, sb_vals, color="0.75", edgecolor="black", width=0.55, zorder=2)
-ax.axhline(SB_REF46, color="black", lw=1.3, ls="--", zorder=3)
-ax.text(0.05, SB_REF46 * 1.4, r"ref.[46] declara $S/\sqrt{B}\approx 4$",
-        transform=ax.get_yaxis_transform(), fontsize=8.5, ha="left", va="bottom")
+# color: los dos escenarios de 39Ar publicados en C_AR; el escenario CALIBRADO
+# a ref.[46] en gris, para marcar que es un anclaje, no una predccion cruda.
+cols = [C_AR, C_AR, GRIS]
+fig, ax = plt.subplots(figsize=(7.0, 4.8))
+ax.bar(x, sb_vals, color=cols, width=0.58, zorder=2)
+ax.axhline(SB_REF46, color=NEGRO, lw=0.9, ls="--", zorder=3)
+ax.text(1.004, SB_REF46, r"ref.[46]:  $S/\sqrt{B}\approx4$",
+        transform=ax.get_yaxis_transform(), fontsize=7.6, ha="left",
+        va="center", color=GRIS)
 for xi, sb, a90 in zip(x, sb_vals, a90_vals):
     ax.annotate(f"$A_{{90}}={a90:.2f}$", (xi, sb), textcoords="offset points",
-                xytext=(0, 6), ha="center", fontsize=8.3)
+                xytext=(0, 5), ha="center", fontsize=8.3)
 ax.set_xticks(x); ax.set_xticklabels(labels, fontsize=8.7)
 ax.set_yscale("log")
-ax.set_ylabel(r"$S/\sqrt{B}$  (observable de ref.[46])")
-ax.set_title(f"Ar: validación contra ref.[46] a su propia exposición real "
-             f"({expo:.0f} kg$\\cdot$día)")
+ax.set_ylabel(r"$S/\sqrt{B}$")
 ax.set_ylim(1, 1e4)
-ax.text(0.985, 0.60, f"(sin fondo: techo intrínseco, $A_{{90}}={rows['sin_fondo']['a90']:.2f}$,\n"
-        r"$S/\sqrt{B}$ no definido — no graficado)",
-        transform=ax.transAxes, fontsize=7.6, ha="right", va="bottom", color="0.35")
+ax.margins(x=0.12)
 fig.tight_layout()
 fig.savefig(f"{BASE}/fig_ar_fondo_validacion.png")
 print(f"\n  {BASE}/fig_ar_fondo_validacion.png")
