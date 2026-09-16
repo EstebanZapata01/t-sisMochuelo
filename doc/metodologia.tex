@@ -322,7 +322,7 @@ Con Eq.~\eqref{eq:QW_num} y los $(Z,N)$ de los archivos \code{constants.f90}:
 \toprule
 Blanco & $Z$ & $N$ & $N/Z$ & $\QW$ & $\QW^{2}$ \\
 \midrule
-$^{131{,}3}$Xe (RED-100) & 54 & 77 & $1{,}426$ & $-37{,}266$ & $1388{,}7$ \\
+$^{131{,}3}$Xe (RED-100) & 54 & $77{,}293$ & $1{,}431$ & $-37{,}412$ & $1399{,}7$ \\
 $^{72{,}6}$Ge (CONUS+)   & 32 & 41 & $1{,}281$ & $-19{,}769$ & $\ 390{,}8$ \\
 $^{39{,}9}$Ar (RED-100)  & 18 & 22 & $1{,}222$ & $-10{,}589$ & $\ 112{,}1$ \\
 \bottomrule
@@ -332,7 +332,7 @@ $\propto \QW^{2}\Enu^{2}$ es \emph{independiente} de $M$: aunque
 $\dd\sigma/\dd\Tnr\propto M$, el rango $\Tnr^{\max}\propto\Enu^{2}/M$ lo
 compensa. Por unidad de masa, la ventaja de coherencia Xe/Ar vale
 $(\QW^{2}|_{\rm Xe}/\QW^{2}|_{\rm Ar})\times(A_{\rm Ar}/A_{\rm Xe})
-\approx 12{,}4\times 0{,}30 \approx 3{,}8$.}
+\approx 12{,}5\times 0{,}30 \approx 3{,}8$.}
 \label{tab:qw}
 \end{table}
 
@@ -1475,14 +1475,15 @@ que forma con el eje $\eps_{ee}^{dV}$ un \'angulo
  & $Z+2N$ & $2Z+N$ & $\rho_{\eps}=\dfrac{|\QW|}{Z+2N}$
  & $\dfrac{Z+2N}{2Z+N}$ & $\theta$ \\
 \midrule
-Xe & 208 & 185 & $0{,}1792$ & $1{,}1243$ & $48{,}35\si{\degree}$ \\
+Xe & $208{,}59$ & $185{,}29$ & $0{,}1794$ & $1{,}1257$ & $48{,}38\si{\degree}$ \\
 Ge & 114 & 105 & $0{,}1734$ & $1{,}0857$ & $47{,}36\si{\degree}$ \\
 Ar & \ 62 & \ 58 & $0{,}1708$ & $1{,}0690$ & $46{,}91\si{\degree}$ \\
 \bottomrule
 \end{tabular}
-\caption{Geometr\'ia NSI de cada blanco (de los $Z,N$ de \code{constants.f90}).
-Diferencias de \'angulo: Xe--Ar $\SI{1.44}{\degree}$, Ge--Xe
-$\SI{0.99}{\degree}$, Ge--Ar $\SI{0.45}{\degree}$.}
+\caption{Geometr\'ia NSI de cada blanco (de los $Z,N$ de \code{constants.f90};
+$N$ de Xe = promedio isot\'opico natural $\langle A\rangle-Z=77{,}293$).
+Diferencias de \'angulo: Xe--Ar $\SI{1.48}{\degree}$, Ge--Xe
+$\SI{1.03}{\degree}$, Ge--Ar $\SI{0.44}{\degree}$.}
 \label{tab:geom}
 \end{table}
 
@@ -1528,12 +1529,13 @@ $^{23}$Na  & 11  & 12  & $1{,}09$ & $45{,}83\si{\degree}$ \\
 $^{40}$Ar  & 18  & 22  & $1{,}22$ & $46{,}91\si{\degree}$ \\
 $^{73}$Ge  & 32  & 41  & $1{,}28$ & $47{,}36\si{\degree}$ \\
 $^{127}$I  & 53  & 74  & $1{,}40$ & $48{,}15\si{\degree}$ \\
-$^{131}$Xe & 54  & 77  & $1{,}43$ & $48{,}35\si{\degree}$ \\
+$^{131{,}3}$Xe & 54  & $77{,}29$  & $1{,}43$ & $48{,}38\si{\degree}$ \\
 \bottomrule
 \end{tabular}
-\caption{Direcci\'on ciega para los blancos CE$\nu$NS habituales. Todo el rango
-cabe en $\theta\in[\,45\si{\degree},\ 48{,}4\si{\degree}\,]$: una franja de
-$\SI{3.4}{\degree}$.}
+\caption{Direcci\'on ciega para los blancos CE$\nu$NS habituales ($N$ de Xe:
+promedio ponderado por abundancia natural, $\langle A\rangle-Z$). Todo el
+rango cabe en $\theta\in[\,45\si{\degree},\ 48{,}4\si{\degree}\,]$: una franja
+de $\SI{3.4}{\degree}$.}
 \label{tab:estructural}
 \end{table}
 
@@ -1570,10 +1572,10 @@ general la pregunta que RED-100 deja abierta en su discusi\'on
 $f(r)=(1+2r)/(2+r)$, $r=N/Z$, es mon\'otono y acotado en
 $[45\si{\degree},\,63{,}4\si{\degree}]$; todos los blancos CE$\nu$NS reales
 caen en el tramo casi plano ($r\in[1,1{,}6]$), y el recuadro da
-$\Delta\phi_{\rm Xe,Ar}=\SI{1.44}{\degree}$ ($^{16}$O--Xe, el m\'aximo posible,
-$\SI{3.35}{\degree}$). El \'area de intersecci\'on de dos bandas de tolerancia
+$\Delta\phi_{\rm Xe,Ar}=\SI{1.48}{\degree}$ ($^{16}$O--Xe, el m\'aximo posible,
+$\SI{3.38}{\degree}$). El \'area de intersecci\'on de dos bandas de tolerancia
 con normales separadas $\Delta\phi$ va como $1/\sin\Delta\phi$, as\'i que ese
-$\SI{1.44}{\degree}$ es un factor de solo $\approx40\times$: la
+$\SI{1.48}{\degree}$ es un factor de solo $\approx39\times$: la
 complementariedad Xe--Ar es marginal. Derecha: circunferencias ciegas
 anal\'iticas $\qeff^{2}=\QW^{2}$ de Xe y Ar con los contornos num\'ericos a
 68\,\%, 90\,\% y 95\,\% C.L. (2 g.d.l.; $\Delta\chi^{2}=2{,}30/4{,}605/5{,}99$)
@@ -1721,10 +1723,10 @@ lo fija la carpeta. Reglas:
 $\Ne\ge$ & $R_{\rm tot}$ Xe & $R_{\rm tot}$ Ar & Ar/Xe & $A_{90}$ Xe & $A_{90}$ Ar \\
          & \multicolumn{2}{c}{[ev/(kg$\cdot$d\'ia)]} & & \multicolumn{2}{c}{[$\times$SM]} \\
 \midrule
-1 & 11{,}03 & 38{,}00 & $3{,}4$ & $1{,}036$ & $1{,}019$ \\
-2 &  2{,}14 & 27{,}17 & $12{,}7$ & $1{,}081$ & $1{,}023$ \\
-3 &  0{,}372 & 20{,}27 & $54$ & $1{,}195$ & $1{,}026$ \\
-4 &  0{,}063 & 15{,}37 & $243$ & $1{,}472$ & $1{,}030$ \\
+1 & 11{,}16 & 38{,}09 & $3{,}4$ & $1{,}036$ & $1{,}019$ \\
+2 &  2{,}18 & 27{,}88 & $12{,}8$ & $1{,}080$ & $1{,}022$ \\
+3 &  0{,}380 & 21{,}03 & $55$ & $1{,}193$ & $1{,}026$ \\
+4 &  0{,}064 & 15{,}97 & $250$ & $1{,}470$ & $1{,}030$ \\
 \bottomrule
 \end{tabular}
 \caption{Sensibilidad ideal ($F$ de NEST, \SI{192}{kg\cdot dia}). Salidas de
@@ -1747,7 +1749,7 @@ $\Ne\ge$ & $R_{\rm tot}$ Xe & $R_{\rm tot}$ Ar & Ar/Xe & $A_{90}$ Xe & $A_{90}$ 
     independientemente de la forma de $P(\Ne)$.
   \item \textbf{NSI 2D (sensibilidad proyectada, no exclusi\'on).} Con
     Eqs.~\eqref{eq:tol}--\eqref{eq:frac_area}: para Xe,
-    $N_{\rm tot}\approx 2118$, $\tau\approx 4{,}7\%$, $\rho_{\eps}=0{,}179$,
+    $N_{\rm tot}\approx 2143$, $\tau\approx 4{,}6\%$, $\rho_{\eps}=0{,}179$,
     $\delta_{\eps}=0{,}0042$, \'area/caja $\approx 0{,}0024$; para Ar,
     $N_{\rm tot}\approx 7297$, $\tau\approx 2{,}5\%$, $\rho_{\eps}=0{,}171$,
     $\delta_{\eps}=0{,}0021$, \'area/caja $\approx 0{,}0012$. La grilla
@@ -1770,10 +1772,10 @@ cuarta de \code{sensib\_ideal}.
 La ventaja de coherencia favorece a Xe solo en la etapa (1) y para
 $\Tnr\lesssim\SI{0.35}{keV}$; ya en (2) el espectro de Xe se desploma con $\Ne$
 (su $Q_{y}$ en el umbral es $\approx0$ y sus retrocesos son blandos), y en (3) la
-extracci\'on remata la ca\'ida (para $\Ne=4$, Xe pasa de $1{,}07$ creados a
-$0{,}054$ extra\'idos --- pierde $\sim95\%$; Ar de $4{,}16$ a $4{,}16$, EEE
-$\approx0{,}99$). El resultado integrado (4): la ventaja Ar/Xe es $\times3{,}5$ en
-$\Ne\ge1$ y $\times253$ en $\Ne\ge4$ (Fig.~\ref{fig:waterfall}).
+extracci\'on remata la ca\'ida (para $\Ne=4$, Xe pasa de $1{,}06$ creados a
+$0{,}055$ extra\'idos --- pierde $\sim95\%$; Ar de $4{,}16$ a $4{,}16$, EEE
+$\approx0{,}99$). El resultado integrado (4): la ventaja Ar/Xe es $\times3{,}4$ en
+$\Ne\ge1$ y $\times250$ en $\Ne\ge4$ (Fig.~\ref{fig:waterfall}).
 
 \begin{figure}[htbp]
 \centering
@@ -2312,9 +2314,9 @@ del cambio.
 \toprule
 Cantidad & \code{chi2\_nsi\_generic}\newline con input de Xe & \code{chi2\_nsi\_generic}\newline con input de CONUS+ & programa original \\
 \midrule
-$Z,\,N$ & $54,\,77$ & $32,\,41$ & (id\'enticos, por construcci\'on) \\
-$A_{90}$ / $\chi^{2}_{\min}$ & $A_{90}=107{,}320$ & $\chi^{2}_{\min}=7{,}349$ &
-  $107{,}320$ (\code{chi2red100\_} \code{nest.f90}) / $\approx 7{,}35$
+$Z,\,N$ & $54,\,77{,}293$ & $32,\,41$ & (id\'enticos, por construcci\'on) \\
+$A_{90}$ / $\chi^{2}_{\min}$ & $A_{90}=106{,}660$ & $\chi^{2}_{\min}=7{,}349$ &
+  $106{,}660$ (\code{chi2red100\_} \code{nest.f90}) / $\approx 7{,}35$
   (\code{2pchi2.f90}) \\
 Grilla NSI 2D vs.\ original & $|\Delta\chi^{2}|_{\max}=0$ (bit-id\'entica)
   & $|\Delta\chi^{2}|_{\max}=10^{-5}$ & Xe: misma f\'ormula exacta; CONUS+:
@@ -2395,12 +2397,12 @@ exposici\'on. Rombo: dato real 2024; tri\'angulo: extrapolaci\'on a un a\~no del
 \end{figure}
 
 \paragraph{Resultados num\'ericos.} A la exposici\'on base ($\SI{192}{kg.dia}$),
-la rama esperada da $A_{90}^{\rm esp}=125{,}9$ (un histograma; comp\'arese con el
-$A_{90}=107{,}3$ \emph{observado} real: la diferencia es la fluctuaci\'on
+la rama esperada da $A_{90}^{\rm esp}=125{,}1$ (un histograma; comp\'arese con el
+$A_{90}=106{,}7$ \emph{observado} real: la diferencia es la fluctuaci\'on
 estad\'istica normal del residuo 2024, $\chi^{2}_{\min}/\text{ndof}=1{,}17$). Al
-escalar la exposici\'on: $89{,}3$ ($\times2$), $56{,}9$ ($\times5$), $40{,}5$
-($\times10$), $18{,}7$ ($\times50$), $13{,}5$ ($\times100$), $7{,}8$
-($\times335$), $5{,}0$ ($\times1000$) --- decreciente en todo el rango y
+escalar la exposici\'on: $88{,}8$ ($\times2$), $56{,}5$ ($\times5$), $40{,}2$
+($\times10$), $18{,}6$ ($\times50$), $13{,}4$ ($\times100$), $7{,}8$
+($\times335$), $4{,}9$ ($\times1000$) --- decreciente en todo el rango y
 tendiendo a $1$. Interpolada a $\approx200\times$ la exposici\'on base
 ($\approx\SI{38400}{kg.dia}$, la del \S~VII), da $\approx10\times$SM; aplicando
 el handicap $\sqrt{3}$ ya documentado (Sec.~\ref{sec:brecha}),
@@ -2501,10 +2503,10 @@ base.}
 
 \paragraph{Lectura.} El par\'ametro \textbf{dominante es el rendimiento de carga
 $Q_{y}$ de Xe}: con $\pm15\%$, $A_{90}(\text{Xe})$ va de $1{,}34$ a $1{,}68$ y la
-ventaja Ar/Xe de $\times133$ a $\times522$. La fluctuaci\'on $F$ es segunda
+ventaja Ar/Xe de $\times131$ a $\times521$. La fluctuaci\'on $F$ es segunda
 ($A_{90}$Xe $1{,}32$--$1{,}47$); $T_{\max}$ y Helm son despreciables. En
 \textbf{ninguna} variaci\'on individual la ventaja Ar/Xe en $\Ne\ge4$ baja de
-$\times117$, ni el \'angulo ciego cambia (depende solo de $Z,N$, no de
+$\times116$, ni el \'angulo ciego cambia (depende solo de $Z,N$, no de
 $Q_{y}$/EEE/$F$). Ambos resultados centrales --- ``el umbral invierte la ventaja
 de coherencia'' y ``la degeneraci\'on NSI es estructural'' --- \textbf{sobreviven
 a todas las variaciones}. El modelo de espectro de antineutrinos no se re-corre
@@ -2589,9 +2591,10 @@ EEE}\approx29\%$ de la tasa).}
 
 \paragraph{Robustez frente a la masa at\'omica.} Usar $^{132}$Xe (is\'otopo
 dominante, $Z=54$, $N=78$) en vez del promedio ponderado $^{131{,}3}$Xe
-($N\simeq77$) cambia $\QW$ en $-0{,}5$, $\rho_{\eps}$ de $0{,}1792$ a $0{,}1784$
-($<0{,}5\%$) y $\theta$ de $48{,}35\si{\degree}$ a $48{,}39\si{\degree}$
-($0{,}04\si{\degree}$): irrelevante frente al $\SI{1.44}{\degree}$ Xe--Ar.
+($N=\langle A\rangle-Z=77{,}293$) cambia $\QW$ de $-37{,}412$ a $-37{,}766$
+($0{,}9\%$), $\rho_{\eps}$ de $0{,}1794$ a $0{,}1798$ ($0{,}3\%$) y $\theta$ de
+$48{,}38\si{\degree}$ a $48{,}47\si{\degree}$ ($0{,}08\si{\degree}$):
+irrelevante frente al $\SI{1.475}{\degree}$ Xe--Ar.
 
 \subsection{Convergencia num\'erica}
 \label{sec:convergencia}
@@ -2600,11 +2603,11 @@ Las mallas de integraci\'on $n_{T}$ (retroceso) y $n_{E}$ (energ\'ia de neutrino
 son constantes de compilaci\'on en \code{chi2\_ideal\_nest.f90};
 \code{python/convergence\_scan.py} las var\'ia por \code{sed}, recompila y corre
 para $n_{T}\in\{200,400,800,1600\}$ y $n_{E}\in\{500,1000,2000,4000\}$ (dejando el
-archivo restaurado a $n_{T}=800,\ n_{E}=2000$). $A_{90}$ es estable a $<0{,}05\%$
+archivo restaurado a $n_{T}=800,\ n_{E}=2000$). $A_{90}$ es estable a $<0{,}2\%$
 entre $n_{T}=800$ y $1600$ y \emph{bit-estable} en $n_{E}$ de $500$ a $4000$
-(incluso $n_{T}=200$ da $1{,}470$ vs.\ $1{,}472$ en la base): la resoluci\'on
-usada est\'a sobradamente convergida y los resultados no son un artefacto de
-discretizaci\'on.
+(incluso $n_{T}=200$, el m\'as burdo probado, da $1{,}459$ vs.\ $1{,}470$ en la
+base $n_T=800$, $\sim0{,}7\%$): la resoluci\'on usada est\'a sobradamente
+convergida y los resultados no son un artefacto de discretizaci\'on.
 
 % ===========================================================================
 \section{Conclusiones}
@@ -2626,7 +2629,7 @@ discretizaci\'on.
     ventaja de coherencia del xen\'on ($\times 3{,}8$ por unidad de masa) se
     invierte al exigir se\~nal detectable: con ventana sim\'etrica $\Ne\ge 1$ el
     arg\'on da $\times 3{,}4$ m\'as eventos, y la ventaja crece con el umbral
-    ($\times 243$ en $\Ne\ge 4$). Es el argumento del \S VII de RED-100,
+    ($\times 250$ en $\Ne\ge 4$). Es el argumento del \S VII de RED-100,
     cuantificado con una comparaci\'on controlada (Sec.~\ref{sec:ideal}).
   \item \textbf{Resultado central I: la degeneraci\'on NSI de sola tasa es
     estructural.} La regi\'on indistinguible del SM es una circunferencia de

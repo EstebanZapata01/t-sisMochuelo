@@ -92,7 +92,7 @@ program mainred100_nest
   !                    BLOQUE DE VALIDACION
   ! ====================================================================
   write(*,'(/,A)') '=================== VALIDACION (vs arXiv:2411.18641) ==================='
-  write(*,'(A,F12.5,A)')  ' Q_w = N - (1-4 s2w) Z            = ', QW_SM, '   (N=77, Z=54, Ec.2 con 1/2)'
+  write(*,'(A,F12.5,A)')  ' Q_w = N - (1-4 s2w) Z            = ', QW_SM, '   (N=A-Z=77,293, Z=54, Ec.2 con 1/2)'
   write(*,'(A,F12.3)')    ' Q_w^2 (en dsigma_dT)             = ', QW_SM**2
   write(*,'(A,ES12.4,A)') ' Flujo total phi                 = ', phi_total, ' nu/cm2/s'
   write(*,'(A,F10.4,A)')  ' Integral espectro (~nubar/fis)  = ', spectrum_integral, '   (paper: 6.75)'

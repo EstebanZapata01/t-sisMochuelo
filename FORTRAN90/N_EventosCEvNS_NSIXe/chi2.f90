@@ -183,7 +183,7 @@ program chi2_ON_OFF_1D
   !     Xe <-> CONUS+ con el MISMO motor chi2+NSI, ver metodologia.tex).
   !     NO altera ningun calculo/archivo anterior; solo agrega este
   !     archivo nuevo con los datos crudos de entrada (dN, sigma, R_SM)
-  !     que ya se acaban de calcular arriba. Z=54, N=77 son los mismos
+  !     que ya se acaban de calcular arriba. Z=54, N=77,293 (A-Z) son los mismos
   !     valores de constants.f90 de esta carpeta (no importados aqui
   !     para no tocar la clausula `use` existente).
   ! ==================================================================

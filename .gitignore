@@ -16,9 +16,7 @@ datos/chi2_ON_OFF_perfil.dat
 datos/*.bak*
 
 # Volcado de depuracion de eventos_conus (main.f90), sin lector alguno
-"datos/eventos_C2 .dat"
-"datos/eventos_C3 .dat"
-"datos/eventos_C5 .dat"
+datos/eventos_C*.dat
 
 # Salidas de scripts que se mantienen (sirven para citar numeros en el texto)
 # pero cuya figura/tabla ya no entra en metodologia.tex

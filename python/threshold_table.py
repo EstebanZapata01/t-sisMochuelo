@@ -27,7 +27,10 @@ def QW(Z, N):
     return -N / 2.0 + (1.0 - 4.0 * S2W) / 2.0 * Z
 
 TARGETS = {
-    "Xe-131": dict(Z=54, N=77, A=131, roi_ne=4),
+    # Xe: N = <A> - Z con <A>=131.293 (mezcla natural, la misma que usa
+    # constants.f90 para la masa nuclear), no N=77 de un solo isotopo puro
+    # -- Q_W es lineal en N, asi que esto es exacto, no una aproximacion.
+    "Xe-131": dict(Z=54, N=131.293 - 54, A=131.293, roi_ne=4),
     "Ge-73":  dict(Z=32, N=41, A=73,  roi_ne=None),   # umbral por energia
     "Ar-40":  dict(Z=18, N=22, A=40,  roi_ne=1),
 }
@@ -68,7 +71,7 @@ TTHR = {"Xe-131": tthr_xe, "Ge-73": tthr_ge, "Ar-40": tthr_ar}
 # ------------------------------------------------------------------ tabla
 rows = []
 print("=" * 92)
-print(f"{'blanco':8s} {'Z':>3s} {'N':>3s} {'N/Z':>6s} {'T_thr[keV_nr]':>13s} "
+print(f"{'blanco':8s} {'Z':>3s} {'N':>7s} {'N/Z':>6s} {'T_thr[keV_nr]':>13s} "
       f"{'Q_W':>9s} {'Q_W^2':>9s} {'rho_eps':>8s} {'theta[deg]':>11s}")
 print("-" * 92)
 for name, d in TARGETS.items():
@@ -77,7 +80,7 @@ for name, d in TARGETS.items():
     rho = abs(qw) / (Z + 2 * N)
     theta = np.degrees(np.arctan2(Z + 2 * N, 2 * Z + N))
     tt = TTHR[name]
-    print(f"{name:8s} {Z:3d} {N:3d} {N/Z:6.3f} {tt:13.3f} "
+    print(f"{name:8s} {Z:3d} {N:7.3f} {N/Z:6.3f} {tt:13.3f} "
           f"{qw:9.3f} {qw**2:9.1f} {rho:8.4f} {theta:11.3f}")
     rows.append((name, Z, N, N / Z, tt, qw, qw**2, rho, theta))
 print("-" * 92)
@@ -92,11 +95,11 @@ with open(f"{BASE}/tabla_umbral.tex", "w", encoding="utf-8") as f:
     f.write("\\begin{tabular}{@{}lccccccc@{}}\n\\toprule\n")
     f.write("Blanco & $Z$ & $N$ & $N/Z$ & $T_{\\rm thr}$ [keV$_{nr}$] & "
             "$\\QW$ & $\\QW^{2}$ & $\\theta$ [$^\\circ$] \\\\\n\\midrule\n")
-    labels = {"Xe-131": "$^{131}$Xe (RED-100)",
+    labels = {"Xe-131": "Xe natural ($\\langle A\\rangle{=}131{,}3$, RED-100)",
               "Ge-73": "$^{73}$Ge (CONUS+)",
               "Ar-40": "$^{40}$Ar (RED-100)"}
     for name, Z, N, nz, tt, qw, qw2, rho, theta in rows:
-        f.write(f"{labels[name]} & {Z} & {N} & {nz:.3f} & {tt:.2f} & "
+        f.write(f"{labels[name]} & {Z} & {N:.2f} & {nz:.3f} & {tt:.2f} & "
                 f"{qw:.2f} & {qw2:.1f} & {theta:.2f} \\\\\n")
     f.write("\\bottomrule\n\\end{tabular}\n")
 print(f"\n  {BASE}/tabla_umbral.tex")

@@ -36,7 +36,7 @@ TARG = {
     "$^{40}$Ar": dict(Z=18, N=22.0, c=C_AR),
     "$^{73}$Ge": dict(Z=32, N=41.0, c=C_GE),
     "$^{127}$I": dict(Z=53, N=74.0, c="0.55"),
-    "$^{131}$Xe":dict(Z=54, N=77.0, c=C_XE),
+    "$^{131}$Xe":dict(Z=54, N=131.293 - 54, c=C_XE),  # N=<A>-Z, mezcla natural
 }
 for name, d in TARG.items():
     Z, N = d["Z"], d["N"]

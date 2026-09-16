@@ -31,7 +31,12 @@ module constants
   real(dp), parameter :: amu  = 931.49410242_dp   ! MeV / u
   real(dp), parameter :: A_Ge = 131.293_dp
   real(dp), parameter :: Z_Ge = 54.0_dp
-  real(dp), parameter :: N_Ge = 77.0_dp
+  ! N = <A> - Z (promedio isotopico ponderado por abundancia natural, no la
+  ! N=77 de un solo isotopo puro): Q_W es lineal en N, asi que el promedio
+  ! de Q_W sobre isotopos es exactamente -N_prom/2 + ...*Z, N_prom = <A>-Z.
+  ! Antes N_Ge=77.0_dp (inconsistente con A_Ge=131.293: 131.293-54=77.293,
+  ! no 77); efecto ~0.4% en Q_W, ~0.8% en la tasa (propor. a Q_W^2).
+  real(dp), parameter :: N_Ge = A_Ge - Z_Ge
   real(dp), parameter :: M_Ge = A_Ge * amu        ! masa nuclear coherente con A (~122299 MeV)
 
   ! ==================== DETECTOR RED-100 (arXiv:2411.18641) ====================
