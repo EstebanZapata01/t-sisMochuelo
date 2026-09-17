@@ -98,12 +98,7 @@ cd "$ROOT"
 
 echo "-- Ge/CONUS+ --"
 cd "$ROOT/FORTRAN90/N_EventosCEvNS"
-# NO se corre ./chi2_sin2theta aqui: chi2.f90 (invariante, no se toca) tiene
-# una variable local ('log_s') que gfortran marca como posiblemente sin
-# inicializar (-Wuninitialized); recompilar y correr desde cero puede
-# producir un chi2(s) degenerado (plano) en vez del perfil real. Por eso
-# datos/chi2_sin2theta.dat queda como archivo versionado/congelado (ya
-# validado: chi2_min=7.349, s_best=0.248) en vez de regenerarse aqui.
+# NO se corre ./chi2_sin2theta aqui: bug conocido en chi2.f90, ver README.md.
 ./eventos_conus
 cd "$ROOT"
 cd "$ROOT/FORTRAN90/N_EventosCEvNS_NSI"
