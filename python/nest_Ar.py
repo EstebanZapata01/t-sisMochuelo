@@ -62,6 +62,12 @@ espectro beta y la normalizacion (actividad) viven en chi2_bkg_nest.f90.
 import numpy as np
 import nestpy
 
+# Semilla fija (misma razon que en nest.py: el muestreo es interno a
+# nestpy/C++, np.random.seed() no lo alcanza). Semilla distinta a la de Xe
+# para no correlacionar el ruido residual entre ambas tablas.
+nestpy.RandomGen.rndm().set_seed(20260911)
+nestpy.RandomGen.rndm().lock_seed()
+
 # --------------------------- configuracion -------------------------------
 DRIFT_V = 218.0       # V/cm  (RED-100; ReD midio a 200, diferencia < 1% en Qy)
 DENSITY = 1.40        # g/cm3, LAr ~87 K

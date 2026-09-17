@@ -44,10 +44,13 @@ resultados de referencia).
 Al final verifica que estén todas las figuras/tablas citadas en
 `doc/metodologia.tex`. Dos cosas a tener en cuenta:
 
-- `python/nest.py` y `python/nest_Ar.py` muestrean NEST por Monte Carlo (sin
-  semilla fija), así que una corrida completa desde cero da números con
-  ruido estadístico de ~0,1 % respecto a los ya publicados en la tesis —
-  normal, no es un error.
+- `python/nest.py` y `python/nest_Ar.py` muestrean NEST por Monte Carlo con
+  **semilla fija** (`nestpy.RandomGen.rndm().set_seed(...).lock_seed()`,
+  20260910 para Xe y 20260911 para Ar — `np.random.seed()` no sirve porque
+  el muestreo es interno a nestpy/C++). Verificado bit-idéntico en corridas
+  repetidas. Antes de fijarla, cada corrida completa daba ~0,1–4 % de ruido
+  estadístico respecto a la corrida anterior (documentado y discutido con
+  la sesión de `Proyecto_LaTeX/` el 2026-09-16); ya no debería ocurrir.
 - El script **no** regenera `datos/chi2_sin2theta.dat`: el binario que lo
   produce (`FORTRAN90/N_EventosCEvNS/chi2.f90`, un archivo que este proyecto
   trata como intocable) tiene una variable local (`log_s`) que `gfortran

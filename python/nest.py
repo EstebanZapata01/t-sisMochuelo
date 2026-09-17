@@ -24,6 +24,15 @@ Los nr_parameters son los defaults de NEST v2.4.0 para NR en Xe.
 import nestpy
 import numpy as np
 
+# Semilla fija: el muestreo de NEST (GetQuanta) es interno a nestpy/C++, no
+# pasa por np.random, asi que np.random.seed() no lo controla. Sin esto,
+# cada corrida de correr_todo.sh resamplea Qy/F con ruido MC ~0.1-4% (ver
+# README.md) y arrastra ese ruido a todo el pipeline (incluido Ar, que se
+# resamplea en la misma corrida aunque no cambie nada de argon). Con la
+# semilla fija, correr_todo.sh es reproducible bit a bit en esta tabla.
+nestpy.RandomGen.rndm().set_seed(20260910)
+nestpy.RandomGen.rndm().lock_seed()
+
 NR = nestpy.interactions.NR
 DENSITY   = 2.96      # g/cm3, LXe a ~169 K
 DRIFT_V   = 218.0     # V/cm
