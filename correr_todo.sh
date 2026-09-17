@@ -125,7 +125,8 @@ for s in ar_fondo_validacion blind_ring_XeAr chi2_perfil_generic chi2RED100 \
          helm_form_factor kappa_eee kappa_eee_plot ne_prediction_XeAr \
          recoil_spectrum_XeAr red100Xe sensibilidad_exposicion_completa \
          sensitivity_scan sin2theta_plot threshold_table expo_to_A90 \
-         waterfall_XeAr valida_conus convergence_scan discovery_Z; do
+         waterfall_XeAr valida_conus convergence_scan discovery_Z \
+         tmax_kinematica dsigma_bare_XeAr nest_qy_fano_XeAr; do
     echo "-- $s.py --"
     $PY "$s.py"
 done
