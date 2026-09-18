@@ -915,7 +915,7 @@ corregida [PE] compatible con cero.
 
 \paragraph{Algoritmo (\code{chi2.f90}).}
 \begin{enumerate}\itemsep2pt
-  \item \textbf{Digitalizaci\'on del dato.} La Fig.~7 (residuo ON$-$OFF) de
+  \item \textbf{Digitalizaci\'on del dato.} La Fig.~8 (residuo ON$-$OFF) de
     arXiv:2411.18641 se digitaliza manualmente (herramienta de extracci\'on de
     puntos sobre la figura vectorial del paper) para obtener $15$ pares
     $(\Delta N_{i},\sigma_{i})$, $i=1,\ldots,15$, uno por bin de energ\'ia
@@ -1932,7 +1932,7 @@ de detector.
 
 \emph{Innecesaria:} (i)~el PE existe \'unicamente para expresar la simulaci\'on
 en las unidades del residuo ON$-$OFF que RED-100 public\'o \emph{en xen\'on}
-(Fig.~7); para arg\'on no hay residuo ni dato de ning\'un tipo, as\'i que un
+(Fig.~8); para arg\'on no hay residuo ni dato de ning\'un tipo, as\'i que un
 espectro en PE no tendr\'ia con qu\'e contrastarse. (ii)~El ROI de arg\'on est\'a
 definido en $\Ne$, no en PE: tanto el \S VII de arXiv:2411.18641 como la ref.\
 [46] enuncian el corte como un conteo de electrones. Todo el an\'alisis de
@@ -2661,11 +2661,15 @@ del arg\'on, donde $^{40}$Ar s\'i es
 $99{,}6\%$ y un solo is\'otopo es la elecci\'on f\'isicamente correcta sin m\'as
 que decir. Como $\QW$ es \textbf{lineal} en $N$
 (Eq.~\eqref{eq:QW_num}), el promedio de $\QW$ sobre la mezcla isot\'opica es
-exactamente $-\langle N\rangle/2+\ldots$: usar $N=\langle A\rangle-Z$ con el
-mismo $\langle A\rangle=131{,}293$ que ya fija la masa nuclear ($M_{\rm Ge}$,
-Sec.~\ref{sec:xsec}) no es una aproximaci\'on adicional ni exige promediar
-is\'otopo por is\'otopo --- es el valor exacto, y consistente con lo que ya se
-usa para la normalizaci\'on de tasa (\'atomos/kg). Elegir en cambio un solo
+exactamente $-\langle N\rangle/2+\ldots$, con $\langle N\rangle$ el n\'umero medio
+de neutrones: no exige promediar is\'otopo por is\'otopo. El c\'odigo toma
+$\langle N\rangle=\langle A\rangle-Z$ con el peso at\'omico
+$\langle A\rangle=131{,}293\,$u, el mismo que fija la masa nuclear ($M_{\rm Ge}$,
+Sec.~\ref{sec:xsec}) y los \'atomos/kg. Como el peso at\'omico promedia masas
+isot\'opicas y no n\'umeros de masa enteros ($\langle A\rangle_{\rm ent}\approx
+131{,}39$), esto subestima $\langle N\rangle$ en $\approx0{,}1$: $\approx0{,}13\%$
+en $\QW$ ($\approx0{,}3\%$ en $\QW^{2}$), muy por debajo de las dem\'as
+incertidumbres. Elegir en cambio un solo
 is\'otopo (p.\ ej.\ $^{132}$Xe, $Z=54$, $N=78$) s\'i ser\'ia una aproximaci\'on
 que habr\'ia que justificar por qu\'e se ignora el resto de la mezcla.
 

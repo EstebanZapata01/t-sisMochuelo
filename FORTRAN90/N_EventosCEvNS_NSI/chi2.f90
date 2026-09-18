@@ -1,6 +1,6 @@
 !=======================================================================
 ! Programa: chi2_ON_OFF_1D.f90
-! Propósito: Leer los datos ON-OFF digitalizados de la Fig. 7 de
+! Propósito: Leer los datos ON-OFF digitalizados de la Fig. 8 de
 !            arXiv:2411.18641 y hacer el análisis chi² 1D sobre la
 !            amplitud de señal CEvNS.
 !
