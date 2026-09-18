@@ -6,21 +6,19 @@ que muestran el espectro en N_e -- Fig. 3 ("N_e extraidos", sin cortes de
 seleccion) y Fig. 6 ("CEvNS signal before/after cuts") -- para responder si
 son la misma curva y si la simulacion reproduce alguna de las dos.
 
-Panel A (antes de cortes): sim = tasa_ion_extraidos (misma cantidad que
-  entra en chi2.f90 antes de eff_ROI). Sigue la FORMA de la Fig. 3 (razones
-  entre bins consecutivos ~6-7 en ambas) con una normalizacion ~1.8-2.1x
-  mayor (espectro hibrido mas duro que SM2018, ya documentado). NO sigue a
-  la Fig. 6 "before cuts": esa curva es mucho mas plana (razon 4->5 = 1.2,
-  no ~7) y ~2-4x mas baja que la simulacion en cada bin. Fig. 3 y Fig. 6
-  "before cuts" NO son la misma curva dentro del propio paper.
-Panel B (despues de cortes): sim*eff_ROI vs Fig. 6 "after cuts". eff_ROI se
-  digitalizo como razon Fig6_despues/Fig6_antes, asi que aplicarla sobre una
-  forma tipo Fig. 3 (no tipo Fig. 6) no la reconcilia bin a bin: N_e=4 sale
-  sobre-predicho ~3.8x, N_e=5-7 sub-predichos ~0.6-0.7x -- ya documentado en
-  metodologia.tex. Lo que falta es la aceptancia del detector (eficiencia de
-  trigger/borde cerca de N_e=4, duracion de cluster, radio^2 reconstruido),
-  que ni la Fig. 3 ni la simulacion tienen y que solo el Monte Carlo de
-  RED-100 podria proveer.
+Etapas mostradas (2 series de "Simulacion", 3 de "RED-100"):
+  teorico puro (Fig. 3 / sim = tasa_ion_extraidos): la simulacion SI sigue la
+    forma de esta etapa (~1.8-2.1x mas alta, espectro hibrido mas duro que
+    SM2018, ya documentado).
+  tras reconstruccion, antes de cortes finales (Fig. 6 "before cuts"): solo
+    RED-100 -- la simulacion no tiene esta etapa (necesita reconstruccion de
+    posicion/duracion/energia, no reproducible solo con el paper).
+  final, tras cortes (Fig. 6 "after cuts" vs sim*eff_ROI): N_e=4 sale
+    sobre-predicho ~3.8x, N_e=5-7 sub-predichos ~0.6-0.7x -- eff_ROI se
+    digitalizo de la forma de Fig. 6, no de Fig. 3, asi que aplicarla sobre
+    una forma tipo Fig. 3 no reconcilia bin a bin. Falta la aceptancia del
+    detector (eficiencia de trigger/borde cerca de N_e=4), que ni la Fig. 3
+    ni la simulacion tienen.
 
 Entrada: datos/validacion_fig3_fig6_Xe.dat (volcado de red100PE.f90; valores
          Fig. 3 y Fig. 6 son datos digitalizados por el usuario del paper,
@@ -31,36 +29,33 @@ import numpy as np
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-from estilo_tesis import aplicar, C_XE, GRIS, NEGRO
+from estilo_tesis import aplicar, C_XE, NEGRO
 aplicar()
 
 BASE = "/home/oem/Desktop/Unipamplona/Trabajo de grado/Códigos/datos"
 
 d = np.loadtxt(f"{BASE}/validacion_fig3_fig6_Xe.dat", comments="#")
 Ne, sim_a, sim_d, fig3, f6_a, f6_d = d[:, 0], d[:, 1], d[:, 2], d[:, 3], d[:, 4], d[:, 5]
-x = np.arange(len(Ne))
 
-fig, (axA, axB) = plt.subplots(1, 2, figsize=(10.6, 4.6))
+fig, ax = plt.subplots(figsize=(7.0, 5.2))
 
-w = 0.26
-axA.bar(x - w, sim_a, width=w, color=C_XE, label="Simulación (NEST)")
-axA.bar(x, fig3, width=w, color=GRIS, label="RED-100, antes de reconstrucción")
-axA.bar(x + w, f6_a, width=w, color=NEGRO, label="RED-100, tras reconstrucción")
-axA.set_yscale("log")
-axA.set_xticks(x); axA.set_xticklabels([f"{int(n)}" for n in Ne])
-axA.set_xlabel(r"$N_e$")
-axA.set_ylabel(r"eventos / (kg$\cdot$día)")
-axA.set_title("Antes de cortes")
-axA.legend(loc="upper right", fontsize=7.6)
+series = [
+    (fig3,  NEGRO, "o", "RED-100, teórico"),
+    (f6_a,  NEGRO, "^", "RED-100, tras reconstrucción"),
+    (f6_d,  NEGRO, "s", "RED-100, tras cortes"),
+    (sim_a, C_XE,  "o", "Simulación, teórico"),
+    (sim_d, C_XE,  "s", "Simulación $\\times\\,$eff$_{\\rm ROI}$"),
+]
+for y, col, mk, lab in series:
+    ax.plot(Ne, y, color=col, alpha=0.3, lw=1.2, zorder=2)
+    ax.scatter(Ne, y, color=col, marker=mk, s=42, label=lab, zorder=3)
 
-w2 = 0.32
-axB.bar(x - w2/2, sim_d, width=w2, color=C_XE, label="Simulación $\\times\\,$eff$_{\\rm ROI}$")
-axB.bar(x + w2/2, f6_d, width=w2, color=NEGRO, label="RED-100, tras cortes")
-axB.set_yscale("log")
-axB.set_xticks(x); axB.set_xticklabels([f"{int(n)}" for n in Ne])
-axB.set_xlabel(r"$N_e$")
-axB.set_title("Después de cortes")
-axB.legend(loc="upper right", fontsize=7.6)
+ax.set_yscale("log")
+ax.set_xticks(Ne); ax.set_xticklabels([f"{int(n)}" for n in Ne])
+ax.set_xlim(3.5, 7.5)
+ax.set_xlabel(r"$N_e$")
+ax.set_ylabel(r"eventos / (kg$\cdot$día)")
+ax.legend(loc="upper right", fontsize=7.6)
 
 fig.tight_layout()
 out = f"{BASE}/fig_roi_cuts_Xe.png"
