@@ -166,6 +166,17 @@ program red100PE_detallado
          sum(sim*eff_ROI(4:7)) / sum(f6_a)
     write(*,'(A)')      '   (0.2555 = el "75% signal loss in ROI" del texto; es cociente'
     write(*,'(A)')      '    de las dos curvas de la Fig. 6, no un promedio de eff por bin.)'
+
+    ! Volcado para python/roi_cuts_validacion_Xe.py (fig_roi_cuts_Xe.png)
+    block
+      integer :: u_v
+      open(newunit=u_v, file=trim(outdir)//'validacion_fig3_fig6_Xe.dat', status='replace')
+      write(u_v,'(A)') '# Ne  sim_antes  sim_despues  fig3  fig6_antes  fig6_despues'
+      do b = 1, 4
+         write(u_v,'(I3,5ES16.7)') b+3, sim(b), sim(b)*eff_ROI(b+3), pap(b), f6_b(b), f6_a(b)
+      end do
+      close(u_v)
+    end block
   end block
   write(*,'(/,A)') ' Espectro en PE:'
   write(*,'(A,F7.1,A,ES13.5)') '   pico en PE = ', (real(ipk,dp)-0.5_dp)*bin_width_pe, ' , valor = ', pe_pk_val
