@@ -43,9 +43,9 @@ x = np.arange(len(Ne))
 fig, (axA, axB) = plt.subplots(1, 2, figsize=(10.6, 4.6))
 
 w = 0.26
-axA.bar(x - w, sim_a, width=w, color=C_XE, label="Simulación")
-axA.bar(x, fig3, width=w, color=GRIS, label="Fig. 3 (paper)")
-axA.bar(x + w, f6_a, width=w, color=NEGRO, label="Fig. 6, antes (paper)")
+axA.bar(x - w, sim_a, width=w, color=C_XE, label="Simulación (NEST)")
+axA.bar(x, fig3, width=w, color=GRIS, label="RED-100, antes de reconstrucción")
+axA.bar(x + w, f6_a, width=w, color=NEGRO, label="RED-100, tras reconstrucción")
 axA.set_yscale("log")
 axA.set_xticks(x); axA.set_xticklabels([f"{int(n)}" for n in Ne])
 axA.set_xlabel(r"$N_e$")
@@ -55,7 +55,7 @@ axA.legend(loc="upper right", fontsize=7.6)
 
 w2 = 0.32
 axB.bar(x - w2/2, sim_d, width=w2, color=C_XE, label="Simulación $\\times\\,$eff$_{\\rm ROI}$")
-axB.bar(x + w2/2, f6_d, width=w2, color=NEGRO, label="Fig. 6, después (paper)")
+axB.bar(x + w2/2, f6_d, width=w2, color=NEGRO, label="RED-100, tras cortes")
 axB.set_yscale("log")
 axB.set_xticks(x); axB.set_xticklabels([f"{int(n)}" for n in Ne])
 axB.set_xlabel(r"$N_e$")
