@@ -1385,8 +1385,15 @@ es cuadr\'atica y $\chi^{2}(\eps)$ es cu\'artica, as\'i que todo lo que sigue en
 esta secci\'on (lugar ciego = c\'onica, Sec.~\ref{sec:blind}; anillo de tolerancia,
 Sec.~\ref{sec:anillo}) se aplica sin cambios estructurales a cualquiera de los
 $15$ casos --- \'unicamente cambian los coeficientes num\'ericos $b_x,b_y,c_{xx},
-c_{yy},c_{xy}$, y con ellos la forma exacta de la c\'onica (c\'irculo cuando
-$c_{xx}=c_{yy}$ y $c_{xy}=0$, como en \code{ipar}$=5$; elipse rotada en general).
+c_{yy},c_{xy}$, y con ellos la forma exacta de la c\'onica. Los $15$ casos
+concretos del c\'odigo (verificados uno a uno, no una afirmaci\'on gen\'erica; ver
+el desglose completo en Sec.~\ref{sec:blind}) caen en exactamente tres familias:
+c\'irculo, elipse con ejes alineados a $(\eps_x,\eps_y)$, o un par de rectas
+paralelas (c\'onica degenerada, discriminante $c_{xy}^2-4c_{xx}c_{yy}=0$); ninguno
+de los $15$ da una elipse \emph{rotada} propiamente dicha ni una hip\'erbola (esta
+\'ultima exigir\'ia un signo relativo negativo entre dos t\'erminos cuadr\'aticos,
+imposible aqu\'i porque $\qeff^{2}$ es siempre una suma de cuadrados,
+Eq.~\eqref{eq:qeff2}).
 El mapeo \code{ipar}$\to(q_{ee},q_{e\mu},q_{e\tau})$ es id\'entico en
 \code{chi2red100\_nest.f90}, \code{chi2\_ideal\_nest.f90} y \code{2pchi2.f90} (los
 15 \code{case} son literalmente el mismo bloque de c\'odigo copiado en los tres
@@ -1421,13 +1428,35 @@ circunferencia. Su centro Eq.~\eqref{eq:blind_center} \emph{no} pertenece a ella
 \code{valida\_conus.py} eso se ve como el corte del eje en $2\rho_{\eps}$, no en
 $\rho_{\eps}$).
 
-\paragraph{La circunferencia es un caso particular de la c\'onica general.} En
-\code{ipar}$=5$ los dos par\'ametros entran con el mismo coeficiente $C=Z+2N$ y
-Eq.~\eqref{eq:blind_conic} da una circunferencia; para pares en que un
-par\'ametro entra con $2Z+N$ y el otro con $Z+2N$ (p.\ ej.\ \code{ipar}$=6$) el
-lugar ciego es una \textbf{elipse propia} de semiejes $|\QW|/(2Z+N)$ y
-$|\QW|/(Z+2N)$. La forma exacta la fijan $(Z,N)$ y la elecci\'on de par\'ametros,
-pero siempre es la misma c\'onica de Eq.~\eqref{eq:blind_conic}.
+\paragraph{Los $15$ casos, clasificados uno a uno.} Sean $A\equiv 2Z+N$ y
+$B\equiv Z+2N$ los dos coeficientes que aparecen en el c\'odigo (\code{2.0*eps*Z
++ eps*N} da $A\eps$; \code{eps*Z + 2.0*eps*N} da $B\eps$). Revisando el bloque
+\code{select case(ipar)} de \code{chi2\_ideal\_nest.f90} (id\'entico en
+\code{chi2red100\_nest.f90} y \code{2pchi2.f90}):
+\begin{itemize}\itemsep2pt
+  \item \textbf{\code{ipar}$\,\in\{1,2,3\}$}: una sola carga se puebla con
+    \emph{ambos} par\'ametros, $q=A\eps_{x}+B\eps_{y}$, y $\qeff^{2}=(\QW+q)^{2}$
+    es un cuadrado perfecto. Igualarlo a $\QW^{2}$ da $q=0$ o $q=-2\QW$: \textbf{dos
+    rectas paralelas}, no una curva cerrada --- la ``direcci\'on ciega''
+    $\theta(Z,N)$ de Eq.~\eqref{eq:theta_blind} es literalmente esto (con
+    \code{ipar}$=1$). El discriminante de esta c\'onica es exactamente cero
+    (verificado): $(2AB)^{2}-4A^{2}B^{2}=0$.
+  \item \textbf{\code{ipar}$\,\in\{4,8,12\}$}: las dos cargas pobladas usan el
+    \emph{mismo} coeficiente $A$ (una por eje) $\Rightarrow$ \textbf{c\'irculo} de
+    radio $|\QW|/A=|\QW|/(2Z+N)$.
+  \item \textbf{\code{ipar}$\,\in\{5,9,13\}$}: id\'em con el coeficiente $B$
+    $\Rightarrow$ \textbf{c\'irculo} de radio $|\QW|/B=|\QW|/(Z+2N)$ --- este es
+    el caso de \code{ipar}$=5$ que usa \code{blind\_ring\_XeAr.py}
+    (Fig.~\ref{fig:blind_ring}).
+  \item \textbf{\code{ipar}$\,\in\{6,7,10,11,14,15\}$}: una carga usa $A$ y la otra
+    $B$ (en cualquier orden) $\Rightarrow$ \textbf{elipse} con ejes alineados a
+    $(\eps_{x},\eps_{y})$, semiejes $|\QW|/A$ y $|\QW|/B$.
+\end{itemize}
+Para Xe (natural, $N=77{,}293$): $|\QW|/A=0{,}2019$, $|\QW|/B=0{,}1794$
+($=\rho_{\eps}$ de la tabla de m\'as abajo) --- dos radios de c\'irculo distintos
+seg\'un la combinaci\'on de quarks (uV-uV o dV-dV), y una elipse con esos mismos
+dos semiejes cuando se mezclan. Los $3+6+6=15$ casos quedan cubiertos: no hay
+elipse rotada, no hay hip\'erbola, no hay ning\'un caso sin clasificar.
 
 \subsection{Ancho del anillo permitido}
 \label{sec:anillo}
