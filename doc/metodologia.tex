@@ -1035,12 +1035,28 @@ error del c\'odigo:
     modelos del paper; su forma es algo m\'as dura. El propio paper var\'ia el
     l\'imite $63\leftrightarrow 94$ (factor $1{,}5$) solo cambiando el modelo.
   \item \textbf{Aceptancia del detector.} Hay una discrepancia \emph{en el propio
-    paper} entre la Fig.~3 (espectro CE$\nu$NS en $\Ne$) y la Fig.~6 (se\~nal
-    antes/despu\'es de cortes): la raz\'on $\Ne\!:\!4\!\to\!5$ pasa de $7{,}0$ a
-    $1{,}2$. La simulaci\'on reproduce bien la Fig.~3 (raz\'on $6{,}3$) pero no la
-    Fig.~6: falta la eficiencia de trigger/borde (Fig.~4), que muerde en
-    $\sim\SI{110}{PE}$ ($\Ne=4$). Se documenta como hallazgo, no se fuerza el
-    acuerdo.
+    paper} entre la Fig.~3 (espectro CE$\nu$NS en $\Ne$, antes de cualquier
+    reconstrucci\'on de detector) y la Fig.~6 (se\~nal antes/despu\'es de cortes,
+    ya reconstruida): la raz\'on $\Ne\!:\!4\!\to\!5$ pasa de $7{,}0$ a $1{,}2$, y el
+    valor absoluto en $\Ne=4$ difiere casi $2\times$. La simulaci\'on reproduce
+    bien la Fig.~3 (raz\'on $6{,}3$, Fig.~\ref{fig:xe_espectros}) porque es
+    literalmente el mismo objeto: el espectro NEST puro, sin ning\'un efecto de
+    detector. No reproduce la Fig.~6 porque, seg\'un la \S~IV del paper (``Data
+    Processing''), entre una figura y la otra corre toda la reconstrucci\'on de
+    posici\'on (radio reconstruido $<\SI{140}{mm}$), duraci\'on
+    ($1{,}7$--$\SI{4}{\micro s}$) y correcci\'on de energ\'ia v\'ia funciones de
+    respuesta de luz (LRFs) calibradas: la curva ``antes de cortes'' de la
+    Fig.~6 \emph{ya} incluye esa reconstrucci\'on. Los ``cortes'' que muestra la
+    Fig.~6 son solo la \'ultima etapa (dos redes neuronales anti-coincidencia de
+    electr\'on \'unico, raz\'on de amplitud, rechazo tipo \v{C}erenkov), no la
+    reconstrucci\'on completa. Esa reconstrucci\'on necesita el software interno
+    de RED-100 (REDOffline) y calibraciones (LRFs, par\'ametros de electr\'on
+    \'unico) no publicadas: no es reproducible solo con el paper. El propio texto
+    da adem\'as la raz\'on textual de por qu\'e $\Ne=4$ es el bin m\'as golpeado:
+    la correcci\'on de eficiencia de \emph{trigger} dependiente de duraci\'on
+    (Fig.~4 del paper) ``\emph{is more likely to reject events\ldots{} [with] a
+    lower number of detected photoelectrons}'' --- exactamente el borde inferior
+    de la ROI (Fig.~\ref{fig:roi_cuts_Xe}).
 \end{enumerate}
 
 \begin{figure}[htbp]
@@ -1050,6 +1066,19 @@ error del c\'odigo:
 la Fig.~3 de arXiv:2411.18641. Raz\'on $\Ne\!:\!4\!\to\!5$: $6{,}3$
 (simulaci\'on) vs.\ $7{,}0$ (paper).}
 \label{fig:xe_espectros}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.95\textwidth]{fig_roi_cuts_Xe.png}
+\caption{ROI de Xe ($\Ne=4$--$7$): simulaci\'on vs.\ las dos figuras digitalizadas
+del paper. Izquierda, antes de cortes: la simulaci\'on sigue la \emph{forma} de
+la Fig.~3 (mismo objeto, espectro NEST puro) y no la de la Fig.~6 (ya
+reconstruida). Derecha, despu\'es de aplicar $\varepsilon_{\rm ROI}$: el bin
+$\Ne=4$ queda sobre-predicho $\times3{,}8$ y los bins $5$--$7$ sub-predichos
+$\times0{,}6$--$0{,}7$ frente a la Fig.~6 --- consistente con que la eficiencia de
+\emph{trigger} del paper golpea m\'as fuerte justo ese bin (ver texto).}
+\label{fig:roi_cuts_Xe}
 \end{figure}
 
 \paragraph{Errores propios corregidos durante la validaci\'on.}
@@ -1062,12 +1091,16 @@ paper). Corregir (iii) es lo que lleva $46\to 106$.
 \subsection{Eficiencia de selecci\'on $\varepsilon_{\rm ROI}$}
 
 El array \code{eff\_ROI(4:7)} $= (0{,}138,\,0{,}330,\,0{,}599,\,0{,}719)$ se
-digitaliz\'o de la Fig.~6. La retenci\'on global se comprueba como el cociente de
-las \emph{integrales} de las dos curvas digitalizadas de la Fig.~6:
+digitaliz\'o de la Fig.~6 (panel inferior, ``Signal before/after cuts''; el panel
+superior de esa misma figura es fondo medido de datos reales con el reactor
+apagado, ``Background before/after cuts'', no se\~nal --- ambos paneles pasan por
+el mismo pipeline de reconstrucci\'on y cortes, aplicado por igual a eventos
+simulados y medidos). La retenci\'on global se comprueba como el cociente de las
+\emph{integrales} de las dos curvas digitalizadas de se\~nal:
 $\sum(\text{after})/\sum(\text{before}) = 0{,}00737/0{,}02886 = 0{,}256
-\approx 25\%$, consistente con el ``75\% signal loss'' del texto. Promediar
-eficiencias por bin pesadas por un espectro que cae r\'apido da $\sim 0{,}17$ y
-\emph{no} es la comprobaci\'on correcta.
+\approx 25\%$, consistente con el ``75\% signal loss'' que el propio texto del
+paper reporta. Promediar eficiencias por bin pesadas por un espectro que cae
+r\'apido da $\sim 0{,}17$ y \emph{no} es la comprobaci\'on correcta.
 
 \subsection{Sensibilidad esperada (RED-100 \S V) para xen\'on}
 \label{sec:xe_sv}
@@ -2728,9 +2761,11 @@ Programa / script & Produce \\
 \code{valida\_conus.py} &
   comparaci\'on de cotas 1D contra la Tabla~II de CONUS+
   (Sec.~\ref{sec:conusval}) \\
-\code{compare\_ideal\_XeAr.py} &
-  \code{fig\_ideal\_XeAr.png} $+$ chequeo anal\'itico del alcance NSI
-  (Sec.~\ref{sec:ideal}) \\
+\code{red100PE.f90} (Xe) &
+  \code{ionization\_spectra\_detallado.dat} (entrada de \code{chi2.f90}),
+  \code{validacion\_fig3\_fig6\_Xe.dat} \\
+\code{roi\_cuts\_validacion\_Xe.py} &
+  \code{fig\_roi\_cuts\_Xe.png} (Fig.~\ref{fig:roi_cuts_Xe}) \\
 \code{chi2\_perfil\_generic.py} &
   \code{fig\_perfil\_cruzado\_XeConus.png} (Sec.~\ref{sec:validacion_cruzada}) \\
 \code{chi2\_nsi\_generic.f90} &
