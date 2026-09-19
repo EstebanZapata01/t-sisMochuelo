@@ -1,28 +1,12 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Xe, ROI (N_e=4-7): compara la simulacion contra las dos figuras del paper
-que muestran el espectro en N_e -- Fig. 3 ("N_e extraidos", sin cortes de
-seleccion) y Fig. 6 ("CEvNS signal before/after cuts") -- para responder si
-son la misma curva y si la simulacion reproduce alguna de las dos.
+Xe, ROI (N_e = 4-7), todo en N_e RECONSTRUIDO (PE/27): senal de RED-100
+antes/despues de cortes (digitalizada del paper, arXiv:2411.18641) frente a
+la simulacion pasada por la misma respuesta en PE y la misma ventana.
 
-Etapas mostradas (2 series de "Simulacion", 3 de "RED-100"):
-  teorico puro (Fig. 3 / sim = tasa_ion_extraidos): la simulacion SI sigue la
-    forma de esta etapa (~1.8-2.1x mas alta, espectro hibrido mas duro que
-    SM2018, ya documentado).
-  tras reconstruccion, antes de cortes finales (Fig. 6 "before cuts"): solo
-    RED-100 -- la simulacion no tiene esta etapa (necesita reconstruccion de
-    posicion/duracion/energia, no reproducible solo con el paper).
-  final, tras cortes (Fig. 6 "after cuts" vs sim*eff_ROI): N_e=4 sale
-    sobre-predicho ~3.8x, N_e=5-7 sub-predichos ~0.6-0.7x -- eff_ROI se
-    digitalizo de la forma de Fig. 6, no de Fig. 3, asi que aplicarla sobre
-    una forma tipo Fig. 3 no reconcilia bin a bin. Falta la aceptancia del
-    detector (eficiencia de trigger/borde cerca de N_e=4), que ni la Fig. 3
-    ni la simulacion tienen.
-
-Entrada: datos/validacion_fig3_fig6_Xe.dat (volcado de red100PE.f90; valores
-         Fig. 3 y Fig. 6 son datos digitalizados por el usuario del paper,
-         arXiv:2411.18641).
+Entrada: datos/validacion_fig3_fig6_Xe.dat (red100PE.f90; la simulacion reconstruida
+         sale de prob_migracion en mod_detector.f90)
 Salida : datos/fig_roi_cuts_Xe.png
 """
 import numpy as np
@@ -35,16 +19,16 @@ aplicar()
 BASE = "/home/oem/Desktop/Unipamplona/Trabajo de grado/Códigos/datos"
 
 d = np.loadtxt(f"{BASE}/validacion_fig3_fig6_Xe.dat", comments="#")
-Ne, sim_a, sim_d, fig3, f6_a, f6_d = d[:, 0], d[:, 1], d[:, 2], d[:, 3], d[:, 4], d[:, 5]
+# Ne sim_verdadero sim_reconstruido sim_rec_x_effROI fig3_extraidos fig6_antes fig6_despues
+Ne, sim, ajuste = d[:, 0], d[:, 2], d[:, 3]
+red_antes, red_despues = d[:, 5], d[:, 6]
 
 fig, ax = plt.subplots(figsize=(7.0, 5.2))
-
 series = [
-    (fig3,  NEGRO, "o", "RED-100, teórico"),
-    (f6_a,  NEGRO, "^", "RED-100, tras reconstrucción"),
-    (f6_d,  NEGRO, "s", "RED-100, tras cortes"),
-    (sim_a, C_XE,  "o", "Simulación, teórico"),
-    (sim_d, C_XE,  "s", "Simulación $\\times\\,$eff$_{\\rm ROI}$"),
+    (red_antes,   NEGRO, "^", "RED-100, antes de cortes"),
+    (red_despues, NEGRO, "s", "RED-100, después de cortes"),
+    (sim,         C_XE,  "o", "Simulación"),
+    (ajuste,      C_XE,  "s", r"Simulación $\times\,\varepsilon_{\rm ROI}$ (ajuste)"),
 ]
 for y, col, mk, lab in series:
     ax.plot(Ne, y, color=col, alpha=0.3, lw=1.2, zorder=2)
@@ -53,19 +37,14 @@ for y, col, mk, lab in series:
 ax.set_yscale("log")
 ax.set_xticks(Ne); ax.set_xticklabels([f"{int(n)}" for n in Ne])
 ax.set_xlim(3.5, 7.5)
-ax.set_xlabel(r"$N_e$")
+ax.set_xlabel(r"$N_e$ reconstruido (PE$/27$)")
 ax.set_ylabel(r"eventos / (kg$\cdot$día)")
-ax.legend(loc="upper right", fontsize=7.6)
-
+ax.legend(loc="upper right", fontsize=8)
 fig.tight_layout()
 out = f"{BASE}/fig_roi_cuts_Xe.png"
 fig.savefig(out)
 
-print("=" * 70)
-print(" Xe, ROI: simulacion vs Fig. 3 vs Fig. 6 (antes/despues de cortes)")
-print("=" * 70)
+print("Ne  sim/RED-100(antes)  ajuste/RED-100(despues)")
 for i in range(len(Ne)):
-    print(f"  Ne={int(Ne[i])}: sim/Fig3={sim_a[i]/fig3[i]:.2f}  "
-          f"sim/Fig6antes={sim_a[i]/f6_a[i]:.2f}  "
-          f"(sim*eff)/Fig6despues={sim_d[i]/f6_d[i]:.2f}")
+    print(f"{int(Ne[i])}   {sim[i]/red_antes[i]:.2f}   {ajuste[i]/red_despues[i]:.2f}")
 print(f"\n  {out}")

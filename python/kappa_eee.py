@@ -64,7 +64,7 @@ MODS_IDEAL = ("constants.f90 flux.f90 xsections_nest.f90 mod_stats.f90 "
               "Tnr_to_e.f90 chi2_ideal_nest.f90")
 MODS_PE = ("constants.f90 flux.f90 xsections_nest.f90 mod_stats.f90 "
            "Tnr_to_e.f90 mod_detector.f90 red100PE.f90")
-MODS_CHI2 = "constants.f90 chi2.f90"
+MODS_CHI2 = "constants.f90 mod_detector.f90 chi2.f90"
 GF = "gfortran -O2 -ffree-line-length-none -o".split()
 
 

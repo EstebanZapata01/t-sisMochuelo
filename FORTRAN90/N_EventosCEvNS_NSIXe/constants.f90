@@ -44,12 +44,12 @@ module constants
   ! 192 = volumen fiducial (lo que usa el chi2 del paper); 331 = volumen activo.
   real(dp), parameter :: exposure_ON_kgd = 192.0_dp
 
-  ! Retencion de senal CEvNS tras los cortes de seleccion, por bin de N_e.
-  ! Digitalizada de la Fig. 6 de arXiv:2411.18641 (crece con N_e; media ~25%,
-  ! consistente con el "75% signal loss in ROI" del texto). 0 fuera de N_e=4..7:
-  ! la ROI es un corte duro (1-3 e- se descartan por el fondo de SE espontaneos;
-  ! >7 e- cae fuera de la ROI de ese analisis).
-  real(dp), parameter :: eff_ROI(4:7) = (/ 0.138_dp, 0.330_dp, 0.599_dp, 0.719_dp /)
+  ! Retencion de senal CEvNS tras los cortes de seleccion, por bin de N_e
+  ! RECONSTRUIDO (PE/27): cociente senal despues/antes de cortes de arXiv:2411.18641
+  ! (digitalizada; suma despues/antes = 0.2555, el "75% signal loss in ROI" del texto).
+  ! Se aplica al bin reconstruido (mod_detector: eps_ROI_pe, prob_migracion), no al
+  ! N_e verdadero. 0 fuera de N_e = 4..7 (la ROI es un corte duro de 110 a 189 PE).
+  real(dp), parameter :: eff_ROI(4:7) = (/ 0.1369_dp, 0.3271_dp, 0.6105_dp, 0.7373_dp /)
 
   ! ==================== FLUJO EXPLICITO ====================
   real(dp), parameter :: phi_total     = 1.4d13     ! [nu / cm^2 s] flujo TOTAL (6.75 nubar/fision)

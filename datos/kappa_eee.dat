@@ -52,7 +52,7 @@
      n_thr=4:  kappa_analitico =    0.9828   kappa_dif.finita =    0.9829   |dif| rel =  0.01%
 
   [Xe] cadena COMPLETA red100PE -> chi2  (binomial + convolucion SE + eff_ROI):
-     S = 'Sum R_SM (pred. ROI)' [entra al ajuste chi2] :  kappa = 3.7829
+     S = 'Sum R_SM (pred. ROI)' [entra al ajuste chi2] :  kappa = 3.5691
      S = 'Sum ROI Ne4-7' [pre eff_ROI, control]        :  kappa = 3.3778
      (comparar con ideal N_e>=4:  analitico 3.3767 / dif.finita 3.3768)
 
@@ -64,4 +64,4 @@
   [Ar] n_thr=1 (ideal):  kappa = 0.269 (analitico) / 0.269 (dif.finita)
         sigma_rel(EEE) NO reportada para Ar -> sistematico EEE NO modelado (dominante en Ar: Q_y).
 
-  [Xe] cadena completa (real, N_e 4-7 + SE + eff_ROI):  kappa = 3.783  ->  kappa*sigma_rel = 32.29%
+  [Xe] cadena completa (real, N_e 4-7 + SE + eff_ROI):  kappa = 3.569  ->  kappa*sigma_rel = 30.47%

@@ -38,7 +38,8 @@
 !           aceptancia del detector (Fig.3 vs Fig.6).
 !=======================================================================
 program chi2_ON_OFF_1D
-  use constants, only: dp, eff_ROI
+  use constants, only: dp, Z_Ge, N_Ge
+  use mod_detector, only: eps_ROI_pe, PE_ROI_min, PE_ROI_max
   implicit none
 
   integer, parameter :: NMAX = 100
@@ -69,6 +70,7 @@ program chi2_ON_OFF_1D
   real(dp) :: A_best_sin
   real(dp) :: A_90_sin
   real(dp) :: slope, pe_temp, cols(9)
+  real(dp) :: w_dat, bin_pred
 
   ! Archivos
   integer  :: u_pred, u_perfil, u_banda
@@ -110,11 +112,12 @@ program chi2_ON_OFF_1D
 
   ! ==================================================================
   ! 2. LEER PREDICCION SM (espectro teorico de red100PE.f90)
-  !    Formato (9 col): PE_center  Total  1SE 2SE 3SE 4SE 5SE 6SE 7SE
-  !    La prediccion para el chi2 es la suma de las plantillas de la ROI
-  !    (N_e = 4..7) pesadas por la eficiencia de cortes eff_ROI(N_e)
-  !    (digitalizada de la Fig. 6 de arXiv:2411.18641). Las plantillas
-  !    N_e < 4 y N_e > 7 quedan fuera de la ROI.
+  !    Formato (9 col): PE_center  Total(1SE..15SE)  1SE ... 7SE
+  !    La prediccion es el espectro TOTAL en PE (incluye la migracion desde
+  !    N_e verdadero < 4) por el eff_ROI del bin de N_e RECONSTRUIDO
+  !    (PE/27, ventanas +-0.5 e- recortadas a 110-189 PE; eff_ROI digitalizada
+  !    de la senal antes/despues de cortes de arXiv:2411.18641) y por el
+  !    cociente ancho de bin de datos / ancho de rejilla (5.27/5 PE).
   ! ==================================================================
   n_pred = 0
   open(newunit=u_pred, file=f_pred, status='old', action='read')
@@ -145,10 +148,11 @@ program chi2_ON_OFF_1D
     j = j + 1
     pe_pred(j) = cols(1)
     ! cols: 1=PE_center 2=Total 3..9 = 1SE..7SE
-    R_pred(j)  = cols(6)*eff_ROI(4) + cols(7)*eff_ROI(5) &
-               + cols(8)*eff_ROI(6) + cols(9)*eff_ROI(7)
+    R_pred(j)  = cols(2)          ! Total = suma de las plantillas k=1..15
   end do
   close(u_pred)
+  bin_pred = pe_pred(2) - pe_pred(1)                                   ! ancho de la rejilla de red100PE [PE]
+  w_dat    = (PE_ROI_max - PE_ROI_min) / real(n_datos, dp)             ! ancho de bin del histograma de datos [PE]
   write(*,'(A,I5,A)') '  [2] Leidos ', n_pred, ' bins de la prediccion SM'
 
   ! ==================================================================
@@ -165,7 +169,9 @@ program chi2_ON_OFF_1D
     end do
     if (j0 > 0) then
       slope   = (R_pred(j0+1) - R_pred(j0)) / (pe_pred(j0+1) - pe_pred(j0))
-      R_SM(i) = R_pred(j0) + slope * (pe_dat(i) - pe_pred(j0))
+      ! Total interpolado (por bin de rejilla) -> por bin de datos, por eff_ROI del bin reconstruido
+      R_SM(i) = (R_pred(j0) + slope * (pe_dat(i) - pe_pred(j0))) * (w_dat / bin_pred) &
+              * eps_ROI_pe(pe_dat(i))
     else
       write(*,'(A,F7.1,A)') '  AVISO: bin PE=', pe_dat(i), &
         ' fuera del rango de la prediccion -> R_SM=0'
@@ -183,9 +189,7 @@ program chi2_ON_OFF_1D
   !     Xe <-> CONUS+ con el MISMO motor chi2+NSI, ver metodologia.tex).
   !     NO altera ningun calculo/archivo anterior; solo agrega este
   !     archivo nuevo con los datos crudos de entrada (dN, sigma, R_SM)
-  !     que ya se acaban de calcular arriba. Z=54, N=77,293 (A-Z) son los mismos
-  !     valores de constants.f90 de esta carpeta (no importados aqui
-  !     para no tocar la clausula `use` existente).
+  !     que ya se acaban de calcular arriba. Z, N = A-Z de constants.f90.
   ! ==================================================================
   block
     integer :: u_gen, ig
@@ -194,7 +198,7 @@ program chi2_ON_OFF_1D
     ! 0.169 en su propio generic_input_conus.dat.
     open(newunit=u_gen, file=trim(datadir)//'generic_input_Xe.dat', status='replace')
     write(u_gen,'(A)') '# Z  N  sigma_alpha  n_bins  ipar'
-    write(u_gen,'(2F8.2,F8.4,2I6)') 54.0_dp, 77.0_dp, -1.0_dp, n_datos, 5
+    write(u_gen,'(2F10.4,F8.4,2I6)') Z_Ge, N_Ge, -1.0_dp, n_datos, 5
     write(u_gen,'(A)') '# bin  dN_dat  sigma_dat  R_SM'
     do ig = 1, n_datos
        write(u_gen,'(I5,3ES16.7)') ig, dN_dat(ig), sigma_dat(ig), R_SM(ig)

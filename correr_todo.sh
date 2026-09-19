@@ -38,11 +38,10 @@ echo "-- N_EventosCEvNS_NSIXe (Xe, RED-100) --"
 cd "$ROOT/FORTRAN90/N_EventosCEvNS_NSIXe"
 MI="constants.f90 flux.f90 xsections_nest.f90 mod_stats.f90 Tnr_to_e.f90"
 gfortran -O2 -ffree-line-length-none -o chi2_ideal      $MI chi2_ideal_nest.f90
-gfortran -O2 -ffree-line-length-none -o chi2red100_nest $MI chi2red100_nest.f90
-gfortran -O2 -ffree-line-length-none -o mainred100_nest $MI mainred100_nest.f90
+gfortran -O2 -ffree-line-length-none -o mainred100_nest $MI mod_detector.f90 mainred100_nest.f90
 gfortran -O2 -ffree-line-length-none -o red100_nest     $MI red100_nest.f90
 gfortran -O2 -ffree-line-length-none -o red100PE        $MI mod_detector.f90 red100PE.f90
-gfortran -O2 -ffree-line-length-none -o chi2            constants.f90 chi2.f90
+gfortran -O2 -ffree-line-length-none -o chi2            constants.f90 mod_detector.f90 chi2.f90
 cd "$ROOT"
 
 echo "-- N_EventosCEvNS_NSIAr (Ar) --"
@@ -83,7 +82,6 @@ cd "$ROOT/FORTRAN90/N_EventosCEvNS_NSIXe"
 ./chi2_ideal
 ./red100PE
 ./chi2                 # lee ionization_spectra_detallado.dat (de red100PE); escribe generic_input_Xe.dat
-./chi2red100_nest
 ./mainred100_nest
 ./red100_nest
 cd "$ROOT"

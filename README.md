@@ -52,11 +52,10 @@ Orden de módulos obligatorio. Ejemplo, xenón:
 cd FORTRAN90/N_EventosCEvNS_NSIXe
 MODS="constants.f90 flux.f90 xsections_nest.f90 mod_stats.f90 Tnr_to_e.f90"
 gfortran -O2 -ffree-line-length-none -o chi2_ideal        $MODS chi2_ideal_nest.f90
-gfortran -O2 -ffree-line-length-none -o chi2red100_nest   $MODS chi2red100_nest.f90
-gfortran -O2 -ffree-line-length-none -o mainred100_nest   $MODS mainred100_nest.f90
+gfortran -O2 -ffree-line-length-none -o mainred100_nest   $MODS mod_detector.f90 mainred100_nest.f90
 gfortran -O2 -ffree-line-length-none -o red100_nest       $MODS red100_nest.f90
 gfortran -O2 -ffree-line-length-none -o red100PE          $MODS mod_detector.f90 red100PE.f90
-gfortran -O2 -ffree-line-length-none -o chi2              constants.f90 chi2.f90
+gfortran -O2 -ffree-line-length-none -o chi2              constants.f90 mod_detector.f90 chi2.f90
 ```
 
 Argón: mismo patrón, sin `mod_detector.f90`/`red100PE.f90` (el argón no

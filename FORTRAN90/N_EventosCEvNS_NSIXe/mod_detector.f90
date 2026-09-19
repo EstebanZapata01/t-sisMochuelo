@@ -10,13 +10,16 @@
 !   este modulo NO es fisico (solo diagnostico), ver Sec. 9.
 !=======================================================================
 module mod_detector
-  use constants, only: dp
+  use constants, only: dp, eff_ROI
   implicit none
 
   ! ==================== PARÁMETROS FÍSICOS ====================
   real(dp), parameter :: SEG_val = 27.0_dp  ! PE/e-, paper calibración
   real(dp), parameter :: sig1    = 7.6_dp   ! PE, sigma del 1SE (Fig.12)
   real(dp), parameter :: pi_val  = 3.141592653589793_dp
+
+  ! ROI del analisis en energia corregida [PE]: 4 a 7 e- = 110 a 189 PE (paper, Sec. IV)
+  real(dp), parameter :: PE_ROI_min = 110.0_dp, PE_ROI_max = 189.0_dp
 
   integer, parameter :: max_curvas = 7   ! plantillas 1SE..7SE (la ROI del paper llega a N_e=7)
 
@@ -100,5 +103,55 @@ contains
           * (S - x_grid(lo)) / (x_grid(hi) - x_grid(lo))
 
   end function respuesta_empirica
+
+  !-------------------------------------------------------------------
+  ! N_e verdadero k -> PE ~ Normal(SEG*k, sqrt(k)*sig1)  [PE^-1], analitica
+  !-------------------------------------------------------------------
+  function respuesta_gauss(S, k) result(val)
+    real(dp), intent(in) :: S
+    integer,  intent(in) :: k
+    real(dp) :: val, sig
+    sig = sqrt(real(k, dp)) * sig1
+    val = exp(-0.5_dp * ((S - real(k, dp) * SEG_val) / sig)**2) / (sqrt(2.0_dp * pi_val) * sig)
+  end function respuesta_gauss
+
+  !-------------------------------------------------------------------
+  ! N_e RECONSTRUIDO = PE corregido / SEG, al entero mas cercano, dentro de la
+  ! ROI (110-189 PE); 0 fuera. Es el N_e del eje de las senales del paper.
+  !-------------------------------------------------------------------
+  function bin_ne_rec(S) result(n)
+    real(dp), intent(in) :: S
+    integer :: n
+    n = 0
+    if (S < PE_ROI_min .or. S > PE_ROI_max) return
+    n = max(4, min(7, nint(S / SEG_val)))
+  end function bin_ne_rec
+
+  !-------------------------------------------------------------------
+  ! eff_ROI del bin reconstruido al que cae S (0 fuera de la ROI)
+  !-------------------------------------------------------------------
+  function eps_ROI_pe(S) result(eps)
+    real(dp), intent(in) :: S
+    real(dp) :: eps
+    integer  :: n
+    n = bin_ne_rec(S)
+    eps = 0.0_dp
+    if (n >= 4) eps = eff_ROI(n)
+  end function eps_ROI_pe
+
+  !-------------------------------------------------------------------
+  ! Matriz de migracion: P(N_e verdadero k -> N_e reconstruido j), j = 4..7.
+  ! Ventana del bin j: [(j-1/2)*SEG, (j+1/2)*SEG] recortada a la ROI.
+  !-------------------------------------------------------------------
+  function prob_migracion(j, k) result(p)
+    integer, intent(in) :: j, k
+    real(dp) :: p, a, b, mu, sg, r2
+    r2 = sqrt(2.0_dp)
+    a  = max((real(j, dp) - 0.5_dp) * SEG_val, PE_ROI_min)
+    b  = min((real(j, dp) + 0.5_dp) * SEG_val, PE_ROI_max)
+    mu = real(k, dp) * SEG_val
+    sg = sqrt(real(k, dp)) * sig1
+    p  = 0.5_dp * (erf((b - mu) / (sg * r2)) - erf((a - mu) / (sg * r2)))
+  end function prob_migracion
 
 end module mod_detector

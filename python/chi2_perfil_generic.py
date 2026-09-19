@@ -102,11 +102,12 @@ fig.suptitle("Perfil $\\Delta\\chi^2(A)$: mismo binario, dos experimentos", y=1.
 fig.tight_layout()
 fig.savefig(f"{BASE}/fig_perfil_cruzado_XeConus.png")
 
+A90_REF = float(next(l for l in open(f"{BASE}/chi2_ON_OFF_banda.dat") if l.startswith("# A_90")).split("=")[1])
 print("=" * 78)
 print(" PERFIL chi2(A) -- MISMO BINARIO chi2_nsi_generic, dos experimentos")
 print("=" * 78)
 print(f" Xe    : A_best={Ab_xe:.4f}  A_90={A90_xe:.4f}  chi2_min={cmin_xe:.4f}"
-      f"   (chi2.f90 real: A_90=107.32, chi2_min=17.51)")
+      f"   (chi2.f90 real: A_90={A90_REF:.4f})")
 print(f" CONUS+: A_best={Ab_co:.4f}  A_90={A90_co:.4f}  chi2_min={cmin_co:.4f}"
       f"   (2pchi2.f90: chi2_min~7.35)")
 print(f"\n  {BASE}/fig_perfil_cruzado_XeConus.png")

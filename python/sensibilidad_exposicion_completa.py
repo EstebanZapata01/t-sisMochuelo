@@ -36,7 +36,17 @@ aplicar()
 
 BASE = "/home/oem/Desktop/Unipamplona/Trabajo de grado/Códigos/datos"
 EXPO_BASE = 192.0          # kg*dia, exposicion base real (volumen fiducial 2024)
-A90_REAL_2024 = 107.32     # chi2.f90, ajuste ON-OFF real (sin nuisance)
+
+
+def a90_real_xe():
+    """A_90 observado que chi2.f90 escribe en la cabecera de chi2_ON_OFF_banda.dat."""
+    for l in open(f"{BASE}/chi2_ON_OFF_banda.dat"):
+        if l.startswith("# A_90"):
+            return float(l.split("=")[1])
+    raise RuntimeError("chi2_ON_OFF_banda.dat sin cabecera '# A_90'")
+
+
+A90_REAL_2024 = a90_real_xe()   # ajuste ON-OFF real (sin nuisance)
 
 
 def load_real_xe():

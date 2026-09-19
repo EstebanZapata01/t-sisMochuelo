@@ -12,7 +12,7 @@ Todo sale de archivos del pipeline (nada tecleado a mano):
   RED-100 Fig.3 (creados/extraidos): datos/red100_fig3_digitalizado.csv
   RED-100 Fig.6 (senal antes/despues de cortes): datos/validacion_fig3_fig6_Xe.dat
                (red100PE.f90; f6_b/f6_a digitalizados de la figura)
-  eff_ROI = sim_despues/sim_antes de ese mismo volcado (el de constants.f90)
+  eff_ROI = sim_rec_x_effROI/sim_reconstruido de ese volcado (el de constants.f90)
 El flujo se evalua compilando un driver minimo contra flux.f90 sin modificarlo.
 """
 import csv
@@ -31,19 +31,23 @@ fmt = lambda v: "" if v is None else f"{v:.9e}"
 # ------------------------------------------------------------------ tabla principal
 sim = np.loadtxt(f"{D}/ionization_electrones.dat", comments="#")       # Ne, creados, extraidos
 f3 = np.loadtxt(f"{D}/red100_fig3_digitalizado.csv", delimiter=",", skiprows=1)
-roi = np.loadtxt(f"{D}/validacion_fig3_fig6_Xe.dat", comments="#")     # Ne sim_a sim_d fig3 f6_a f6_d
+roi = np.loadtxt(f"{D}/validacion_fig3_fig6_Xe.dat", comments="#")     # Ne sim_verd sim_rec sim_rec_x_eff fig3 f6_antes f6_despues
 
 sim_cre = {int(r[0]): r[1] for r in sim}
 sim_ext = {int(r[0]): r[2] for r in sim}
 r_cre = {int(r[0]): r[1] for r in f3}
 r_ext = {int(r[0]): r[2] for r in f3}
-eff = {int(r[0]): round(r[2] / r[1], 3) for r in roi}   # valores de constants.f90 (el volcado tiene 7 cifras)
-f6_antes = {int(r[0]): r[4] for r in roi}
-f6_desp = {int(r[0]): r[5] for r in roi}
+eff = {int(r[0]): round(r[3] / r[2], 4) for r in roi}   # eff_ROI de constants.f90 (el volcado tiene 7 cifras)
+f6_antes = {int(r[0]): r[5] for r in roi}
+f6_desp = {int(r[0]): r[6] for r in roi}
+
+# N_e reconstruido (PE/27), ventanas +-0.5 e- recortadas a 110-189 PE (prob_migracion, red100PE.f90)
+sim_rec = {int(r[0]): r[2] for r in roi}
+sim_aju = {int(r[0]): r[3] for r in roi}
 
 cols = ["Ne", "sim_creados", "sim_extraidos", "red100_creados", "red100_extraidos",
-        "sim_extraidos_x_effROI", "red100_senal_antes_cortes", "red100_senal_despues_cortes",
-        "effROI"]
+        "sim_reconstruido", "sim_ajuste_effROI",
+        "red100_senal_antes_cortes", "red100_senal_despues_cortes", "effROI"]
 with open(f"{OUT}/espectros_Xe.csv", "w", newline="", encoding="utf-8") as f:
     w = csv.writer(f)
     w.writerow(cols)
@@ -51,7 +55,7 @@ with open(f"{OUT}/espectros_Xe.csv", "w", newline="", encoding="utf-8") as f:
         w.writerow([n,
                     fmt(sim_cre.get(n)), fmt(sim_ext.get(n)),
                     fmt(r_cre.get(n)), fmt(r_ext.get(n)),
-                    fmt(sim_ext[n] * eff[n]) if n in eff else "",
+                    fmt(sim_rec.get(n)), fmt(sim_aju.get(n)),
                     fmt(f6_antes.get(n)), fmt(f6_desp.get(n)),
                     fmt(eff.get(n))])
 

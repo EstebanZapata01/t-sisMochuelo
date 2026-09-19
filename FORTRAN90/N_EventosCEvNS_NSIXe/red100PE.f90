@@ -6,9 +6,11 @@
 !           datos/ionization_spectra_detallado.dat, que es la entrada de
 !           chi2.f90 (ajuste 1D ON-OFF).
 ! Tesis   : metodologia.tex Sec. 3.3 y Sec. 4.
-! Decision metodologica clave: la validacion compara tasa_ion_extraidos
-!   contra la Fig. 3 y contra las dos curvas digitalizadas de la Fig. 6
-!   (retencion global sum(f6_a)/sum(f6_b) ~ 0.2555). En la carpeta de Ar
+! Decision metodologica clave: dos espacios que no se mezclan. N_e VERDADERO
+!   (tasa_ion_extraidos) se valida contra la curva "extraidos" de la Fig. 3;
+!   N_e RECONSTRUIDO (PE/27, ventanas +-0.5 e- recortadas a 110-189 PE, via
+!   prob_migracion) contra las dos curvas de la Fig. 6. Total = suma de las
+!   plantillas k=1..15 (incluye la migracion desde k<4). En la carpeta de Ar
 !   este espectro en PE NO es fisico (mod_detector es de LXe).
 !=======================================================================
 program red100PE_detallado
@@ -25,7 +27,7 @@ program red100PE_detallado
   integer :: i_T, i_E, i_bin, u_out, i_pe
   real(dp) :: tasa_Comb, S_pe, bin_width_pe, QW_SM
   real(dp), allocatable :: array_tasa_Comb(:), tasa_ion_extraidos(:), contribuciones(:)
-  real(dp) :: total_bin
+  real(dp) :: total_bin, c_k
   integer  :: n_F, ipk
   real(dp) :: p_F
   character(len=250) :: outdir, filename, datafile
@@ -92,7 +94,7 @@ program red100PE_detallado
 
 
   open(newunit=u_out, file=filename, status='replace')
-  write(u_out, '(A)') '# PE_center   Total   1SE   2SE   3SE   4SE   5SE   6SE   7SE'
+  write(u_out, '(A)') '# PE_center   Total(1SE..15SE)   1SE   2SE   3SE   4SE   5SE   6SE   7SE'
 
   write(*,*) "-> Escribiendo formato PCHIP..."
   sum_pe_total = 0.0_dp; pe_pk_val = 0.0_dp; ipk = 1
@@ -100,9 +102,10 @@ program red100PE_detallado
      S_pe = (real(i_pe, dp) - 0.5_dp) * bin_width_pe
      total_bin = 0.0_dp
 
-     do i_bin = 1, 7
-        contribuciones(i_bin) = tasa_ion_extraidos(i_bin) * respuesta_empirica(S_pe, i_bin) * bin_width_pe
-        total_bin = total_bin + contribuciones(i_bin)
+     do i_bin = 1, n_ion
+        c_k = tasa_ion_extraidos(i_bin) * respuesta_gauss(S_pe, i_bin) * bin_width_pe
+        total_bin = total_bin + c_k
+        if (i_bin <= 7) contribuciones(i_bin) = c_k
      end do
      sum_pe_total = sum_pe_total + total_bin
      if (total_bin > pe_pk_val) then; pe_pk_val = total_bin; ipk = i_pe; end if
@@ -130,50 +133,47 @@ program red100PE_detallado
   end do
   write(*,'(A,ES13.5)') '   Sum ROI (Ne 4-7, antes de eff_ROI)   = ', sum_ext_roi
 
-  ! ---- Comparacion bin a bin contra las figuras digitalizadas del paper ----
-  ! pap  = Fig. 3  "N_e extraidos"                    (sin cortes de seleccion)
-  ! f6_b = Fig. 6 (abajo) "CEvNS signal, before cuts" ["wpd_datasets (4).csv"]
-  ! f6_a = Fig. 6 (abajo) "CEvNS signal, after cuts"  ["wpd_datasets (4).csv"]
-  ! Todo en eventos/(kg dia), Ne = 4,5,6,7. eff_ROI(k) = f6_a(k)/f6_b(k).
+  ! ---- Comparacion contra las figuras digitalizadas del paper ----
+  ! pap  = Fig. 3  "N_e extraidos"                    (N_e VERDADERO)
+  ! f6_b = Fig. 6 (abajo) "CEvNS signal, before cuts" (N_e RECONSTRUIDO)
+  ! f6_a = Fig. 6 (abajo) "CEvNS signal, after cuts"  (N_e RECONSTRUIDO)
+  ! Todo en eventos/(kg dia), Ne = 4,5,6,7. eff_ROI(j) = f6_a(j)/f6_b(j).
   block
-    real(dp) :: pap(4), f6_b(4), f6_a(4), sim(4)
-    integer  :: b
+    real(dp) :: pap(4), f6_b(4), f6_a(4), sim(4), rec(4)
+    integer  :: b, k_e
     pap  = (/ 0.030182192_dp, 0.004289422_dp, 0.000575605_dp, 0.0000772415_dp /)
     f6_b = (/ 0.014513251_dp, 0.012017993_dp, 0.002075998_dp, 0.000253140_dp /)
     f6_a = (/ 0.001987556_dp, 0.003931315_dp, 0.001267480_dp, 0.000186642_dp /)
     sim = (/ tasa_ion_extraidos(4), tasa_ion_extraidos(5), &
              tasa_ion_extraidos(6), tasa_ion_extraidos(7) /)
-    write(*,'(/,A)') ' Comparacion bin a bin  (sim = tasa_ion_extraidos, SIN eff_ROI):'
-    write(*,'(A)')   '   Ne     sim           Fig.3         Fig.6 before   sim/Fig.3'
-    do b = 1, 4
-       write(*,'(I5,3ES15.5,F11.3)') b+3, sim(b), pap(b), f6_b(b), sim(b)/pap(b)
+    do b = 1, 4     ! N_e reconstruido: sum_k R_k * P(k -> j)
+       rec(b) = 0.0_dp
+       do k_e = 1, n_ion
+          rec(b) = rec(b) + tasa_ion_extraidos(k_e) * prob_migracion(b+3, k_e)
+       end do
     end do
-    write(*,'(A)') '   -- razones entre bins consecutivos (test de forma) --'
-    write(*,'(A)') '   Ne(k)->k+1     sim          Fig.3        Fig.6 before'
-    do b = 1, 3
-       write(*,'(I8,A,I1,3F13.3)') b+3, '->', b+4, sim(b)/sim(b+1), &
-            pap(b)/pap(b+1), f6_b(b)/f6_b(b+1)
-    end do
-    write(*,'(A)') '   -- senal en ROI tras cortes:  sim*eff_ROI  vs  Fig.6 after --'
-    write(*,'(A)') '   Ne     sim*eff_ROI    Fig.6 after    (sim*eff)/Fig.6a'
+    write(*,'(/,A)') ' [N_e VERDADERO] sim = tasa_ion_extraidos vs Fig.3 extraidos:'
+    write(*,'(A)')   '   Ne     sim           Fig.3         sim/Fig.3'
     do b = 1, 4
-       write(*,'(I5,2ES15.5,F13.3)') b+3, sim(b)*eff_ROI(b+3), f6_a(b), &
-            sim(b)*eff_ROI(b+3)/f6_a(b)
+       write(*,'(I5,2ES15.5,F11.3)') b+3, sim(b), pap(b), sim(b)/pap(b)
+    end do
+    write(*,'(/,A)') ' [N_e RECONSTRUIDO, PE/27] sim = sum_k R_k P(k->j) vs Fig.6:'
+    write(*,'(A)')   '   Ne     sim_rec       Fig.6 before   sim/before   sim*eff       Fig.6 after   (sim*eff)/after'
+    do b = 1, 4
+       write(*,'(I5,2ES15.5,F11.3,2ES15.5,F11.3)') b+3, rec(b), f6_b(b), rec(b)/f6_b(b), &
+            rec(b)*eff_ROI(b+3), f6_a(b), rec(b)*eff_ROI(b+3)/f6_a(b)
     end do
     write(*,'(A,F7.4)') '   Retencion global Fig. 6   sum(after)/sum(before)      = ', &
          sum(f6_a) / sum(f6_b)
-    write(*,'(A,F7.4)') '   Cociente de normalizacion sum(sim*eff_ROI)/sum(Fig.6a) = ', &
-         sum(sim*eff_ROI(4:7)) / sum(f6_a)
-    write(*,'(A)')      '   (0.2555 = el "75% signal loss in ROI" del texto; es cociente'
-    write(*,'(A)')      '    de las dos curvas de la Fig. 6, no un promedio de eff por bin.)'
+    write(*,'(A)')      '   (0.2555 = el "75% signal loss in ROI" del texto; cociente de las dos curvas.)'
 
-    ! Volcado para python/roi_cuts_validacion_Xe.py (fig_roi_cuts_Xe.png)
+    ! Volcado para python/roi_cuts_validacion_Xe.py y exporta_datos_tutor.py
     block
       integer :: u_v
       open(newunit=u_v, file=trim(outdir)//'validacion_fig3_fig6_Xe.dat', status='replace')
-      write(u_v,'(A)') '# Ne  sim_antes  sim_despues  fig3  fig6_antes  fig6_despues'
+      write(u_v,'(A)') '# Ne  sim_verdadero  sim_reconstruido  sim_rec_x_effROI  fig3_extraidos  fig6_antes  fig6_despues'
       do b = 1, 4
-         write(u_v,'(I3,5ES16.7)') b+3, sim(b), sim(b)*eff_ROI(b+3), pap(b), f6_b(b), f6_a(b)
+         write(u_v,'(I3,6ES16.7)') b+3, sim(b), rec(b), rec(b)*eff_ROI(b+3), pap(b), f6_b(b), f6_a(b)
       end do
       close(u_v)
     end block
@@ -181,10 +181,9 @@ program red100PE_detallado
   write(*,'(/,A)') ' Espectro en PE:'
   write(*,'(A,F7.1,A,ES13.5)') '   pico en PE = ', (real(ipk,dp)-0.5_dp)*bin_width_pe, ' , valor = ', pe_pk_val
   write(*,'(A,ES13.5)') '   Sum_PE(Total) sobre todo el espectro = ', sum_pe_total
-  write(*,'(A,F8.4,A)') '   Sum_PE(Total) / Sum tasa_ion(1:7)    = ', &
-       sum_pe_total / max(tasa_ion_extraidos(1)+tasa_ion_extraidos(2)+tasa_ion_extraidos(3) &
-                        + sum_ext_roi, 1.0e-30_dp), '   (~1 si las gaussianas caben en 0-2000 PE)'
+  write(*,'(A,F8.4,A)') '   Sum_PE(Total) / Sum tasa_ion(1:15)   = ', &
+       sum_pe_total / max(sum_ext_all, 1.0e-30_dp), '   (~1 si las gaussianas caben en 0-2000 PE)'
   write(*,'(A,/)') '======================================================================================='
 
-  write(*,*) "=== EXITOSO: espectro PE teorico (1SE..7SE), Eventos/(5PE*kg*dia) ==="
+  write(*,*) "=== EXITOSO: espectro PE teorico (Total 1SE..15SE), Eventos/(5PE*kg*dia) ==="
 end program red100PE_detallado

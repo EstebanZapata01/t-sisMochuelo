@@ -12,14 +12,14 @@ Celda vacía = no disponible.
 |---|---|
 | `sim_creados`, `sim_extraidos` | simulación propia, antes y después de la extracción (`red100_nest.f90`) |
 | `red100_creados`, `red100_extraidos` | espectro de N_e del paper de RED-100 (arXiv:2411.18641, Fig. 3 arriba), digitalizado |
-| `sim_extraidos_x_effROI` | `sim_extraidos` × `effROI` (lo que entra al ajuste), solo Ne = 4–7 |
+| `sim_reconstruido` | simulación en N_e **reconstruido**: espectro en PE del código (`ionization_spectra_detallado.dat`), PE/27, ventanas de ±0,5 e⁻ recortadas a la ROI 110–189 PE; Ne = 4–7 |
+| `sim_ajuste_effROI` | lo que entra al ajuste (`chi2.f90`): `sim_reconstruido` × `effROI`; Ne = 4–7 |
 | `red100_senal_antes_cortes`, `red100_senal_despues_cortes` | señal CEνNS simulada por el paper antes/después de sus cortes (Fig. 6 abajo), digitalizada, Ne = 4–7 |
-| `effROI` | retención por bin usada en el ajuste (0,138; 0,330; 0,599; 0,719) |
+| `effROI` | retención por bin de N_e **reconstruido** usada en el ajuste (0,1369; 0,3271; 0,6105; 0,7373) |
 
 Los valores de RED-100 los digitalizó el autor con WebPlotDigitizer sobre las
 figuras (ejes logarítmicos). Dos pasadas independientes sobre la Fig. 6 difieren
-como máximo 3 % bin a bin. `effROI` viene de una pasada anterior: el cociente
-después/antes de las columnas actuales da 0,137; 0,327; 0,611; 0,737.
+como máximo 3 % bin a bin. `effROI` es el cociente después/antes de esas mismas columnas.
 
 ## Cómo se calcula la simulación (para reproducirla)
 
@@ -43,24 +43,42 @@ después/antes de las columnas actuales da 0,137; 0,327; 0,611; 0,737.
    dR/dT · ΔT · P(N_e | T). N_e se trunca en 15. El piso de 0,2 keV es el de la
    tabla NEST; el retroceso máximo físico es 1,64 keV.
 
+6. **Respuesta en PE y N_e reconstruido** (`red100PE.f90`, `mod_detector.f90`): k electrones
+   verdaderos → PE ~ Normal(27·k, √k·7,6). N_e reconstruido = PE/27 al entero más cercano; el
+   bin j (4..7) es la ventana de PE [(j−½)·27, (j+½)·27] recortada a 110–189 PE. Probabilidad de
+   migración P(k→j) = Φ((b_j−27k)/σ_k) − Φ((a_j−27k)/σ_k). `sim_reconstruido`(j) =
+   Σ_{k=1..15} R_k · P(k→j) con R_k = `sim_extraidos`; `sim_ajuste_effROI`(j) = `effROI`(j) ·
+   `sim_reconstruido`(j). Estas dos columnas salen de `red100PE.f90` (malla de 500 nodos en T
+   hasta 3 keV); difieren ≲ 1 % de `sim_extraidos`, que usa 2000 nodos hasta 2 keV.
+
 `sim_creados`/`sim_extraidos` no llevan eficiencia de selección ni tiempo vivo.
 Al triplicar los nodos en T (6000), los valores cambian ≲ 0,1 %.
 
 ## Antes de comparar
 
-- **La Fig. 3 y la Fig. 6 (antes de cortes) del paper no son la misma curva**:
-  en N_e = 4 difieren casi ×2 y las razones entre bins consecutivos son otras
-  (~7 contra ~1,2 entre N_e = 4 y 5). Según el texto del paper, la de la
-  Fig. 6 ya pasó por su reconstrucción de posición, duración y energía
-  corregida; la de la Fig. 3 no. Esa reconstrucción no se puede reproducir con
-  lo publicado.
-- La simulación sigue la forma de la Fig. 3 con un factor ~1,8–2,1 en Ne = 4–7.
-  Se atribuye (sin verificar) a que el flujo híbrido es más duro que el SM2018
-  del paper.
-- No uses Ne = 0 para validar: la simulación solo cuenta retrocesos con
-  T ≥ 0,2 keV y no se sabe qué incluye el paper en ese bin.
-- Después de los cortes la simulación queda ×3,8 arriba en Ne = 4 y ×0,6–0,7 en
-  Ne = 5–7 respecto a la señal del paper.
+- **Hay dos espacios y no se mezclan.**
+  1. *N_e verdadero*: `sim_creados`, `sim_extraidos` frente a `red100_creados`, `red100_extraidos`.
+  2. *N_e reconstruido* (PE corregido / 27, la definición del paper): `sim_reconstruido`,
+     `sim_ajuste_effROI` frente a `red100_senal_*`. La resolución en PE mueve eventos entre
+     bins, así que este espectro es mucho más plano que el verdadero (razón Ne = 4→5 de ~7
+     a ~1,2). Comparar un espacio con el otro da conclusiones falsas.
+- El agrupamiento en ventanas de ±0,5 e⁻ recortadas a 110–189 PE es un **supuesto**: el paper
+  no lo detalla (es el único compatible con cuatro puntos y bordes en 110 y 189 PE).
+- **Espacio reconstruido**: la forma coincide (razones respecto a Ne = 4: 0,80 / 0,137 / 0,016
+  la simulación frente a 0,83 / 0,143 / 0,017 RED-100). Cocientes sim / RED-100: 1,33; 1,28;
+  1,28; 1,21, iguales antes y después de cortes (`effROI` es el mismo cociente). El factor
+  1,2–1,3 no está explicado.
+- **Espacio verdadero**: la simulación sigue la forma de los extraídos con un factor ~1,8–2,1
+  en Ne = 4–7. Los *creados* de la simulación sí coinciden con los del paper (suma
+  Ne = 1–10: 24,2 frente a 24,6), así que el desfase está en la extracción: los extraídos
+  digitalizados del paper equivalen a adelgazar sus propios creados con una pérdida extra por
+  deriva (vida media 874 µs y deriva máxima 265 µs, ambos del paper; profundidad uniforme
+  supuesta), a 2–5 % en Ne = 1–5. La simulación no incluye esa pérdida. No se toma como
+  explicación cerrada: las normalizaciones absolutas de los paneles del paper no son
+  consistentes entre sí.
+- No uses Ne = 0. Además, los extraídos digitalizados no conservan el número de eventos
+  (Σ extraídos = 22,7 frente a Σ creados = 33,4 con el punto Ne = 0 leído), lo que indica un
+  posible error de digitalización en ese punto.
 
 ## No incluido
 

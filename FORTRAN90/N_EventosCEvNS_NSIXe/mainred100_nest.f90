@@ -1,28 +1,29 @@
 !=======================================================================
 ! Programa: mainred100_nest (Asimov Dataset Absoluto - Flujo Explícito)
 !   + bloque de VALIDACION para contrastar con arXiv:2411.18641
-! Rol     : espectro SM absoluto de eventos CE$\nu$NS por bin de N_e en la
-!           ROI 4..7, con exposicion real (192 kg*dia FV).
-! Pipeline: integra flux x xsections_nest x binomial(N_e) x eff_ROI ->
-!           datos/eventos_sm_xe.dat (consumido por chi2.f90 indirectamente
-!           via red100PE) y la tabla de validacion vs Fig. 3 del paper.
+! Rol     : espectro SM absoluto de eventos CE$\nu$NS por bin de N_e
+!           RECONSTRUIDO en la ROI 4..7 (PE/27; migracion desde N_e verdadero
+!           k=1..15 via prob_migracion), con exposicion real (192 kg*dia FV).
+! Pipeline: integra flux x xsections_nest x binomial(k) x P(k->j) x eff_ROI(j) ->
+!           datos/eventos_sm_xe.dat y la tabla de validacion vs el paper.
 ! Tesis   : metodologia.tex Sec. 3.3 (Ec. 19) y Sec. 4.
-! Decision metodologica clave: Asimov dN_i = R_i; se aplica eff_ROI bin a
-!   bin (NO un 0.25 plano); ventana N_e = 4..7 (fondo de SE).
+! Decision metodologica clave: Asimov dN_i = R_i; eff_ROI se aplica al bin
+!   reconstruido (NO un 0.25 plano); ventana N_e reconstruido = 4..7.
 !=======================================================================
 program mainred100_nest
   use constants
   use mod_tnr_to_e
   use xsections_nest
   use mod_stats
+  use mod_detector, only: prob_migracion
   use flux, only: flujo_diferencial, E_nu_max, spectrum_integral
   implicit none
 
-  integer, parameter :: n_T = 500, n_E = 2000
+  integer, parameter :: n_T = 500, n_E = 2000, n_ion = 15
   real(dp) :: T_nr, T_nr_min, T_nr_max, dT, dT_keV, E_nu, dE, integrando
   real(dp) :: tasa_Comb, QW_SM, peso
   integer :: i_T, i_E, n_bin, u_out, k
-  real(dp) :: R_SM(4:7)
+  real(dp) :: R_SM(4:7), M_mig(4:7, n_ion), pk
   integer  :: n_F
   real(dp) :: p_F
   character(len=250) :: outdir, filename
@@ -47,6 +48,11 @@ program mainred100_nest
   sec_per_day  = 86400.0_dp
 
   R_SM = 0.0_dp
+  do n_bin = 4, 7
+     do k = 1, n_ion
+        M_mig(n_bin, k) = prob_migracion(n_bin, k)
+     end do
+  end do
   T_nr_min = 0.20_dp / 1000.0_dp; T_nr_max = 3.0_dp / 1000.0_dp   ! 0.20 keV = suelo de NEST v2.4.0
   dT = (T_nr_max - T_nr_min) / (n_T - 1); dT_keV = dT * 1000.0_dp
   dE = E_nu_max / (n_E - 1)
@@ -65,9 +71,12 @@ program mainred100_nest
      peso = merge(0.5_dp, 1.0_dp, i_T == 1 .or. i_T == n_T)
 
      call obtener_nest_binomial(T_nr * 1000.0_dp, n_F, p_F)
-     do n_bin = 4, 7
-        R_SM(n_bin) = R_SM(n_bin) + (tasa_Comb * dT_keV * peso * exposure_ON_kgd * &
-                      eff_ROI(n_bin) * binomial_prob(n_bin, n_F, p_F * EEE))
+     do k = 1, n_ion
+        pk = binomial_prob(k, n_F, p_F * EEE)          ! N_e verdadero extraido = k
+        do n_bin = 4, 7                                ! -> bin reconstruido
+           R_SM(n_bin) = R_SM(n_bin) + (tasa_Comb * dT_keV * peso * exposure_ON_kgd * &
+                         eff_ROI(n_bin) * M_mig(n_bin, k) * pk)
+        end do
      end do
   end do
 
@@ -116,7 +125,7 @@ program mainred100_nest
      write(*,'(F8.2,F13.4,F13.4,F9.4,I7,F13.4)') tn_ref(k), lam_c, F_here, p_F, n_F, lam_e
   end do
 
-  write(*,'(/,A)') ' Asimov SM en la ROI (con eff_ROI, exposicion y Binomial de NEST):'
+  write(*,'(/,A)') ' Asimov SM en la ROI (N_e reconstruido; eff_ROI, exposicion, Binomial de NEST y migracion):'
   do n_bin = 4, 7
      write(*,'(A,I2,A,ES13.5,A,F6.3,A)') '   Bin Ne=', n_bin, ' : ', R_SM(n_bin), &
           '  eventos   (eff_ROI=', eff_ROI(n_bin), ')'
