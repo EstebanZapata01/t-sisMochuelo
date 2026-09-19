@@ -16,7 +16,7 @@ program red100_nest
   use flux
   implicit none
 
-  integer, parameter :: n_T = 500, n_E = 2000, n_ion = 15
+  integer, parameter :: n_T = 2000, n_E = 2000, n_ion = 15
   real(dp) :: T_nr, T_nr_min, T_nr_max, dT, dT_keV, E_nu, dE
   real(dp) :: integrando_kop, integrando_mue, integrando_comb
   integer :: i_T, i_E, i_bin, u_out
@@ -44,7 +44,7 @@ program red100_nest
   dummy = flujo_diferencial(1.0_dp)
 
   T_nr_min = 0.20_dp / 1000.0_dp   ! 0.20 keV = suelo de NEST v2.4.0 (antes 0.21)
-  T_nr_max = 10.0_dp / 1000.0_dp
+  T_nr_max = 2.0_dp / 1000.0_dp    ! T_max fisico ~1.6 keV (E_nu<=10 MeV); con 10 keV la malla no resolvia
   dT = (T_nr_max - T_nr_min) / (n_T - 1)
   dT_keV = dT * 1000.0_dp
   dE = E_nu_max / (n_E - 1)
