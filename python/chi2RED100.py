@@ -1,228 +1,86 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 """
-graficar_chi2.py
-================
-Genera dos figuras a partir de los archivos de salida de chi2_ON_OFF_1D.f90:
+Residuo ON-OFF de RED-100 con la banda de exclusion al 90% C.L. y perfil fisico
+(A >= 0) Delta chi^2(A) de la amplitud CEvNS, observado y Asimov con la misma chi2(A), a partir de la salida de chi2.f90.
 
-  Fig. 1  ->  Residuo ON-OFF con banda naranja al 90% C.L.  (Fig. 8 del articulo)
-  Fig. 2  ->  Perfil Delta-chi2(A)  con linea al 90% C.L.   (Fig. 9 del articulo)
-
-Uso:
-    python3 graficar_chi2.py
-
-Requiere:
-    chi2_ON_OFF_banda.dat    (salida de chi2_ON_OFF_1D.f90)
-    chi2_ON_OFF_perfil.dat   (salida de chi2_ON_OFF_1D.f90)
+Entradas: datos/chi2_ON_OFF_banda.dat (PE R_SM A90*R_SM -A90*R_SM dN sigma; cabecera A_best, A_90)
+          datos/chi2_ON_OFF_perfil.dat (A chi2(A))
+Salidas : datos/fig8_residuo_ON_OFF.pdf, datos/fig9_chi2_perfil.pdf
 """
-
-import re
-import numpy as np
-import matplotlib.pyplot as plt
-from estilo_tesis import aplicar, C_XE, C_AR, C_GE, C_SM, CICLO, AZUL, NARANJA
-aplicar()
-import matplotlib.ticker as ticker
 from pathlib import Path
+import numpy as np
+import matplotlib
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
+import matplotlib.ticker as ticker
+from estilo_tesis import aplicar, C_XE, NEGRO, GRIS, FIG15
+from leer_fortran import leer_dat
+aplicar(grande=True)
 
-# ============================================================
-# RUTAS  (ajusta solo este bloque)
-# ============================================================
-DATADIR  = Path('/home/oem/Desktop/Unipamplona/Trabajo de grado/Códigos/datos')
-F_BANDA  = DATADIR / 'chi2_ON_OFF_banda.dat'
-F_PERFIL = DATADIR / 'chi2_ON_OFF_perfil.dat'
-F_FIG8   = DATADIR / 'fig8_residuo_ON_OFF.pdf'
-F_FIG9   = DATADIR / 'fig9_chi2_perfil.pdf'
-
-# ============================================================
-# FUNCION: lector robusto de .dat de Fortran
-# Fortran escribe numeros muy pequenos como  0.1234-102  (sin E),
-# este lector los convierte a  0.1234E-102  antes de parsear.
-# ============================================================
-def leer_dat(path, comentario='#'):
-    meta = {}
-    filas = []
-    with open(path, encoding='utf-8') as f:
-        for linea in f:
-            linea = linea.strip()
-            if not linea:
-                continue
-            if linea.startswith(comentario):
-                # Extraer metadatos del encabezado:  # clave = valor
-                if '=' in linea:
-                    partes = linea.lstrip('#').split('=', 1)
-                    clave  = partes[0].strip()
-                    try:
-                        meta[clave] = float(partes[1].strip())
-                    except ValueError:
-                        pass
-                continue
-            # Corregir notacion Fortran sin E: 1.234-05 -> 1.234E-05
-            linea = re.sub(r'(\d)([-+])(\d{2,3})\b', r'\1E\2\3', linea)
-            try:
-                filas.append([float(x) for x in linea.split()])
-            except ValueError:
-                pass
-    return np.array(filas), meta
+DATADIR = Path("/home/oem/Desktop/Unipamplona/Trabajo de grado/Códigos/datos")
 
 
-# ============================================================
-# LEER ARCHIVOS
-# ============================================================
-print('Leyendo archivos de Fortran...')
-banda,  meta_b = leer_dat(F_BANDA)
-perfil, _      = leer_dat(F_PERFIL)
+banda, meta = leer_dat(DATADIR / "chi2_ON_OFF_banda.dat")
+perfil, _ = leer_dat(DATADIR / "chi2_ON_OFF_perfil.dat")
+pe, R_SM, lim, dN, sig = banda[:, 0], banda[:, 1], banda[:, 2], banda[:, 4], banda[:, 5]
+A, chi2 = perfil[:, 0], perfil[:, 1]
+A90 = meta["A_90"]
+ancho = (189.0 - 110.0) / len(pe)                       # ancho de bin del histograma [PE]
 
-# --- banda: PE  R_SM  band_sup  band_inf  dN_data  sigma
-pe       = banda[:, 0]
-R_SM     = banda[:, 1]
-band_up  = banda[:, 2]
-# band_dn ya no se usa físicamente, ignoramos banda[:, 3]
-dN       = banda[:, 4]
-sigma    = banda[:, 5]
+# ---- residuo ON-OFF (energia corregida)
+fig, ax = plt.subplots(figsize=FIG15)
+ax.bar(pe, lim, width=ancho, color=C_XE, alpha=0.35, lw=0, label=r"límite al $90\%$ C.L.")
+ax.errorbar(pe, dN, yerr=sig, fmt="o", color=NEGRO, ms=5.5, lw=1.1, capsize=2.5, label="ON$-$OFF")
+ax.axhline(0, color=GRIS, lw=0.7)
+ax.set_xlim(108, 191); ax.set_ylim(-0.5, 0.5)
+ax.xaxis.set_major_locator(ticker.MultipleLocator(10))
+ax.yaxis.set_major_locator(ticker.MultipleLocator(0.2))
+ax.set_xlabel("energía corregida [PE]")
+ax.set_ylabel(r"eventos $\cdot$ kg$^{-1}\cdot$ día$^{-1}$")
+ax.legend(loc="upper right")
+fig.tight_layout(); fig.savefig(DATADIR / "fig8_residuo_ON_OFF.pdf"); plt.close(fig)
 
-# --- perfil: A  chi2(A)   (RED-100 ajusta solo la amplitud; sin nuisance)
-A_vals   = perfil[:, 0]
-chi2_A   = perfil[:, 1]
-
-# --- metadatos
-A_best = meta_b.get('A_best', np.nan)
-A_90   = meta_b.get('A_90',   np.nan)
-chi2_min = chi2_A.min()
-
-print(f'  Bins de datos:              {len(pe)}')
-print(f'  A_best = {A_best:.4f}')
-print(f'  A_90   = {A_90:.4f}')
-print(f'  chi2_min              = {chi2_min:.4f}')
+# ---- perfil fisico de Delta chi^2 en la amplitud (A >= 0)
+# Observado y Asimov pasan por la MISMA chi2(A) = sum((D - A R_SM)^2/sigma^2), con los mismos R_SM y sigma;
+# solo cambian los datos: D = ON-OFF (observado) o D = R_SM (Asimov, A_best = 1).
+assert A[0] == 0.0, "el perfil debe partir de A = 0 (A >= 0)"
+CL90 = 2.706
 
 
-# ============================================================
-# ESTILO GLOBAL  (imita el estilo limpio del articulo)
-# ============================================================
-# ============================================================
-fig1, ax1 = plt.subplots(figsize=(6.8, 3.2))
-
-# 1. Linea en cero (base del fondo sin señal)
-ax1.axhline(0.0, color='0.55', lw=0.6, ls='--', zorder=1)
-
-# 2. Predicción del Modelo Estándar (A=1)
-ax1.step(pe, R_SM, where='mid', color=AZUL, lw=1.5, 
-         linestyle='-', label='Predicción CEvNS (SM)', zorder=2)
-
-# 3. Banda naranja: Limite superior al 90% C.L. (desde 0 hasta band_up)
-#    Bajamos un poco el alpha para que deje ver la línea azul del SM debajo
-ax1.fill_between(pe, 0, band_up,
-                 step='mid',
-                 color=NARANJA, alpha=0.3,
-                 label='Límite 90% C.L.', zorder=3)
-
-#    Linea de borde superior de la banda
-ax1.step(pe, band_up, color=NARANJA, lw=1.5, where='mid', alpha=0.8, zorder=4)
-
-# 4. Puntos ON-OFF con barras de error (zorder=5 los pone al frente del todo)
-ax1.errorbar(pe, dN, yerr=sigma,
-             fmt='ko', ms=3.8, lw=0.9,
-             capsize=2.2, capthick=0.9,
-             label='Delta ON-OFF',
-             zorder=5)
-
-# Decoracion
-ax1.set_xlim(pe.min() - 2, pe.max() + 2)
-
-y_lim = max(abs(dN + sigma).max(), abs(band_up).max()) * 1.45
-ax1.set_ylim(-y_lim, y_lim)
-
-ax1.set_xlabel('Corrected energy [PE]')
-ax1.set_ylabel(r'Counts$\cdot$kg$^{-1}\cdot$day$^{-1}$')
-ax1.xaxis.set_major_locator(ticker.MultipleLocator(10))
-ax1.xaxis.set_minor_locator(ticker.MultipleLocator(5))
-ax1.yaxis.set_major_locator(ticker.MaxNLocator(5))
-
-# Legend con 'ncol=2' para que quede más horizontal y limpio si quieres
-leg1 = ax1.legend(frameon=False,
-                  loc='upper right', handlelength=1.4)
-
-fig1.tight_layout()
-fig1.savefig(F_FIG8, dpi=250, bbox_inches='tight')
-print(f'\nFigura 8 guardada: {F_FIG8}')
+def chi2_A(a, D):
+    return (((D[None, :] - a[:, None] * R_SM[None, :]) / sig[None, :]) ** 2).sum(axis=1)
 
 
-# ============================================================
-# FIGURA 2: Perfil Delta-chi2(A)  (Figura 9 del articulo)
-# ============================================================
-dchi2_A = chi2_A - chi2_min
+a = np.linspace(0, 100, 2001)
+d_obs = chi2_A(a, dN) - chi2_A(np.zeros(1), dN)[0]                 # frontera fisica: chi2(A) - chi2(0)
+d_asi = chi2_A(a, R_SM) - chi2_A(np.array([1.0]), R_SM)[0]         # minimo en A = 1
 
-fig2, ax2 = plt.subplots(figsize=(5.8, 3.8))
 
-# Perfil de la amplitud (unico parametro del ajuste RED-100)
-ax2.plot(A_vals, dchi2_A,
-         color='k', lw=1.8,
-         label=r'$\Delta\chi^2(A)$')
+def cruce(y):
+    """A donde y = 2.706 (interpolacion lineal, tramo creciente)."""
+    k = np.argmax(y >= CL90)
+    return a[k - 1] + (CL90 - y[k - 1]) * (a[k] - a[k - 1]) / (y[k] - y[k - 1])
 
-# Nivel 90% C.L.
-ax2.axhline(2.706, color=NARANJA, lw=1.3, ls='--',
-            label=r'90% C.L.  ($\Delta\chi^2 = 2.706$)')
 
-# Nivel 1 sigma
-ax2.axhline(1.000, color=AZUL, lw=0.9, ls=':',
-            label=r'$1\sigma$  ($\Delta\chi^2 = 1.000$)')
+A90_obs, A90_esp = cruce(d_obs), cruce(d_asi)
+assert abs(A90_obs - A90) < 0.05, (A90_obs, A90)                    # coincide con el A_90 que escribe chi2.f90
 
-# Linea vertical: A_best y A_90
-ax2.axvline(A_best, color='k',      lw=0.7, ls=':', alpha=0.6)
-ax2.axvline(A_90,   color=NARANJA,  lw=0.7, ls=':', alpha=0.8)
-ax2.axvline(1.0,    color='0.55',   lw=0.7, ls=':', alpha=0.5)
+fig, ax = plt.subplots(figsize=FIG15)
+ax.axhline(CL90, color=NEGRO, lw=1.1, label=r"corte al $90\%$ C.L. ($\Delta\chi^{2}=2{,}71$)")
+ax.axhline(1.0, color=NEGRO, lw=0.9, ls=":")
+ax.plot(a, d_asi, color=GRIS, ls="-.", label=rf"esperado (Asimov): $A_{{90}}={A90_esp:.0f}$")
+ax.plot(a, d_obs, color=C_XE, label=rf"observado (ON$-$OFF): $A_{{90}}={A90_obs:.0f}$")
+for x, col in ((A90_esp, GRIS), (A90_obs, C_XE)):
+    ax.vlines(x, 0, CL90, color=col, ls=":", lw=1.4)
+    ax.plot([x], [CL90], "o", mfc="white", mec=col, mew=1.6, ms=8, zorder=5)
+ax.set_xlim(0, 100); ax.set_ylim(0, 5)
+ax.xaxis.set_major_locator(ticker.MultipleLocator(20))
+ax.yaxis.set_major_locator(ticker.MultipleLocator(2))
+ax.set_xlabel(r"amplitud $A$  [$\times$SM]")
+ax.set_ylabel(r"$\Delta\chi^{2}$")
+ax.legend(loc="upper left")
+fig.tight_layout(); fig.savefig(DATADIR / "fig9_chi2_perfil.pdf"); plt.close(fig)
 
-# Etiquetas en la parte superior del plot
-ymax_plot = 9.0
-ax2.annotate(f'$A_{{best}}={A_best:.2f}$',
-             xy=(A_best, 0),
-             xytext=(A_best + 0.08, ymax_plot * 0.72),
-             fontsize=8.5, color='k',
-             arrowprops=dict(arrowstyle='->', color='k', lw=0.7))
-
-ax2.annotate(f'$A_{{90\\%}}={A_90:.2f}$',
-             xy=(A_90, 2.706),
-             xytext=(A_90 - 2.5, ymax_plot * 0.50), # Movido a la izquierda para no tapar si el número es grande
-             fontsize=8.5, color=NARANJA,
-             arrowprops=dict(arrowstyle='->', color=NARANJA, lw=0.7))
-
-# Etiqueta SM
-ax2.text(1.0, ymax_plot * 0.05, 'SM\n(A=1)',
-         ha='center', va='bottom', fontsize=7.5, color='0.5')
-
-# Decoracion
-ax2.set_xlim(max(-0.8, A_best - 1.5),
-             min(A_90 + 1.0, A_vals.max()))
-ax2.set_ylim(-0.3, ymax_plot)
-ax2.set_xlabel(r'Amplitud de la senal CEvNS  $A$')
-ax2.set_ylabel(r'$\Delta\chi^2 = \chi^2(A) - \chi^2_{\min}$')
-
-# Ajuste automático del espaciado para X cuando A_90 es un número mayor a 10
-ax2.xaxis.set_major_locator(ticker.MaxNLocator(integer=True, nbins=8))
-ax2.xaxis.set_minor_locator(ticker.AutoMinorLocator())
-
-ax2.yaxis.set_major_locator(ticker.MultipleLocator(2))
-ax2.yaxis.set_minor_locator(ticker.MultipleLocator(1))
-
-leg2 = ax2.legend(frameon=False,
-                  loc='upper left', handlelength=1.8)
-
-fig2.tight_layout()
-fig2.savefig(F_FIG9, dpi=250, bbox_inches='tight')
-print(f'Figura 9 guardada: {F_FIG9}')
-
-# ============================================================
-# RESUMEN FINAL
-# ============================================================
-ndof = len(pe)
-print(f'\n=== RESUMEN ===')
-print(f'  Bins usados:              {ndof}')
-print(f'  chi2_min / ndof:          {chi2_min:.3f} / {ndof} = {chi2_min/ndof:.3f}')
-print(f'  A_best:                   {A_best:.4f}')
-print(f'  A_90:                     {A_90:.4f}  x SM')
-if not np.isnan(A_best):
-    if 0.0 <= A_best <= 1.5:
-        print('  Interpretacion: compatible con la prediccion SM')
-    else:
-        print('  Interpretacion: senal no requerida, solo limite superior')
-
-if __name__ == '__main__' and not plt.get_backend().lower().startswith('agg'):
-    plt.show()
+print(f"  A_best fisico={meta.get('A_best', float('nan')):.3f};  A_90 obs={A90_obs:.2f}  A_90 esp={A90_esp:.2f}  "
+      f"chi2(0)={chi2_A(np.zeros(1), dN)[0]:.2f}/{len(pe)}")

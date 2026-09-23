@@ -18,14 +18,14 @@ contorno numerico Delta_chi2 = 4.605 (90%, 2 gdl) de la grilla ideal
 exactamente sobre el borde de la region numerica.
 
 Entradas: datos/chi2_nsi_2D{Xe,Ar}_ideal.dat
-Salida  : datos/fig_blind_ring_XeAr.png
+Salidas : datos/fig_blind_theta.png, datos/fig_blind_rings.png
 """
 import numpy as np
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-from estilo_tesis import aplicar, C_XE, C_AR, C_GE, C_SM, CICLO, GRIS, NEGRO, zoom, nota, sombra
-aplicar()
+from estilo_tesis import aplicar, C_XE, C_AR, C_GE, C_SM, CICLO, GRIS, NEGRO, zoom, nota, sombra, FIG15
+aplicar(grande=True)
 
 BASE = "/home/oem/Desktop/Unipamplona/Trabajo de grado/Códigos/datos"
 S2W = 0.23857
@@ -50,7 +50,7 @@ RING = {"Xe": TARG["$^{131}$Xe"], "Ar": TARG["$^{40}$Ar"]}
 th_xe, th_ar = TARG["$^{131}$Xe"]["theta"], TARG["$^{40}$Ar"]["theta"]
 th_O = TARG["$^{16}$O"]["theta"]
 
-fig, (aA, aB) = plt.subplots(1, 2, figsize=(11.2, 5.0))
+figA, aA = plt.subplots(figsize=FIG15)
 
 def theta_f(rr):
     return np.degrees(np.arctan((1.0 + 2.0 * rr) / (2.0 + rr)))
@@ -59,29 +59,39 @@ def theta_f(rr):
 r = np.linspace(0.9, 3.2, 500)
 aA.plot(r, theta_f(r), color=NEGRO, lw=1.8)
 aA.axhline(theta_f(1e6), color=GRIS, ls="--", lw=0.8)
-aA.text(3.15, theta_f(1e6) - 1.4, r"$\theta\to 63{,}4^\circ$", ha="right",
-        fontsize=8, color=GRIS)
+aA.text(3.15, theta_f(1e6) - 1.6, r"$\theta\to 63{,}4^\circ$", ha="right",
+        fontsize=11, color=GRIS)
 sombra(aA, 1.0, 1.6, color=C_XE, alpha=0.09)
-aA.text(1.30, 41.5, "valle de\nestabilidad", ha="center", fontsize=8, color=C_XE)
+aA.text(1.30, 41.5, "valle de\nestabilidad", ha="center", fontsize=11, color=C_XE)
+OFF = {"$^{16}$O": (6, -14), "$^{23}$Na": (6, -14), "$^{40}$Ar": (-8, 9), "$^{73}$Ge": (6, 6),
+       "$^{127}$I": (-12, 15), "$^{131}$Xe": (6, -16)}
 for name, d in TARG.items():
-    aA.plot(d["r"], d["theta"], "o", ms=4.5, color=d["c"], zorder=5)
+    aA.plot(d["r"], d["theta"], "o", ms=7, color=d["c"], zorder=5)
+    if name not in ("$^{40}$Ar", "$^{73}$Ge", "$^{131}$Xe"):      # el cumulo se etiqueta en el inset
+        aA.annotate(name, (d["r"], d["theta"]), textcoords="offset points", xytext=OFF[name], fontsize=11)
 aA.set_xlim(0.9, 3.2)
 aA.set_ylim(40, 65)
 aA.set_xlabel(r"$r = N/Z$")
 aA.set_ylabel(r"$\theta(r) = \arctan\dfrac{1+2r}{2+r}$   [$^\circ$]")
 
 # --- inset: zoom al cúmulo de blancos reales, con Delta_phi Xe-Ar ---
-axA = zoom(aA, [0.50, 0.08, 0.46, 0.46], (1.16, 1.52), (46.6, 48.9))
+axA = zoom(aA, [0.46, 0.06, 0.50, 0.33], (1.16, 1.52), (46.6, 48.9))
 axA.plot(r, theta_f(r), color=NEGRO, lw=1.4)
 for key, col in (("$^{40}$Ar", C_AR), ("$^{73}$Ge", C_GE), ("$^{131}$Xe", C_XE)):
     d = TARG[key]
-    axA.plot(d["r"], d["theta"], "o", ms=5, color=col)
+    axA.plot(d["r"], d["theta"], "o", ms=7, color=col)
     axA.axhline(d["theta"], color=col, lw=0.5, ls=":")
+    axA.annotate(key, (d["r"], d["theta"]), textcoords="offset points",
+                 xytext=(5, 4) if key != "$^{73}$Ge" else (5, -13), fontsize=10, color=col)
 axA.annotate("", xy=(1.185, th_xe), xytext=(1.185, th_ar),
              arrowprops=dict(arrowstyle="<->", lw=1.0, color=NEGRO))
 axA.text(1.20, (th_xe + th_ar) / 2,
          rf"$\Delta\phi_{{\rm Xe,Ar}} = {th_xe - th_ar:.2f}^\circ$",
-         va="center", fontsize=8.2)
+         va="center", fontsize=10)
+
+figA.tight_layout()
+figA.savefig(f"{BASE}/fig_blind_theta.png"); plt.close(figA)
+figB, aB = plt.subplots(figsize=FIG15)
 
 # ================================================= Panel B: anillo ciego (ipar=5)
 def contour_from_grid(path):
@@ -112,21 +122,21 @@ for name in ("Xe", "Ar"):
 for _, lab, ls in CL_LEVELS:
     aB.plot([], [], color=GRIS, lw=0.9, ls=ls, label=lab + " C.L.")
 aB.plot(0, 0, "+", ms=10, mew=1.4, color=NEGRO)
-aB.set_xlim(-0.12, 0.52)
-aB.set_ylim(-0.32, 0.32)
+aB.set_xlim(-0.08, 0.66)
+aB.set_ylim(-0.245, 0.245)
 aB.set_aspect("equal")
 aB.set_xlabel(r"$\varepsilon_{ee}^{dV}$")
 aB.set_ylabel(r"$\varepsilon_{e\mu}^{dV}$")
-aB.legend(loc="upper left", ncol=2, fontsize=7.6)
+aB.legend(loc="upper right", fontsize=10.5)
 
 # --- inset: el borde del anillo, analítico (--) sobre el numérico ---
-axB = zoom(aB, [0.60, 0.06, 0.38, 0.38], (0.30, 0.40), (-0.05, 0.05))
+axB = zoom(aB, [0.62, 0.06, 0.36, 0.44], (0.30, 0.40), (-0.05, 0.05))
 for name in ("Xe", "Ar"):
     dibuja_anillo(axB, name, lw_a=1.6)
 axB.set_aspect("equal")
 
-fig.tight_layout()
-fig.savefig(f"{BASE}/fig_blind_ring_XeAr.png")
+figB.tight_layout()
+figB.savefig(f"{BASE}/fig_blind_rings.png"); plt.close(figB)
 
 dphi = th_xe - th_ar
 print("=" * 68)
@@ -134,4 +144,4 @@ for name, d in TARG.items():
     print(f"  {name:10s}: r={d['r']:.3f}  theta={d['theta']:.3f} deg  rho_eps={d['rho']:.4f}")
 print(f"  Delta_phi(Xe,Ar) = {dphi:.3f} deg   1/sin = {1/np.sin(np.radians(dphi)):.1f}")
 print(f"  O-Xe = {th_xe-th_O:.2f} deg (max)   1/sin = {1/np.sin(np.radians(th_xe-th_O)):.1f}")
-print(f"\n  {BASE}/fig_blind_ring_XeAr.png")
+print(f"\n  {BASE}/fig_blind_theta.png  y  fig_blind_rings.png")

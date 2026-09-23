@@ -13,8 +13,8 @@ import numpy as np
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-from estilo_tesis import aplicar, C_XE, NEGRO
-aplicar()
+from estilo_tesis import aplicar, C_XE, NEGRO, FIG15
+aplicar(grande=True)
 
 BASE = "/home/oem/Desktop/Unipamplona/Trabajo de grado/Códigos/datos"
 
@@ -23,23 +23,22 @@ d = np.loadtxt(f"{BASE}/validacion_fig3_fig6_Xe.dat", comments="#")
 Ne, sim, ajuste = d[:, 0], d[:, 2], d[:, 3]
 red_antes, red_despues = d[:, 5], d[:, 6]
 
-fig, ax = plt.subplots(figsize=(7.0, 5.2))
-series = [
-    (red_antes,   NEGRO, "^", "RED-100, antes de cortes"),
-    (red_despues, NEGRO, "s", "RED-100, después de cortes"),
-    (sim,         C_XE,  "o", "Simulación"),
-    (ajuste,      C_XE,  "s", r"Simulación $\times\,\varepsilon_{\rm ROI}$ (ajuste)"),
+fig, ax = plt.subplots(figsize=FIG15)
+series = [                     # (datos, color, marcador, etiqueta, relleno)
+    (red_antes,   NEGRO, "o", "publicado, antes de cortes"),
+    (red_despues, NEGRO, "^", "publicado, después de cortes"),
+    (sim,         C_XE,  "o", "simulación, antes de cortes"),
+    (ajuste,      C_XE,  "^", "simulación, después de cortes"),
 ]
 for y, col, mk, lab in series:
-    ax.plot(Ne, y, color=col, alpha=0.3, lw=1.2, zorder=2)
-    ax.scatter(Ne, y, color=col, marker=mk, s=42, label=lab, zorder=3)
-
+    ax.plot(Ne, y, color=col, alpha=0.25, lw=1.2, zorder=2)
+    ax.plot(Ne, y, mk, color=col, ms=9, label=lab, zorder=3)
 ax.set_yscale("log")
 ax.set_xticks(Ne); ax.set_xticklabels([f"{int(n)}" for n in Ne])
-ax.set_xlim(3.5, 7.5)
+ax.set_xlim(3.5, 7.5); ax.set_ylim(1e-4, 1e-1)
 ax.set_xlabel(r"$N_e$ reconstruido (PE$/27$)")
 ax.set_ylabel(r"eventos / (kg$\cdot$día)")
-ax.legend(loc="upper right", fontsize=8)
+ax.legend(loc="upper right", fontsize=10.5)
 fig.tight_layout()
 out = f"{BASE}/fig_roi_cuts_Xe.png"
 fig.savefig(out)

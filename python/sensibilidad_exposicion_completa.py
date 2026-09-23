@@ -31,8 +31,8 @@ import numpy as np
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-from estilo_tesis import aplicar, C_XE, GRIS, NEGRO
-aplicar()
+from estilo_tesis import aplicar, C_XE, GRIS, NEGRO, FIG15
+aplicar(grande=True)
 
 BASE = "/home/oem/Desktop/Unipamplona/Trabajo de grado/Códigos/datos"
 EXPO_BASE = 192.0          # kg*dia, exposicion base real (volumen fiducial 2024)
@@ -80,7 +80,7 @@ SYS_NEST    = (27.0, 135.0)  # yield NEST a los bordes de banda, SVII
 SYS_EEE     = (43.0, 78.0)   # EEE 32.8 +/- 2.8%, SVII
 
 # --------------------------------------------------------------- figura
-fig, ax = plt.subplots(figsize=(7.2, 5.0))
+fig, ax = plt.subplots(figsize=FIG15)
 
 # banda de sistematicos discretos (rango envolvente), franja horizontal
 sys_lo = min(SYS_SPECTRO[0], SYS_NEST[0], SYS_EEE[0])
@@ -97,11 +97,11 @@ ax.errorbar([PAPER_1YR_EXPO], [np.mean(PAPER_1YR_A90)],
             yerr=[[np.mean(PAPER_1YR_A90) - PAPER_1YR_A90[0]],
                   [PAPER_1YR_A90[1] - np.mean(PAPER_1YR_A90)]],
             fmt="^", color=GRIS, ms=8, capsize=3, lw=1.1,
-            label="extrapolación a 1 año, §VII")
+            label="extrapolación a un año (publicada)")
 
 ax.axhline(1.0, color=C_XE, lw=0.9, ls=":")
 ax.text(expo_xe[1], 1.03, r"límite estadístico ($A_{90}\to 1$)",
-        fontsize=8.0, va="bottom", color=C_XE)
+        fontsize=11, va="bottom", color=C_XE)
 
 ax.set_xscale("log"); ax.set_yscale("log")
 ax.set_xlabel("Exposición reactor ON [kg·día]")

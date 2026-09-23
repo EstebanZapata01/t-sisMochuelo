@@ -22,8 +22,8 @@ import numpy as np
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-from estilo_tesis import aplicar, C_XE, C_AR
-aplicar()
+from estilo_tesis import aplicar, C_XE, C_AR, FIG15
+aplicar(grande=True)
 
 ROOT = "/home/oem/Desktop/Unipamplona/Trabajo de grado/Códigos"
 BASE = f"{ROOT}/datos"
@@ -80,7 +80,7 @@ def run_target(tag):
 
 files = {tag: run_target(tag) for tag in ("Xe", "Ar")}
 
-fig, ax = plt.subplots(figsize=(7.2, 5.2))
+fig, ax = plt.subplots(figsize=FIG15)
 LS = {3.0: ":", 5.0: "--", 8.0: "-"}
 for tag, col in (("Xe", C_XE), ("Ar", C_AR)):
     d = np.loadtxt(files[tag], comments="#")

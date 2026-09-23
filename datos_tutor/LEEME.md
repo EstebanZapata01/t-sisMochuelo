@@ -13,7 +13,7 @@ Celda vacía = no disponible.
 | `sim_creados`, `sim_extraidos` | simulación propia, antes y después de la extracción (`red100_nest.f90`) |
 | `red100_creados`, `red100_extraidos` | espectro de N_e del paper de RED-100 (arXiv:2411.18641, Fig. 3 arriba), digitalizado |
 | `sim_reconstruido` | simulación en N_e **reconstruido**: espectro en PE del código (`ionization_spectra_detallado.dat`), PE/27, ventanas de ±0,5 e⁻ recortadas a la ROI 110–189 PE; Ne = 4–7 |
-| `sim_ajuste_effROI` | lo que entra al ajuste (`chi2.f90`): `sim_reconstruido` × `effROI`; Ne = 4–7 |
+| `sim_ajuste_effROI` | `sim_reconstruido` × `effROI`: predicción de la señal después de cortes; Ne = 4–7 |
 | `red100_senal_antes_cortes`, `red100_senal_despues_cortes` | señal CEνNS simulada por el paper antes/después de sus cortes (Fig. 6 abajo), digitalizada, Ne = 4–7 |
 | `effROI` | retención por bin de N_e **reconstruido** usada en el ajuste (0,1369; 0,3271; 0,6105; 0,7373) |
 
@@ -62,20 +62,20 @@ Al triplicar los nodos en T (6000), los valores cambian ≲ 0,1 %.
      `sim_ajuste_effROI` frente a `red100_senal_*`. La resolución en PE mueve eventos entre
      bins, así que este espectro es mucho más plano que el verdadero (razón Ne = 4→5 de ~7
      a ~1,2). Comparar un espacio con el otro da conclusiones falsas.
-- El agrupamiento en ventanas de ±0,5 e⁻ recortadas a 110–189 PE es un **supuesto**: el paper
-  no lo detalla (es el único compatible con cuatro puntos y bordes en 110 y 189 PE).
+- El agrupamiento en ventanas de ±0,5 e⁻ (cada evento al entero más cercano a PE/27), recortadas
+  a 110–189 PE, es un **supuesto**: el paper solo da que 4–7 e⁻ equivalen a 110–189 PE y no
+  detalla cómo agrupa. Su respaldo es que la forma resultante coincide con la señal publicada.
 - **Espacio reconstruido**: la forma coincide (razones respecto a Ne = 4: 0,80 / 0,137 / 0,016
   la simulación frente a 0,83 / 0,143 / 0,017 RED-100). Cocientes sim / RED-100: 1,33; 1,28;
   1,28; 1,21, iguales antes y después de cortes (`effROI` es el mismo cociente). El factor
   1,2–1,3 no está explicado.
 - **Espacio verdadero**: la simulación sigue la forma de los extraídos con un factor ~1,8–2,1
-  en Ne = 4–7. Los *creados* de la simulación sí coinciden con los del paper (suma
-  Ne = 1–10: 24,2 frente a 24,6), así que el desfase está en la extracción: los extraídos
-  digitalizados del paper equivalen a adelgazar sus propios creados con una pérdida extra por
-  deriva (vida media 874 µs y deriva máxima 265 µs, ambos del paper; profundidad uniforme
-  supuesta), a 2–5 % en Ne = 1–5. La simulación no incluye esa pérdida. No se toma como
-  explicación cerrada: las normalizaciones absolutas de los paneles del paper no son
-  consistentes entre sí.
+  en Ne = 4–7, **sin explicar**. Los *creados* sí coinciden con los del paper (suma
+  Ne = 1–10: 24,2 frente a 24,6), así que el desfase aparece en la extracción. Observación
+  sobre los datos digitalizados: los extraídos del paper equivalen a adelgazar sus propios
+  creados con p ≈ 0,29 en vez de EEE = 0,328 (≈ 0,89·EEE); no se identificó el origen. No se
+  adopta: en el espacio reconstruido ese factor empeora la forma (razones 0,755 / 0,118 /
+  0,013 frente a 0,83 / 0,143 / 0,017), y la EEE del paper se midió con calibración gamma.
 - No uses Ne = 0. Además, los extraídos digitalizados no conservan el número de eventos
   (Σ extraídos = 22,7 frente a Σ creados = 33,4 con el punto Ne = 0 leído), lo que indica un
   posible error de digitalización en ese punto.

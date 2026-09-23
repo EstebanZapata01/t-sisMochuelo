@@ -1,65 +1,36 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Script para graficar los resultados de red100_nest.f90.
-Genera:
-  - fig_ionizationXe.png: Espectro en electrones de ionización (incluye datos del paper)
+Espectro en electrones de ionizacion (creados y extraidos) de Xe: simulacion
+frente al espectro publicado por RED-100 (digitalizado).
 
-(El panel de retroceso Kopeikin/Mueller/combinado que este script generaba
-por separado, fig_recoilXe.png, quedó cubierto por
-python/recoil_spectrum_XeAr.py -> fig_recoil_XeAr.png, que compara Xe y Ar
-con el mismo motor; se quitó de aquí para no duplicar salidas.)
+Entradas: datos/ionization_electrones.dat (red100_nest.f90), datos/red100_fig3_digitalizado.csv
+Salida  : datos/fig_ionizationXe.png
 """
-
 import numpy as np
+import matplotlib
+matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-from estilo_tesis import aplicar, C_XE, C_AR, C_GE, C_SM, CICLO
-aplicar()
-import os
+from estilo_tesis import aplicar, C_XE, NEGRO, FIG15
+aplicar(grande=True)
 
-# ===================== CONFIGURACIÓN =====================
-datadir = '/home/oem/Desktop/Unipamplona/Trabajo de grado/Códigos/datos/'
+BASE = "/home/oem/Desktop/Unipamplona/Trabajo de grado/Códigos/datos"
+sim = np.loadtxt(f"{BASE}/ionization_electrones.dat", comments="#")            # Ne creados extraidos
+pub = np.loadtxt(f"{BASE}/red100_fig3_digitalizado.csv", delimiter=",", skiprows=1)
+# Ne = 0 (extraidos publicados) no se usa: el punto digitalizado no conserva el numero de eventos.
+sim, pub = sim[(sim[:, 0] >= 1) & (sim[:, 0] <= 10)], pub[pub[:, 0] >= 1]
 
-# Fig. 3 del paper digitalizada (datos/red100_fig3_digitalizado.csv)
-_d3 = np.loadtxt(datadir + 'red100_fig3_digitalizado.csv', delimiter=',', skiprows=1)
-Ne_paper, creados_paper, extraidos_paper = _d3[:, 0], _d3[:, 1], _d3[:, 2]
-
-# ===================== FIGURA: ELECTRONES DE IONIZACIÓN =====================
-print("Generando figura: Espectro en electrones de ionización...")
-file_ion = datadir + 'ionization_electrones.dat'
-
-if os.path.exists(file_ion):
-    data_i = np.loadtxt(file_ion)
-    Ne = data_i[:, 0]
-    creados = data_i[:, 1]
-    extraidos = data_i[:, 2]
-    
-    fig2, ax2 = plt.subplots(figsize=(10, 6))
-
-    # Tus datos (simulación)
-    ax2.scatter(Ne, creados, c='k', marker='o', label='Creados (sim.)', s=30, zorder=3)
-    ax2.scatter(Ne, extraidos, c='#8f4444', marker='s', label=f'Extraídos (sim., EEE≈0.33)', s=30, zorder=3)
-    ax2.plot(Ne, creados, color='k', alpha=0.2, lw=1, zorder=2)
-    ax2.plot(Ne, extraidos, color='#8f4444', alpha=0.2, lw=1, zorder=2)
-
-    # Datos del paper RED-100
-    ax2.scatter(Ne_paper, creados_paper, c='#33546e', marker='^', label='Creados (paper)', s=40, zorder=4)
-    ax2.scatter(Ne_paper, extraidos_paper, c='#5c7053', marker='v', label='Extraídos (paper)', s=40, zorder=4)
-
-    ax2.set_xlabel('Número de electrones de ionización')
-    ax2.set_ylabel('Eventos / (kg · día)')
-    ax2.set_title('Espectro en electrones de ionización – RED-100 (Xe)', fontsize=14)
-    ax2.legend()
-    ax2.set_yscale('log')
-    
-    ax2.set_xlim(-0.5, 10.5)
-    ax2.set_xticks([0,2,4,6,8,10])
-    ax2.set_ylim(1e-8, 1e2)
-    ax2.set_yticks([1e-8,1e-4,1])
-
-    fig2.tight_layout()
-    fig2.savefig(datadir + 'fig_ionizationXe.png', dpi=300)
-    plt.close(fig2)
-    print("  → fig_ionizationXe.png guardado.")
-else:
-    print(f"  [ERROR] No se encontró {file_ion}")
+fig, ax = plt.subplots(figsize=FIG15)
+for col, mk, nombre in ((1, "o", "creados"), (2, "s", "extraídos")):
+    ax.plot(sim[:, 0], sim[:, col], color=C_XE, lw=1.1, alpha=0.5)
+    ax.plot(sim[:, 0], sim[:, col], mk, color=C_XE, ms=7, label=f"{nombre}, simulación")
+    ax.plot(pub[:, 0], pub[:, col], mk, color=NEGRO, mfc="white", mew=1.4, ms=7, label=f"{nombre}, publicado")
+ax.set_yscale("log")
+ax.set_xlim(0.5, 10.5); ax.set_xticks(range(1, 11))
+ax.set_ylim(1e-8, 1e2)
+ax.set_xlabel(r"$N_e$  (electrones de ionización)")
+ax.set_ylabel(r"eventos / (kg $\cdot$ día)")
+ax.legend(loc="upper right", ncol=1)
+fig.tight_layout()
+out = f"{BASE}/fig_ionizationXe.png"
+fig.savefig(out); print(f"  -> {out}")

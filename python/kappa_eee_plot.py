@@ -20,8 +20,8 @@ import numpy as np
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-from estilo_tesis import aplicar
-aplicar()
+from estilo_tesis import aplicar, FIG15
+aplicar(grande=True)
 import matplotlib.ticker as ticker
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -47,7 +47,7 @@ def read_fd_kappa():
 
 def main():
     fd = read_fd_kappa()
-    fig, ax = plt.subplots(figsize=(6.6, 4.4))
+    fig, ax = plt.subplots(figsize=FIG15)
 
     ax.axhline(1.0, color="0.6", lw=1.0, ls="--")
     ax.text(1.05, 1.03, r"normalización pura ($\kappa=1$)", fontsize=8,

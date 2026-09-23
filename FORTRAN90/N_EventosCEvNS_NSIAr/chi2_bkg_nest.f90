@@ -192,6 +192,13 @@ program chi2_bkg_nest
   do k = NE_LO, NE_HI
      write(*,'(A,I2,A,2ES13.5)') '   N_e = ', k, ' : ', B_rate_uar(k), B_rate_atm(k)
   end do
+  ! volcado por bin (aditivo) para python/ar_senal_fondo.py
+  open(newunit=u, file=trim(datadir)//'bkg_bins_Ar.dat', status='replace')
+  write(u,'(A)') '# N_e  S_k  B_UAr  B_atm   [ev/(kg dia)]; exposicion de la comparacion: 62 kg dia'
+  do k = NE_LO, NE_HI
+     write(u,'(I4,3ES16.7)') k, S_bin(k), B_rate_uar(k), B_rate_atm(k)
+  end do
+  close(u)
 
   ! ==================================================================
   ! 4. CALIBRAR el piso de apilamiento de electron unico (s_SE) contra el

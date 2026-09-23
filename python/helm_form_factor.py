@@ -24,8 +24,8 @@ import numpy as np
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-from estilo_tesis import aplicar, C_XE, C_AR
-aplicar()
+from estilo_tesis import aplicar, FIG15, C_XE, C_AR
+aplicar(grande=True)
 
 ROOT = "/home/oem/Desktop/Unipamplona/Trabajo de grado/Códigos"
 BASE = f"{ROOT}/datos"
@@ -51,7 +51,7 @@ os.makedirs(BK, exist_ok=True)
 for tag in ("Xe", "Ar"):
     shutil.copy(f"{BASE}/espectro_continuo{tag}.dat", f"{BK}/{tag}.dat")
 
-fig, ax = plt.subplots(figsize=(6.8, 4.4))
+fig, ax = plt.subplots(figsize=FIG15)
 try:
     for tag, col in (("Xe", C_XE), ("Ar", C_AR)):
         T0, r0 = run_red100(tag, use_helm=False)      # F^2 = 1
@@ -61,7 +61,7 @@ try:
         ax.plot(T0[m], ratio[m], color=col, lw=1.8, label=tag)
         ax.axvline(T_THR[tag], color=col, ls=":", lw=1.1)
         ax.text(T_THR[tag] + 0.04, 0.30, rf"$T_{{\rm thr}}^{{\rm {tag}}}$",
-                rotation=90, va="bottom", ha="left", fontsize=8, color=col,
+                rotation=90, va="bottom", ha="left", fontsize=11, color=col,
                 transform=ax.get_xaxis_transform())
 finally:
     for tag in ("Xe", "Ar"):
@@ -73,7 +73,6 @@ ax.set_xlim(0.2, 4.0)
 ax.set_ylim(0.90, 1.005)
 ax.set_xlabel(r"Energía de retroceso nuclear  $T_{\rm nr}$  [keV]")
 ax.set_ylabel(r"$(dR/dT_{\rm nr})_{\rm Helm}\,/\,(dR/dT_{\rm nr})_{F^2=1}$")
-ax.set_title("Efecto medido de la aproximación $F^2=1$ (motor: red100_nest, USE_HELM)")
 ax.legend(loc="center right", title="CE$\\nu$NS SM")
 
 fig.tight_layout()

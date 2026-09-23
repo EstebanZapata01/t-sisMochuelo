@@ -169,7 +169,15 @@ program red100PE_detallado
 
     ! Volcado para python/roi_cuts_validacion_Xe.py y exporta_datos_tutor.py
     block
-      integer :: u_v
+      integer :: u_v, u_m
+      open(newunit=u_m, file=trim(outdir)//'migracion_Xe.dat', status='replace')
+      write(u_m,'(A)') '# j(reconstruido)  k(verdadero)  R_k*P(k->j) [ev/(kg dia)], antes de eff_ROI'
+      do b = 1, 4
+         do k_e = 1, n_ion
+            write(u_m,'(2I5,ES16.7)') b+3, k_e, tasa_ion_extraidos(k_e) * prob_migracion(b+3, k_e)
+         end do
+      end do
+      close(u_m)
       open(newunit=u_v, file=trim(outdir)//'validacion_fig3_fig6_Xe.dat', status='replace')
       write(u_v,'(A)') '# Ne  sim_verdadero  sim_reconstruido  sim_rec_x_effROI  fig3_extraidos  fig6_antes  fig6_despues'
       do b = 1, 4

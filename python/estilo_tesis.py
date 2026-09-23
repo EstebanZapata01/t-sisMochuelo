@@ -47,8 +47,9 @@ CICLO = [AZUL, NARANJA, VERDE, ROJO, MORADO, MARRON]
 CMAP  = "Greys"
 
 
-def aplicar():
-    """Fija los rcParams de la tesis (idempotente)."""
+def aplicar(grande=False):
+    """Fija los rcParams de la tesis (idempotente). grande=True: letra grande para
+    figuras de un solo panel (se ven a ~0.8 del ancho de pagina)."""
     _mpl.rcParams.update({
         "font.family": "serif",
         "mathtext.fontset": "dejavuserif",
@@ -97,6 +98,15 @@ def aplicar():
         "savefig.bbox": "tight",
         "image.cmap": CMAP,
     })
+    if grande:
+        _mpl.rcParams.update({
+            "font.size": 12.5, "axes.labelsize": 13.5, "axes.titlesize": 13.5,
+            "legend.fontsize": 11.5, "xtick.labelsize": 12, "ytick.labelsize": 12,
+            "lines.linewidth": 2.1, "lines.markersize": 6.5,
+        })
+
+
+FIG15 = (7.2, 4.8)   # un solo panel, proporcion 1.5:1
 
 
 def limpiar(ax):
@@ -106,8 +116,9 @@ def limpiar(ax):
     ax.tick_params(top=False, right=False)
 
 
-def nota(ax, xy, text, xytext, color=NEGRO, fs=8.2, **kw):
+def nota(ax, xy, text, xytext, color=NEGRO, fs=None, **kw):
     """Anotacion estandar: flecha fina + 2-4 palabras, sin recuadro."""
+    fs = fs or 0.82 * _mpl.rcParams["font.size"]
     ax.annotate(text, xy=xy, xytext=xytext, fontsize=fs, color=color,
                 arrowprops=dict(arrowstyle="-", lw=0.7, color=color,
                                 shrinkA=0, shrinkB=2), **kw)
@@ -127,7 +138,7 @@ def zoom(ax_parent, bounds, xlim, ylim, edge=GRIS, lw=0.8):
     axin = ax_parent.inset_axes(bounds)
     axin.set_xlim(*xlim)
     axin.set_ylim(*ylim)
-    axin.tick_params(labelsize=7, length=2.2, width=0.6)
+    axin.tick_params(labelsize=0.7 * _mpl.rcParams["font.size"], length=2.2, width=0.6)
     for s in axin.spines.values():
         s.set_linewidth(0.7)
         s.set_edgecolor(edge)

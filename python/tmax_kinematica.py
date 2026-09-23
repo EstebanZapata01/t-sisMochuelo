@@ -15,8 +15,8 @@ import numpy as np
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-from estilo_tesis import aplicar, C_XE, C_AR
-aplicar()
+from estilo_tesis import aplicar, C_XE, C_AR, FIG15
+aplicar(grande=True)
 
 BASE = "/home/oem/Desktop/Unipamplona/Trabajo de grado/Códigos/datos"
 
@@ -31,7 +31,7 @@ def Tmax_keV(E_nu_MeV, M_MeV):
 
 E_nu = np.linspace(1e-6, 10.0, 500)
 
-fig, ax = plt.subplots(figsize=(6.8, 4.6))
+fig, ax = plt.subplots(figsize=FIG15)
 ax.plot(E_nu, Tmax_keV(E_nu, M_XE), color=C_XE, label="Xe")
 ax.plot(E_nu, Tmax_keV(E_nu, M_AR), color=C_AR, label="Ar")
 
