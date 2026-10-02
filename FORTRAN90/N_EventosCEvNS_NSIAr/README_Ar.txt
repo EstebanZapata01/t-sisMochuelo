@@ -8,15 +8,15 @@ Comparacion Xe vs Ar de la sensibilidad a NSI con parametros de RED-100
 (arXiv:2411.18641). Clon del pipeline de Xe. Todo lo que NO cambia entre
 blancos se copio sin tocar; los cambios estan acotados a:
 
-  >>> Referencia metodologica completa (matematica, pipeline etapa por
-      etapa, formalismo NSI, registro de cambios Ar vs Xe):
-      ../../doc/metodologia.tex   (compilar con  pdflatex metodologia.tex).
+  >>> La referencia metodologica completa (matematica, pipeline etapa por
+      etapa, formalismo NSI, registro de cambios Ar vs Xe) esta en la tesis,
+      que no es parte de este repositorio; este archivo resume lo esencial.
 
 
   constants.f90        A,Z,N,M de Ar-40; masa activa 62 kg (ref.[46]);
                        EEE = 0.99 (ref.[46] + ReD + DarkSide-50); eff_ROI=1;
-                       actividad 39Ar (atm 1 Bq/kg, UAr 7.3e-4), Q_beta=565 keV,
-                       Z_hija=19, ancla SB_ref46=4 (para chi2_bkg_nest).
+                       ancla SB_ref46=4 (S/sqrt(B) declarado por ref.[46] a
+                       62 kg*dia, para chi2_bkg_nest).
   Tnr_to_e.f90         lee  datos/nest_Ar_218V_dense.txt  (yield NR, LArNEST
                        ANCLADO a ReD 2025 en 2.4-7.6 keV; T_nr<2 keV = extrapol.)
   chi2_ideal_nest.f90  *** COMPARACION IDEAL SIMETRICA Xe vs Ar ***  (ver abajo)
@@ -24,11 +24,12 @@ blancos se copio sin tocar; los cambios estan acotados a:
                        T_nr_max 6 -> 3.5 keV (ref.[46] + cinematica E_nu=8 MeV).
   chi2red100_nest.f90  variante "ventana fisica de Ar" (N_e = 1..5, §VII):
                        sensibilidad Asimov de conteo puro. T_nr_max = 3.5 keV.
-  chi2_bkg_nest.f90    *** NUEVO: RED-100 §V para Ar CON FONDO DE 39Ar SIMULADO ***
-                       senal CEvNS simulada + fondo beta de 39Ar simulado
-                       (isotopo conocido, actividad publicada) + Asimov.
-                       3 escenarios: (0) sin fondo, (1) 39Ar UAr, (2) 39Ar atm.
-                       Salida: datos/sensib_bkg_Ar.dat. Todo en N_e (SIN PE).
+  chi2_bkg_nest.f90    RED-100 §V para Ar con el NIVEL DE FONDO DECLARADO por
+                       ref.[46] (S/sqrt(B)~4 a 62 kg*dia); no se simula ningun
+                       proceso de fondo. B_tot=(S_tot/4)^2, plano en N_e=1..5.
+                       2 escenarios: (0) sin fondo, (1) fondo de ref.[46].
+                       Salida: datos/sensib_bkg_Ar.dat, datos/bkg_bins_Ar.dat.
+                       Todo en N_e (SIN PE).
   red100_nest.f90      solo rutas de salida  -> *_Ar.dat
   mainred100_nest.f90  solo rutas de salida + etiquetas
   red100PE.f90         BORRADO. Era sobrante del clon de Xe: el espectro en PE
@@ -93,8 +94,9 @@ Reglas de la comparacion:
     caja, NO en la misma tabla que la comparacion ideal. La distancia
     ideal -> real (~x235 en A_90 - 1) es el coste de fondos + cortes +
     sistematicos + ajuste a 1 histograma, y le aplicaria igual a un Ar real.
-  - Ar solo es fisico asumiendo ARGON DEPLETADO (UAr): el 39Ar atmosferico
-    (~1 Bq/kg) domina el ROI por ~1e6-1e7.
+  - No se simula ningun fondo especifico de Ar (ni 39Ar ni otro proceso): el
+    unico nivel de fondo usado es el que declara ref.[46] (S/sqrt(B)~4 a
+    62 kg*dia), ver mas abajo.
 
 Resultado (F de NEST, 192 kg*dia)   [R_tot en ev/(kg dia), A_90 en xSM]
   N_e>=   R_tot Xe   R_tot Ar   Ar/Xe   A_90 Xe   A_90 Ar
@@ -123,7 +125,7 @@ Resultado (F de NEST, 192 kg*dia)   [R_tot en ev/(kg dia), A_90 en xSM]
 
 
 ================================================================================
-RED-100 §V PARA Ar: SENAL SIMULADA + FONDO DE 39Ar SIMULADO  (chi2_bkg_nest.f90)
+RED-100 §V PARA Ar: SENAL SIMULADA + NIVEL DE FONDO DECLARADO  (chi2_bkg_nest.f90)
 ================================================================================
 RED-100 hace dos analisis: §VI (limite OBSERVADO) compara la simulacion contra el
 residuo ON-OFF REAL -> A_90 ~ 111 xSM (solo Xe, `chi2.f90`); y §V (sensibilidad
@@ -134,36 +136,30 @@ DB 56, INR 64 xSM).
   Para Xe: §V sale del S2 que `chi2.f90` ya calcula.
            A_90_esp = 1 + sqrt(2.706/S2) ~ 126 ; /sqrt(3) ~ 73  (RED-100 ajusta
            3 histogramas, aqui 1). Del orden de su Tabla I -> VALIDA el metodo.
-  Para Ar: `chi2_bkg_nest.f90`, mismo metodo §V, pero el fondo es SIMULADO
-           (no hay medida de RED-100-Ar). Fondo dominante y especifico de Ar =
-           decaimiento beta del 39Ar (39Ar -> 39K + e- + nubar; Q_beta 565 keV,
-           beta permitido, actividad publicada). Todo en N_e (SIN PE).
+  Para Ar: `chi2_bkg_nest.f90`, mismo metodo §V. No hay medida de fondo de Ar
+           ni se simula ningun proceso de fondo (ver decision mas abajo): se usa
+           el UNICO numero publicado, S/sqrt(B)~4 a 62 kg*dia (ref.[46]), del
+           que se despeja B_tot=(S_tot/4)^2 y se reparte PLANO en N_e=1..5
+           (idealizacion: ref.[46] no publica composicion ni forma del fondo).
              senal S(N_e): flujo x seccion eficaz x binomial, ROI 1..5.
-             fondo B(N_e): dN/dT ~ F(Z,T) p_e E_e (Q-T)^2, plegado por el yield
-                           ER (datos/nest_Ar_ER_218V.txt) + binomial + EEE,
-                           normalizado por actividad x masa x tiempo.
-             Dchi2(A) = sum_k (1-A)^2 S_k^2/(S_k + B_k + se_floor*E)
-             A_90 = 1 + sqrt(2.706 / sum_k S_k^2/(S_k+B_k+...))
-           3 escenarios: (0) sin fondo [= respuesta intrinseca, reproduce
-           chi2red100_nest], (1) 39Ar UAr (7.3e-4 Bq/kg), (2) 39Ar atmosferico
-           (1 Bq/kg).  Salida: datos/sensib_bkg_Ar.dat.
+             Dchi2(A) = sum_k (1-A)^2 S_k^2/(S_k + B_k)
+             A_90 = 1 + sqrt(2.706 / sum_k S_k^2/(S_k+B_k))
+           2 escenarios: (0) sin fondo [= techo intrinseco, reproduce
+           chi2red100_nest], (1) fondo de ref.[46].
+           Salida: datos/sensib_bkg_Ar.dat, datos/bkg_bins_Ar.dat.
 
-RESULTADO (192 kg*dia, N_e = 1..5, F de NEST):
-  escenario           A_90 (xSM)     S/sqrt(B) a 62 kg*dia
-  sin fondo            1.022          -
-  39Ar UAr            1.022          ~ 2300   (39Ar despreciable en N_e<=5)
-  39Ar atmosferico    1.025          ~ 60
+RESULTADO (62 kg*dia, N_e = 1..5, F de NEST):
+  escenario         A_90 (xSM)     S/sqrt(B)
+  sin fondo          1.039          -  (techo intrinseco)
+  fondo ref.[46]     1.379          4.00  (por construccion)
 
-VALIDACION vs ref.[46]: ref.[46] declara S/sqrt(B) ~ 4 a 62 kg*dia. Nuestro
-39Ar por SOLAPE ESPECTRAL PURO da ~2300 (UAr) -> MUCHO mas optimista que ref.[46].
-Motivo: llegar a N_e <= 5 con un retroceso ELECTRONICO pide E_er <~ 0.1 keV, la
-cola extrema del espectro beta (+ extrapolacion del yield ER sub-100 eV). El
-"~4" de ref.[46] refleja probablemente el fondo de APILAMIENTO DE ELECTRON UNICO
-por encima de 4 e-, que ref.[46] deja EXPLICITAMENTE SIN RESOLVER ("requires
-special experimental study"). `chi2_bkg_nest.f90` imprime el se_floor
-(~660 ev/(kg dia) por bin) que reconcilia el modelo con el "~4" -> es el tamano
-implicito de ese fondo no resuelto. Para una proyeccion conservadora tipo
-ref.[46], correr con se_floor a ese valor.
+DECISION: no simular 39Ar ni ningun otro proceso de fondo. Antes se simulaba el
+espectro beta del 39Ar (isotopo conocido, actividad publicada) plegado con el
+yield ER de LArNEST; se elimino porque simular un decaimiento ajeno al proceso
+CEvNS de la tesis exigiria ademas suponer una composicion/contaminacion de Ar
+que nadie publico (asumir UAr, atmosferico, etc.), y el `se_floor` que se
+calibraba contra el "~4" de ref.[46] terminaba dominando el resultado igual.
+En su lugar se usa directamente el numero que ref.[46] declara.
 
 QUE NO SE HACE: §VI para Ar (ajuste al residuo ON-OFF real) -> necesita reactor
 + detector. Se dice explicito en la tesis.
@@ -191,8 +187,9 @@ PARAMETROS DE Ar (ref.[46] = Physics 5, 492 (2023); ReD 2025 = arXiv:2510.16404)
                 F=1 (binomial pura) como sistematico. ReD: la fluctuacion de
                 ionizacion de NR en Ar "remains poorly characterized" -> SIN
                 medida; ReD bracketea entre "sin fluctuaciones" y "binomial pura".
- 39Ar           ~1 Bq/kg (atmosferico, ref.[46]); ~7.3e-4 Bq/kg (UAr, DarkSide-50,
-                ~x1400 menos). Q_beta = 565 keV, Z_hija = 19.
+ Fondo          S/sqrt(B)~4 a 62 kg*dia -- ref.[46], texto explicito. Unico
+                nivel de fondo usado; no se simula ningun proceso de fondo
+                (ver seccion "RED-100 §V PARA Ar" mas arriba).
  SEG_Ar         SIN valor (RED-100 planea TPB ~0.1 mg/cm2 pero no publica la
                 ganancia). No se usa: Ar no tiene rama PE (ver arriba).
 
@@ -202,7 +199,7 @@ Compilar (no hay Makefile; orden de modulos obligatorio)
   MODS="constants.f90 flux.f90 xsections_nest.f90 mod_stats.f90 Tnr_to_e.f90"
   gfortran -O2 -o chi2_ideal        $MODS chi2_ideal_nest.f90     # comparacion ideal
   gfortran -O2 -o chi2nsi_ar        $MODS chi2red100_nest.f90     # variante N_e=1..5
-  gfortran -O2 -o chi2_bkg          $MODS chi2_bkg_nest.f90       # §V con fondo 39Ar
+  gfortran -O2 -o chi2_bkg          $MODS chi2_bkg_nest.f90       # §V con fondo de ref.[46]
   gfortran -O2 -o mainred100_ar     $MODS mainred100_nest.f90
   gfortran -O2 -o red100_ar         $MODS red100_nest.f90
   (red100PE.f90 y mod_detector.f90 BORRADOS: Ar no tiene rama PE)
@@ -211,8 +208,7 @@ Compilar (no hay Makefile; orden de modulos obligatorio)
 
 Post-proceso:
   python/nest_Ar.py               genera datos/nest_Ar_218V_dense.txt (yield NR
-                                  anclado a ReD) y datos/nest_Ar_ER_218V.txt
-                                  (yield ER, para el fondo de 39Ar)
+                                  anclado a ReD 2025)
   python/waterfall_XeAr.py        cascada Xe->Ar (donde el umbral invierte la
                                   ventaja); python/threshold_table.py y
                                   python/expo_to_A90.py generan las tablas
@@ -239,10 +235,10 @@ Salidas en datos/
   nsi_configAr.txt         etiquetas de los ejes
   sensib_expo_Ar.dat       multiplicador  exposicion_kgd  A_90   (Asimov)
 
-  --- §V con fondo de 39Ar (chi2_bkg_nest.f90) ---
+  --- §V con el fondo declarado por ref.[46] (chi2_bkg_nest.f90) ---
   sensib_bkg_Ar.dat        escenario  exposicion_kgd  A_90  S_tot  B_tot  S/sqrtB
-                           (escenario: sin_fondo | Ar39_UAr | Ar39_atmosferico)
-  nest_Ar_ER_218V.txt      E_er[keV]  Qy_er[e-/keV]  F_er   (yield ER, para 39Ar)
+                           (escenario: sin_fondo | fondo_ref46)
+  bkg_bins_Ar.dat          N_e  S_k  B_k   [ev/(kg dia)]
 
   --- diagnostico ---
   espectro_continuoAr.dat  T_nr  Kop  Mue  Comb

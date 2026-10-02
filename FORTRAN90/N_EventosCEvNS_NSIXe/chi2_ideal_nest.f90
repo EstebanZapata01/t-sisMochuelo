@@ -1,52 +1,30 @@
-!=======================================================================
-! Programa: chi2_ideal_nest   (COMPARACION IDEAL SIMETRICA Xe vs Ar)
+! Comparacion IDEAL y simetrica Xe vs Ar: mismo codigo para los dos blancos
+! (solo cambia TAG y, por la carpeta, el modulo constants y la tabla NEST
+! que lee mod_tnr_to_e). Mide la respuesta INTRINSECA de cada blanco, no la
+! sensibilidad experimental alcanzable:
 !
-!   MISMO codigo para los dos blancos (solo cambia el parametro TAG y,
-!   por la carpeta, el modulo `constants` y la tabla NEST que lee
-!   `mod_tnr_to_e`). Sirve para una comparacion Xe-vs-Ar limpia:
+!   - Sensibilidad Asimov de conteo puro en la ROI, sin fondo ni
+!     sistematicos ni eficiencia de seleccion (eff_ROI = 1):
+!       dN_k = R_k, sigma_k = sqrt(N_k), chi2(A) = (1-A)^2 N_tot_ROI,
+!       A_best = 1, A_90 = 1 + sqrt(2.706 / N_tot_ROI) (1 g.d.l.)
+!   - Barrido del umbral inferior N_e >= {1,2,3,4}, sin corte superior
+!     (N_e <= NE_HI = 30, para no recortar la cola larga del Ar), el mismo
+!     para ambos blancos.
+!   - F(T): con la F de NEST propia de cada blanco y con F=1 (Poisson)
+!     como sistematico.
+!   - NSI 2D: q_eff2(eps) = (Q_W+q_ee)^2 + q_emu^2 + q_etau^2,
+!     A_amp(eps) = q_eff2/Q_W^2, Delta_chi2 = (1-A_amp)^2 N_tot_ROI. El par
+!     de parametros lo fija ipar (1..15, mismo mapeo que 2pchi2.f90 de
+!     CONUS+); por defecto ipar=5 (eps_ee^dV vs eps_emu^dV), para N_e>=1 y
+!     N_e>=4. Para Ar solo es fisico asumiendo argon depletado (UAr).
 !
-!     - Sensibilidad ASIMOV DE CONTEO PURO en el ROI (sin fondo, sin
-!       sistematicos, sin eficiencia de seleccion: eff_ROI = 1):
-!           dN_k = R_k ,  sigma_k = sqrt(N_k)
-!           chi2(A) = (1 - A)^2 * N_tot_ROI ,  A_best = 1
-!           A_90 (1 gdl) : A_90 = 1 + sqrt(2.706 / N_tot_ROI)
-!       Mide la RESPUESTA INTRINSECA del blanco
-!       (sigma_CEvNS . N^2 . charge yield . umbral). NO es la
-!       sensibilidad experimental alcanzable.
+! El limite OBSERVADO real de Xe (chi2.f90, datos ON-OFF reales) se
+! reporta aparte.
 !
-!     - VENTANA SIMETRICA: se barre el umbral inferior N_e >= {1,2,3,4}
-!       (el corte N_e>=4 de RED-100 es fondo de electron unico, NO
-!       sensibilidad de los aparatos) y NO se pone corte superior
-!       (N_e <= NE_HI = 30; la cola dura del Ar llega a ~N_e 30-40 y no
-!       hay que tirarla). Cualquier corte comun es legitimo mientras sea
-!       el mismo para los dos blancos.
-!
-!     - FLUCTUACION F(T): se corre con la F de NEST propia del blanco
-!       (de la tabla, columna 3) y con F = 1 (Poisson) como sistematico.
-!
-!     - NSI 2D: la NSI entra solo por
-!           q_eff2(eps) = (Q_W + q_ee)^2 + q_emu^2 + q_etau^2
-!           A_amp(eps)  = q_eff2 / Q_W^2
-!           Delta chi2  = (1 - A_amp)^2 * N_tot_ROI
-!       El par de parametros lo fija `ipar` (1..15, mismo mapeo que
-!       chi2red100_nest.f90 / 2pchi2.f90 de CONUS+); por defecto ipar=5
-!       (eps_ee^dV vs eps_emu^dV). Se hace para N_e>=1 y para N_e>=4
-!       (F de NEST). Las etiquetas de los ejes se escriben en
-!       nsi_config_ideal_<TAG>.txt.
-!
-!   El limite OBSERVADO real de Xe (~111 xSM, rama chi2.f90 con datos
-!   ON-OFF 2024 y eff_ROI digitalizada) se reporta APARTE.
-!   Para Ar solo es fisico asumiendo ARGON DEPLETADO (UAr).
-!
-!   Entrada : nada (calcula el espectro SM internamente)
-!             lee la tabla NEST via mod_tnr_to_e
-!   Salidas (datos/):
-!     espectro_Ne_ideal_<TAG>.dat  : N_e  R_bin_Fnest  R_bin_F1   [ev/(kg dia)]
-!     sensib_ideal_<TAG>.dat       : NE_LO F_mode R_tot frac Ntot@192 A_90(x1..x335)
-!     chi2_nsi_2D<TAG>_ideal.dat       : eps_x eps_y Dchi2   (N_e>=1, F de NEST)
-!     chi2_nsi_2D<TAG>_ideal_ne4.dat   : eps_x eps_y Dchi2   (N_e>=4, F de NEST)
-!     nsi_config_ideal_<TAG>.txt   : etiqueta LaTeX del eje x / eje y (segun ipar)
-!=======================================================================
+! Salidas (datos/): espectro_Ne_ideal_<TAG>.dat (N_e, R_bin_Fnest, R_bin_F1),
+! sensib_ideal_<TAG>.dat (umbral, modo F, R_tot, frac, Ntot, A_90 a varias
+! exposiciones), chi2_nsi_2D<TAG>_ideal[_ne4].dat (eps_x, eps_y, Dchi2),
+! nsi_config_ideal_<TAG>.txt (etiquetas de los ejes).
 program chi2_ideal_nest
   use constants
   use mod_tnr_to_e
@@ -58,7 +36,7 @@ program chi2_ideal_nest
   character(len=*), parameter :: TAG = 'Xe'   ! <-- unica diferencia con la copia de Ar
 
   ! ----- grilla de integracion -----
-  integer,  parameter :: n_T = 800, n_E = 2000
+  integer,  parameter :: n_T = 800, n_E = 1000
   real(dp) :: T_nr, T_nr_min, T_nr_max, dT, dT_keV, E_nu, dE, peso
   real(dp) :: tasa_Comb, QW_SM, lambda
   integer  :: i_T, i_E, k, n_F, im
@@ -94,7 +72,7 @@ program chi2_ideal_nest
   character(len=300) :: datadir, f_esp, f_sens, f_nsi1, f_nsi4, f_conf
   real(dp) :: dummy
 
-  datadir = '/home/oem/Desktop/Unipamplona/Trabajo de grado/Códigos/datos/'
+  datadir = '../../datos/'
   f_esp  = trim(datadir)//'espectro_Ne_ideal_'//TAG//'.dat'
   f_sens = trim(datadir)//'sensib_ideal_'//TAG//'.dat'
   f_nsi1 = trim(datadir)//'chi2_nsi_2D'//TAG//'_ideal.dat'
@@ -187,14 +165,20 @@ program chi2_ideal_nest
         if (im == 1) then
            call obtener_nest_binomial(T_nr * 1000.0_dp, n_F, p_F)
         else
-           lambda = obtener_electrones_creados(T_nr * 1000.0_dp)   ! <N_e> creados
            p_F = 0.02_dp                                           ! limite Poisson
-           n_F = nint(lambda / p_F)
-           if (n_F < 1) n_F = 1
         end if
-        ! perilla de yield: escala <N_e> = n_F*p_F por qy_scale (mantiene p_F,
-        ! es decir la forma de la fluctuacion de Fano)
-        if (abs(qy_scale - 1.0_dp) > 1.0e-9_dp) n_F = max(1, nint(qy_scale * real(n_F, dp)))
+        ! perilla de yield: escala <N_e>=lambda por qy_scale (mantiene p_F, es
+        ! decir la forma de la fluctuacion de Fano) y redondea UNA sola vez;
+        ! antes se redondeaba lambda/p_F a n_F y LUEGO se reescalaba ese entero
+        ! (n_F=nint(qy_scale*n_F)), lo que con n_F chico (Ar) y qy_scale=1.08
+        ! casi nunca cambiaba n_F (0.08*n_F<0.5). lambda se recalcula aqui
+        ! (misma funcion que ya usa el modo F=1) para los dos modos F.
+        lambda = obtener_electrones_creados(T_nr * 1000.0_dp)
+        if (lambda <= 0.0_dp .and. im == 1) then
+           n_F = 0                                    ! igual que obtener_nest_binomial
+        else
+           n_F = max(1, nint(qy_scale * lambda / p_F))   ! im=2 ya floreaba a 1 en lambda<=0
+        end if
         do k = 1, NE_HI
            R_bin(k, im) = R_bin(k, im) + array_tasa_Comb(i_T) * dT_keV * peso * &
                           binomial_prob(k, n_F, p_F * EEE)

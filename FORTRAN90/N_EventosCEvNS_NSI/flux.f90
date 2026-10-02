@@ -1,9 +1,6 @@
-!=======================================================================
-! Módulo flux: espectro de antineutrinos de reactor combinado.
-!   - Para E_nu < 2 MeV: Kopeikin (2012) con interpolación lineal (50 puntos).
-!   - Para E_nu >= 2 MeV: Mueller et al. (2011).
-!   La normalización se hace integrando el espectro combinado.
-!=======================================================================
+! Espectro de antineutrinos de reactor, hibrido: Kopeikin (2012,
+! interpolacion lineal, 50 puntos) para E_nu < 2 MeV, Mueller et al. (2011)
+! para E_nu >= 2 MeV. Normalizado integrando el espectro combinado.
 module flux
   use constants, only: dp, phi_total, E_nu_min_flux, E_nu_max
   implicit none

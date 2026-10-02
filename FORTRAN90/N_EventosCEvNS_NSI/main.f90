@@ -1,8 +1,5 @@
-!=======================================================================
-! Programa principal: eventos_conus
-!   Calcula los eventos de CEvNS para CONUS+ y escribe los eventos por kg.
-!   Versión con diagnóstico extremo: imprime TODO lo posible.
-!=======================================================================
+! Eventos de CEvNS para CONUS+; escribe los eventos por kg con diagnostico
+! extendido.
 program eventos_conus
   use constants
   use quenching
@@ -121,7 +118,7 @@ program eventos_conus
   ! ==================== FIJAR CARGA DÉBIL ====================
   QV2 = QW_SM**2
 
-  outdir = '/home/oem/Desktop/Unipamplona/Trabajo de grado/Códigos/datos/'
+  outdir = '../../datos/'
   filename = trim(outdir) // 'eventos_conus_total.dat'
 
   ! Definir los 19 bins

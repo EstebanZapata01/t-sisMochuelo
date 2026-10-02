@@ -1,42 +1,18 @@
-!=======================================================================
-! Programa: chi2_ON_OFF_1D.f90
-! Proposito: Leer los datos ON-OFF digitalizados de la Fig. 8 de
-!            arXiv:2411.18641 (paper de resultados de RED-100) y hacer
-!            el analisis chi2 1D sobre la amplitud de senal CEvNS.
+! Ajuste chi2 1D sobre la amplitud de senal CEvNS A, a partir del residuo
+! ON-OFF digitalizado de RED-100 (arXiv:2411.18641), con A como unico
+! parametro libre (igual que el ajuste del paper):
+!   chi2(A) = Sum (dNi - A*Ri)^2/si^2 = S3 - 2*A*S1 + A^2*S2
+!   A_best = S1/S2 ;  A_90 = A_best + sqrt(2.706/S2)  (una cola, 1 g.d.l.)
+! dNi = residuo ON-OFF [cuentas/kg/dia], si = su incertidumbre, Ri =
+! prediccion CEvNS SM en el bin i. Sin nuisance de flujo: RED-100 no usa
+! uno (a diferencia de CONUS+, que sí tiene un presupuesto sistematico
+! propio de germanio); los sistematicos se tratan como corridas de
+! reemplazo discretas.
 !
-! Metodo (RED-100 SV/SVI: la amplitud A es el UNICO parametro del ajuste;
-!         "the amplitude ... the only parameter varied in a fit"):
-!   chi2(A) = Sum (dNi - A*Ri)^2/si^2  =  S3 - 2*A*S1 + A^2*S2
-!
-!   Donde:
-!     A      = amplitud de la senal CEvNS  (A=1 -> prediccion SM exacta)
-!     dNi    = residuo ON-OFF digitalizado del articulo [cuentas/kg/dia]
-!     si     = incertidumbre estadistica en cada bin  [cuentas/kg/dia]
-!     Ri     = prediccion CEvNS SM en bin i  [cuentas/kg/dia]
-!
-!   NO se anade nuisance de flujo: el 16.9% que usa el analisis de CONUS+
-!   (De Romeri et al., PRD 111, 075025, Ec. 33) es un presupuesto
-!   sistematico especifico de germanio (umbral de Ge 14.1%, quenching de
-!   Ge 7.3%, ...) y RED-100 no usa nuisance. Sus sistematicos se tratan
-!   como corridas de reemplazo discretas (ver metodologia.tex).
-!
-!   Solucion cerrada:
-!     A_best  = S1/S2 ;  chi2_min = S3 - S1^2/S2
-!     A_90    = A_best + sqrt(2.706/S2)   (test de una cola, 1 g.d.l.)
-!
-! Archivos de entrada:
-!   ionization_spectra_detallado.dat  ->  prediccion de red100PE.f90
-!
-! Archivos de salida:
-!   chi2_ON_OFF_perfil.dat  ->  A  chi2(A)
-!   chi2_ON_OFF_banda.dat   ->  PE R_SM banda_sup banda_inf datos sigma
-!
-! Pipeline: unica rama con DATOS REALES de RED-100. NO se clona a Ar.
-! Tesis   : metodologia.tex Sec. 4 (reproduccion del analisis de Xe, P1).
-!           Resultado A_90 ~ 107 xSM; la diferencia con la Tabla I del
-!           paper = 1/3 histogramas (sqrt3) + modelo de espectro +
-!           aceptancia del detector (Fig.3 vs Fig.6).
-!=======================================================================
+! Entrada: ionization_spectra_detallado.dat (prediccion de red100PE.f90)
+! Salida : chi2_ON_OFF_perfil.dat (A, chi2(A)), chi2_ON_OFF_banda.dat
+!          (PE, R_SM, banda_sup, banda_inf, datos, sigma)
+! Unica rama con datos reales de RED-100; no se clona a Ar.
 program chi2_ON_OFF_1D
   use constants, only: dp, Z_Ge, N_Ge
   use mod_detector, only: eps_ROI_pe, PE_ROI_min, PE_ROI_max
@@ -73,7 +49,8 @@ program chi2_ON_OFF_1D
   real(dp) :: w_dat, bin_pred
 
   ! Archivos
-  integer  :: u_pred, u_perfil, u_banda
+  integer  :: u_pred, u_perfil, u_banda, u_dat
+  real(dp) :: dummy
   integer  :: ios, i, j, j0
   character(len=256) :: line
   character(len=250) :: datadir
@@ -82,33 +59,29 @@ program chi2_ON_OFF_1D
   ! ==================================================================
   ! 0. RUTAS
   ! ==================================================================
-  datadir  = '/home/oem/Desktop/Unipamplona/Trabajo de grado/Códigos/datos/'
+  datadir  = '../../datos/'
   f_pred   = trim(datadir)//'ionization_spectra_detallado.dat'
   f_perfil = trim(datadir)//'chi2_ON_OFF_perfil.dat'
   f_banda  = trim(datadir)//'chi2_ON_OFF_banda.dat'
 
   ! ==================================================================
-  ! 1. DATOS DIGITALIZADOS DEL ARTICULO (hardcoded)
+  ! 1. RESIDUO ON-OFF DE RED-100 (panel de energia): datos/red100_residuo_ONOFF_fig8.csv
+  !    (extraido de la geometria vectorial del PDF con python/extrae_pdf_red100.py).
+  !    Filas 'panel,x,dN,sigma,limite90'; aqui solo el panel E (energia corregida [PE]).
   ! ==================================================================
-  n_datos = 15
+  n_datos = 0
+  open(newunit=u_dat, file=trim(datadir)//'red100_residuo_ONOFF_fig8.csv', status='old', action='read')
+  do
+    read(u_dat, '(A)', iostat=ios) line
+    if (ios /= 0) exit
+    if (line(1:1) == 'E') then
+      n_datos = n_datos + 1
+      read(line(3:), *) pe_dat(n_datos), dN_dat(n_datos), sigma_dat(n_datos), dummy
+    end if
+  end do
+  close(u_dat)
 
-  pe_dat(1)  = 112.60128_dp; dN_dat(1)  = -0.21102_dp; sigma_dat(1)  = 0.20630_dp
-  pe_dat(2)  = 117.86781_dp; dN_dat(2)  =  0.09291_dp; sigma_dat(2)  = 0.18583_dp
-  pe_dat(3)  = 123.14301_dp; dN_dat(3)  = -0.29449_dp; sigma_dat(3)  = 0.18583_dp
-  pe_dat(4)  = 128.34364_dp; dN_dat(4)  =  0.10394_dp; sigma_dat(4)  = 0.14961_dp
-  pe_dat(5)  = 133.57848_dp; dN_dat(5)  =  0.14173_dp; sigma_dat(5)  = 0.13071_dp
-  pe_dat(6)  = 138.88895_dp; dN_dat(6)  = -0.01732_dp; sigma_dat(6)  = 0.12756_dp
-  pe_dat(7)  = 144.19912_dp; dN_dat(7)  = -0.17323_dp; sigma_dat(7)  = 0.12913_dp
-  pe_dat(8)  = 149.46939_dp; dN_dat(8)  =  0.09134_dp; sigma_dat(8)  = 0.10551_dp
-  pe_dat(9)  = 154.71783_dp; dN_dat(9)  = -0.01417_dp; sigma_dat(9)  = 0.09291_dp
-  pe_dat(10) = 159.96419_dp; dN_dat(10) = -0.09764_dp; sigma_dat(10) = 0.09291_dp
-  pe_dat(11) = 165.24581_dp; dN_dat(11) =  0.04724_dp; sigma_dat(11) = 0.06929_dp
-  pe_dat(12) = 170.54956_dp; dN_dat(12) = -0.04094_dp; sigma_dat(12) = 0.07402_dp
-  pe_dat(13) = 175.78321_dp; dN_dat(13) =  0.00945_dp; sigma_dat(13) = 0.06614_dp
-  pe_dat(14) = 181.02373_dp; dN_dat(14) = -0.01260_dp; sigma_dat(14) = 0.06772_dp
-  pe_dat(15) = 186.30357_dp; dN_dat(15) =  0.15118_dp; sigma_dat(15) = 0.05512_dp
-
-  write(*,'(A,I3,A)') '  [1] Cargados ', n_datos, ' bins ON-OFF (digitalizados)'
+  write(*,'(A,I3,A)') '  [1] Cargados ', n_datos, ' bins ON-OFF (extraidos del PDF)'
 
   ! ==================================================================
   ! 2. LEER PREDICCION SM (espectro teorico de red100PE.f90)

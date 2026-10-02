@@ -1,7 +1,5 @@
-!=======================================================================
-! Archivo : constants.f90   (carpeta Ar)  -- CLON de la de Xe
-! Rol     : parametros para el blanco de ARGON liquido (Ar-40).
-! Tesis   : metodologia.tex Sec. 9 (registro de cambios Ar vs Xe).
+! Parametros para el blanco de argon liquido (Ar-40); clon de la carpeta
+! de Xe con los parametros de Ar.
 ! Fuentes de los parametros de Ar:
 !   ref.[46] = D. Akimov et al. (RED-100), Physics 5, 492 (2023),
 !              DOI 10.3390/physics5020034 (open access).
@@ -18,13 +16,9 @@
 !     electrons"). INCONSISTENCIA: ref.[46] dice "less than four". Se usa 1..5.
 !   - phi_total y el espectro no cambian (mismo reactor KNPP, mismo
 !     hibrido Kopeikin+Mueller).
-! OJO: argon solo es fisico con ARGON DEPLETADO (UAr): el Ar-39
-!      atmosferico (~1 Bq/kg) dominaria la ROI. El fondo de 39Ar se simula
-!      en chi2_bkg_nest.f90 (metodo RED-100 SV con fondo simulado).
-!      El umbral instrumental por apilamiento de electron unico por encima
-!      de 4 e- lo deja ABIERTO la ref.[46] ("requires special experimental
-!      study") -> entra como escenario (se_floor), no como numero.
-!=======================================================================
+! OJO: el fondo de argon NO se simula: se toma solo el nivel que declara la
+!      ref.[46] (S/sqrt(B) ~ 4 a 62 kg*dia) en chi2_bkg_nest.f90. Su composicion
+!      (p. ej. apilamiento de electron unico) la deja ABIERTA la ref.[46].
 module constants
   implicit none
   integer, parameter :: dp = kind(1.0d0)
@@ -56,15 +50,8 @@ module constants
   real(dp), parameter :: dias_exposicion = 331.0_dp   ! OBSOLETO: son kg*dia (ver exposure_ON_kgd)
   real(dp), parameter :: livetime_frac   = 0.60_dp    ! informativo
 
-  ! ---- Fondo de 39Ar (para chi2_bkg_nest.f90, metodo RED-100 SV) ----
-  ! 39Ar -> 39K + e- + nubar_e.  beta permitido, Q_beta = 565 keV,
-  ! nucleo hijo Z = 19 (K).  Actividades publicadas:
-  real(dp), parameter :: act_Ar39_atm_Bq_kg = 1.0_dp      ! Ar atmosferico (ref.[46])
-  real(dp), parameter :: act_Ar39_UAr_Bq_kg = 7.3e-4_dp   ! UAr (DarkSide-50, ~x1400 menos)
-  real(dp), parameter :: Qbeta_Ar39_keV     = 565.0_dp
-  real(dp), parameter :: Z_daughter_Ar39    = 19.0_dp
-  ! Ancla de validacion del modelo de fondo (ref.[46]): la fluctuacion del
-  ! fondo es ~4x menor que la senal CEvNS esperada a 62 kg*dia (1 dia).
+  ! Nivel de fondo de la ref.[46]: la fluctuacion del fondo es ~4x menor que la
+  ! senal CEvNS esperada a 62 kg*dia (1 dia), S/sqrt(B) ~ 4. Es el UNICO fondo de Ar.
   real(dp), parameter :: SB_ref46 = 4.0_dp
 
   ! EEE (eficiencia de extracción liquido->gas) de Ar.
@@ -94,5 +81,5 @@ module constants
   real(dp), parameter :: E_nu_min_flux = 2.0_dp
   real(dp), parameter :: E_nu_max      = 10.0_dp
 
-  real(dp) :: QV2 = 1.0_dp
+  real(dp) :: QV2 = 1.0_dp   ! q_eff^2 (NSI); el programa principal debe asignarlo antes de llamar a dsigma_dT
 end module constants

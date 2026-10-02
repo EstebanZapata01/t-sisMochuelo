@@ -1,18 +1,10 @@
-!=======================================================================
-! Programa: red100PE_detallado (Plantillas PCHIP - Flujo Explícito)
-! Rol     : plantilla del espectro CE$\nu$NS SM en energia corregida [PE]
-!           (convoluciona N_e con SEG y sig1 de mod_detector).
-! Pipeline: etapa "N_e -> PE" -> escribe
-!           datos/ionization_spectra_detallado.dat, que es la entrada de
-!           chi2.f90 (ajuste 1D ON-OFF).
-! Tesis   : metodologia.tex Sec. 3.3 y Sec. 4.
-! Decision metodologica clave: dos espacios que no se mezclan. N_e VERDADERO
-!   (tasa_ion_extraidos) se valida contra la curva "extraidos" de la Fig. 3;
-!   N_e RECONSTRUIDO (PE/27, ventanas +-0.5 e- recortadas a 110-189 PE, via
-!   prob_migracion) contra las dos curvas de la Fig. 6. Total = suma de las
-!   plantillas k=1..15 (incluye la migracion desde k<4). En la carpeta de Ar
-!   este espectro en PE NO es fisico (mod_detector es de LXe).
-!=======================================================================
+! Plantilla del espectro CEvNS SM en energia corregida [PE] (convoluciona
+! N_e con SEG y sig1 de mod_detector) -> datos/ionization_spectra_detallado.dat,
+! la entrada de chi2.f90. Dos espacios que no se mezclan: N_e VERDADERO
+! (tasa_ion_extraidos) y N_e RECONSTRUIDO (PE/27, ventanas +-0,5 e-
+! recortadas a 110-189 PE, via prob_migracion); el total es la suma de las
+! plantillas k=1..15, incluida la migracion desde k<4. Este espectro en PE
+! no es fisico en la carpeta de Ar (mod_detector es especifico de LXe).
 program red100PE_detallado
   use constants
   use mod_tnr_to_e        
@@ -36,7 +28,7 @@ program red100PE_detallado
 
   bin_width_pe = 5.0_dp
   
-  outdir = '/home/oem/Desktop/Unipamplona/Trabajo de grado/Códigos/datos/'
+  outdir = '../../datos/'
   datafile = trim(outdir) // 'templates_SE_pchip.dat'
   filename = trim(outdir) // 'ionization_spectra_detallado.dat'
 

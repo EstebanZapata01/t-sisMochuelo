@@ -109,6 +109,29 @@ def aplicar(grande=False):
 FIG15 = (7.2, 4.8)   # un solo panel, proporcion 1.5:1
 
 
+def coma(x, nd=2):
+    """Formatea x con coma decimal (para insertar en una cadena LaTeX en modo
+    matematico, p.ej. rf"${{coma(x)}}^\\circ$"). La tesis usa coma decimal."""
+    return f"{x:.{nd}f}".replace(".", "{,}")
+
+
+def coma_intervalo(a, b, nd=3):
+    """Intervalo [a; b] con coma decimal; separador ';' (una coma ya esta
+    ocupada como separador decimal). Envolver en $...$ al usarlo."""
+    return f"[{coma(a, nd)};\\,{coma(b, nd)}]"
+
+
+def formatear_coma(ax, x=True, y=True):
+    """Coma decimal en las marcas de los ejes (lineales o log; llamar al
+    final, despues de fijar limites/escala/ticks explicitos)."""
+    from matplotlib.ticker import FuncFormatter
+    fmt = FuncFormatter(lambda v, pos: f"{v:g}".replace("-", "−").replace(".", ","))
+    if x:
+        ax.xaxis.set_major_formatter(fmt)
+    if y:
+        ax.yaxis.set_major_formatter(fmt)
+
+
 def limpiar(ax):
     """Quita los spines superior y derecho (look mas ligero, opcional)."""
     for s in ("top", "right"):

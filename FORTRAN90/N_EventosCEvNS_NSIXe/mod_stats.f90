@@ -1,31 +1,19 @@
-!=======================================================================
-! Módulo: mod_stats
-! Propósito: Herramientas estadísticas para resolución de detectores.
-! Pipeline: expone binomial_prob(k, n, p) -> PMF de N_e extraidos
-!           (Ec. 18 de metodologia.tex); la usan red100_nest, red100PE,
-!           mainred100_nest y chi2_ideal_nest.
-! Tesis   : metodologia.tex Sec. 3.2 (modelo binomial de Fano).
-! Decision metodologica clave: el N_e no es Poisson; se propaga en forma
-!   cerrada como binomial (media, varianza de NEST) adelgazada por EEE.
-!=======================================================================
+! Poisson y binomial (log-estables) para la estadistica de conteo de
+! electrones de ionizacion. binomial_prob(k, n, p) da la PMF de N_e
+! extraidos; la usan red100_nest, red100PE, mainred100_nest y chi2_ideal_nest.
 module mod_stats
   use constants, only: dp
   implicit none
 
 contains
 
-  !---------------------------------------------------------------------
-  ! Función: poisson_prob
-  ! Calcula la probabilidad de observar 'k' eventos cuando el valor
-  ! esperado es 'lambda'. Usa logaritmos para estabilidad numérica.
-  !---------------------------------------------------------------------
+  ! P(k; lambda), calculada en log para estabilidad numerica.
   function poisson_prob(k, lambda) result(p)
     integer, intent(in) :: k
     real(dp), intent(in) :: lambda
     real(dp) :: p, log_p, log_fact
     integer :: i
-    
-    ! Manejo del caso físico donde no se espera ningún electrón
+
     if (lambda <= 0.0_dp) then
        if (k == 0) then
           p = 1.0_dp
@@ -34,22 +22,15 @@ contains
        end if
        return
     end if
-    
-    ! Cálculo del logaritmo del factorial: ln(k!)
+
     log_fact = 0.0_dp
     do i = 2, k
        log_fact = log_fact + log(real(i, dp))
     end do
-    
-    ! Fórmula Poisson: ln(P) = k*ln(lambda) - lambda - ln(k!)
     log_p = real(k, dp) * log(lambda) - lambda - log_fact
-    
-    ! Exponenciamos para recuperar la probabilidad real
     p = exp(log_p)
-    
   end function poisson_prob
 
-	! Dentro de mod_stats.f90, añade después de poisson_prob:
   function binomial_prob(k, n, p) result(prob)
     integer, intent(in) :: k, n
     real(dp), intent(in) :: p

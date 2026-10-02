@@ -2,11 +2,7 @@
 """
 Genera la tabla NEST para RED-100 (Xe NR, 218 V/cm) con nestpy 2.4.5.
 
-Tesis: metodologia.tex Sec. 3.2 (modelo binomial de Fano). Salida ->
-       datos/nest_218V_dense.txt, leida por Tnr_to_e.f90 (carpeta Xe).
-
-
-Salida: 3 columnas
+Salida: datos/nest_218V_dense.txt, leida por Tnr_to_e.f90 (carpeta Xe), 3 columnas
     T_nr[keV]   Qy[e-/keV]   F = Var(N_e)/<N_e>   (factor tipo Fano)
 
 - Qy  : rendimiento de carga medio  (y.ElectronYield / T)
@@ -65,7 +61,7 @@ for i, T in enumerate(T_vals):
         Qy_vals[i] = 0.0
         F_vals[i]  = 1.0
 
-output = "/home/oem/Desktop/Unipamplona/Trabajo de grado/Códigos/datos/nest_218V_dense.txt"
+output = "../datos/nest_218V_dense.txt"
 with open(output, "w") as f:
     f.write("# Tabla NEST para RED-100\n")
     f.write(f"# Xe NR, rho={DENSITY} g/cm3, E_drift={DRIFT_V} V/cm, NEST {nestpy.__nest_version__}\n")

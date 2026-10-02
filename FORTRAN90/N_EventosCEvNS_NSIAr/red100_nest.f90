@@ -1,11 +1,6 @@
-!=======================================================================
-! Programa: red100_nest (Poisson → Binomial, solo creados y extraídos)
-!   CLON de la carpeta de Xe; rutas de salida *_Ar.dat.
-! Pipeline: etapa "retroceso -> ionizacion" (diagnostico creados/extraidos).
-! Tesis   : metodologia.tex Sec. 3.2-3.3 y Sec. 9.
-! Decision metodologica clave: N_e creados ~ Binom(n_F, p_F);
-!   extraidos ~ Binom(n_F, p_F*EEE), con EEE=0.99 en Ar.
-!=======================================================================
+! Espectro de diagnostico en N_e, creados vs extraidos: N_e creados ~
+! Binom(n_F, p_F), extraidos ~ Binom(n_F, p_F*EEE), con EEE=0,99 en Ar.
+! Clon de la carpeta de Xe, rutas de salida *_Ar.dat.
 program red100_nest
   use constants
   use mod_tnr_to_e
@@ -28,7 +23,7 @@ program red100_nest
   real(dp) :: dummy
   real(dp) :: R_tot_kop, R_tot_mue, R_tot_comb, sum_cre, sum_ext, mean_cre, mean_ext
 
-  outdir = '/home/oem/Desktop/Unipamplona/Trabajo de grado/Códigos/datos/'
+  outdir = '../../datos/'
 
   call inicializar_nest()
   allocate(array_tasa_Comb(n_T))
