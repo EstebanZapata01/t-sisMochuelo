@@ -16,7 +16,7 @@ import matplotlib.pyplot as plt
 from estilo_tesis import aplicar, C_XE, NEGRO, FIG15
 aplicar(grande=True)
 
-BASE = "/home/oem/Desktop/Unipamplona/Trabajo de grado/Códigos/datos"
+BASE = "../datos"
 
 d = np.loadtxt(f"{BASE}/validacion_fig3_fig6_Xe.dat", comments="#")
 # Ne sim_verdadero sim_reconstruido sim_rec_x_effROI fig3_extraidos fig6_antes fig6_despues

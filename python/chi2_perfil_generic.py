@@ -2,10 +2,9 @@
 # -*- coding: utf-8 -*-
 """
 Perfil Delta-chi2(A) construido por el MISMO binario (chi2_nsi_generic) para
-Xe y para CONUS+, en un solo panel comparativo -- la prueba visual de la
-validacion cruzada (Sec. "Validacion cruzada", doc/metodologia.tex): el
-panel de Xe debe verse igual que fig9_chi2_perfil.pdf (construida por
-chi2.f90 directamente); el panel de CONUS+ es una figura NUEVA -- 2pchi2.f90
+Xe y para CONUS+, en un solo panel comparativo: la prueba visual de la
+validacion cruzada. El panel de Xe debe verse igual que el perfil que
+construye chi2.f90 directamente; el de CONUS+ es nuevo, ya que 2pchi2.f90
 nunca produjo un perfil 1D en amplitud, solo la grilla NSI 2D.
 
 Entradas (datos/):
@@ -24,7 +23,7 @@ from estilo_tesis import aplicar, C_XE, C_AR, C_GE, C_SM, CICLO
 aplicar()
 import matplotlib.ticker as ticker
 
-BASE = "/home/oem/Desktop/Unipamplona/Trabajo de grado/Códigos/datos"
+BASE = "../datos"
 NARANJA = "#a86a43"
 
 

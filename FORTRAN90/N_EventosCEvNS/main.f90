@@ -1,8 +1,5 @@
-!=======================================================================
-! Programa principal: eventos_conus
-!   Calcula los eventos de CEvNS para cada detector de CONUS+
-!   (C2, C3, C5) por separado, imprime diagnóstico completo y suma total.
-!=======================================================================
+! Eventos de CEvNS para cada detector de CONUS+ (C2, C3, C5) por separado;
+! imprime diagnostico completo y la suma total.
 program eventos_conus
   use constants
   use quenching
@@ -34,7 +31,7 @@ program eventos_conus
   ! Variables para prueba de sección eficaz
   real(dp) :: Eer_test
 
-  outdir = '/home/oem/Desktop/Unipamplona/Trabajo de grado/Códigos/datos/'
+  outdir = '../../datos/'
 
   ! ==================== DIAGNÓSTICO INICIAL (común) ====================
   write(*,*) '==========================================='

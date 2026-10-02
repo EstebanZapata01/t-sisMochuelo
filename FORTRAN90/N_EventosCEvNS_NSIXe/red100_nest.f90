@@ -1,13 +1,6 @@
-!=======================================================================
-! Programa: red100_nest (Poisson → Binomial, solo creados y extraídos)
-! Rol     : espectro en N_e (creados vs extraidos) de diagnostico, para
-!           ver el efecto del adelgazado por EEE.
-! Pipeline: etapa "retroceso -> ionizacion" -> escribe
-!           datos/ionization_electrones*.dat.
-! Tesis   : metodologia.tex Sec. 3.2-3.3.
-! Decision metodologica clave: N_e creados ~ Binom(n_F, p_F);
-!   extraidos ~ Binom(n_F, p_F*EEE)  (Ecs. 16-18 de metodologia.tex).
-!=======================================================================
+! Espectro de diagnostico en N_e, creados vs extraidos, para ver el efecto
+! del adelgazado binomial por EEE: N_e creados ~ Binom(n_F, p_F), extraidos
+! ~ Binom(n_F, p_F*EEE). Escribe datos/ionization_electrones*.dat.
 program red100_nest
   use constants
   use mod_tnr_to_e
@@ -30,7 +23,7 @@ program red100_nest
   real(dp) :: dummy
   real(dp) :: R_tot_kop, R_tot_mue, R_tot_comb, sum_cre, sum_ext, mean_cre, mean_ext
 
-  outdir = '/home/oem/Desktop/Unipamplona/Trabajo de grado/Códigos/datos/'
+  outdir = '../../datos/'
 
   call inicializar_nest()
   allocate(array_tasa_Comb(n_T))

@@ -1,46 +1,22 @@
-!=======================================================================
-! Programa: chi2red100_nest  (ARGÓN - matriz NSI 2D)
+! Matriz NSI 2D para Ar, ventana fisica N_e=1..5 (T_nr_max=6 keV). Para Ar
+! no hay datos ON-OFF reales, asi que la estadistica es Asimov de conteo
+! puro en la ROI:
+!   dN_k = R_k, sigma_k = sqrt(N_k) (Poisson de senal, sin fondo ni
+!   sistematicos), chi2(A) = (1-A)^2 N_tot_ROI, A_best = 1.
+! La NSI entra por la carga efectiva:
+!   q_eff2(eps) = (Q_W+q_ee)^2 + q_emu^2 + q_etau^2, A_amp = q_eff2/Q_W^2,
+!   Delta_chi2(eps) = (1-A_amp)^2 N_tot_ROI.
+! Mide la respuesta INTRINSECA del blanco, no la sensibilidad experimental
+! alcanzable; es la unica formula aplicable de igual manera a Xe y Ar. El
+! limite OBSERVADO real de Xe se reporta aparte, no se compara con este.
+! Fisico en Ar solo si se asume argon depletado (UAr): con Ar atmosferico
+! el fondo de 39Ar (~1 Bq/kg) domina la ROI por ~1e6-1e7.
+! El mapeo eps -> q_nsi (15 casos de ipar) es identico a 2pchi2.f90 de
+! CONUS+; por defecto ipar=5, eps_ee^dV (x) vs eps_emu^dV (y).
 !
-!   Clon de ../N_EventosCEvNS_NSIXe/chi2red100_nest.f90 adaptado a Ar-40.
-!
-!   DIFERENCIA CLAVE con la versión de Xe: para Ar NO hay datos ON-OFF
-!   reales (ni fondo OFF medido ni fluctuación ON). Por eso la estadística
-!   es una SENSIBILIDAD ASIMOV DE CONTEO PURO en el ROI:
-!
-!       dN_k = R_k            (Asimov: el dato es la señal SM esperada)
-!       sigma_k = sqrt(N_k)   (Poisson de SEÑAL; SIN fondo, SIN sistemáticos)
-!       chi2(A) = sum_k (N_k - A*N_k)^2 / N_k = (1 - A)^2 * N_tot_ROI
-!       A_best = 1,  chi2_min = 0
-!
-!   La NSI entra solo por la carga efectiva:
-!       q_eff2(eps) = (Q_W + q_ee)^2 + q_emu^2 + q_etau^2
-!       A_amp(eps)  = q_eff2 / Q_W^2      (A=1 -> SM)
-!       Delta chi2(eps) = (1 - A_amp)^2 * N_tot_ROI
-!
-!   IDEALIZACIÓN (metodología acordada): esta rama mide la RESPUESTA
-!   INTRÍNSECA del blanco (sigma_CEvNS . N^2 . charge yield . umbral), NO la
-!   sensibilidad experimental alcanzable. Es la única fórmula que se puede
-!   aplicar de forma idéntica y honesta a Xe y a Ar (ninguno usa fondo real
-!   aquí). El límite OBSERVADO real de Xe (~111 ×SM) se reporta aparte y NO
-!   se compara directamente con este número.
-!   Para Ar solo es físico si se asume ARGÓN DEPLETADO (UAr): con Ar
-!   atmosférico el fondo de 39Ar (~1 Bq/kg) domina el ROI por ~1e6-1e7.
-!
-!   Entrada : nada (calcula el espectro SM internamente, como mainred100_nest)
-!             lee datos/nest_Ar_218V_dense.txt vía mod_tnr_to_e
-!   Salida  : datos/chi2_nsi_2DAr.dat   (eps_x  eps_y  Delta_chi2)
-!             datos/nsi_configAr.txt    (etiquetas de los ejes)
-!             datos/sensib_expo_Ar.dat  (multiplicador  exposicion_kgd  A_90)
-!
-!   Caso por defecto ipar=5: eps_ee^dV (x) vs eps_emu^dV (y)
-!
-! Pipeline: variante "ventana fisica de Ar" (N_e = 1..5, T_nr_max=6 keV).
-! Tesis   : metodologia.tex Sec. 5 (formalismo NSI), Sec. 6 (CONUS+ vs
-!           RED-100) y Sec. 9. El mapeo eps -> q_nsi (15 casos ipar) es
-!           IDENTICO a 2pchi2.f90 de CONUS+.
-! Decision metodologica clave: A_amp(eps) = q_eff2/Q_w^2; sin datos de Ar,
-!   la estadistica es Asimov de conteo puro (no residuo ON-OFF).
-!=======================================================================
+! Salida: datos/chi2_nsi_2DAr.dat (eps_x, eps_y, Delta_chi2),
+! datos/nsi_configAr.txt (etiquetas de los ejes),
+! datos/sensib_expo_Ar.dat (multiplicador, exposicion_kgd, A_90).
 program chi2red100_Ar
   use constants
   use mod_tnr_to_e
@@ -84,7 +60,7 @@ program chi2red100_Ar
   character(len=60)  :: xlabel, ylabel
   real(dp) :: dummy
 
-  datadir = '/home/oem/Desktop/Unipamplona/Trabajo de grado/Códigos/datos/'
+  datadir = '../../datos/'
   f_out   = trim(datadir)//'chi2_nsi_2DAr.dat'
   f_conf  = trim(datadir)//'nsi_configAr.txt'
   f_sens  = trim(datadir)//'sensib_expo_Ar.dat'

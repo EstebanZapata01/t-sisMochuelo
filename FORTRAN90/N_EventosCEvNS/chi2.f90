@@ -1,9 +1,6 @@
-!=======================================================================
-! Programa: chi2_sin2theta
-!   Calcula χ² para el ángulo de mezcla débil sin²θ_W usando los datos
-!   de CONUS+. Incluye minimización sobre el parámetro de nuisance α.
-!   Precalcula R_unit (eventos por kg para Q_W = 1) y luego barre sin²θ.
-!=======================================================================
+! Calcula chi^2 para el angulo de mezcla debil sin^2(theta_W) con los datos
+! de CONUS+, minimizando sobre el nuisance alpha. Precalcula R_unit
+! (eventos por kg para Q_W = 1) y luego barre sin^2(theta).
 program chi2_sin2theta
   use constants
   use quenching
@@ -23,7 +20,7 @@ program chi2_sin2theta
 
   s2w_min = 0.01_dp
   s2w_max = 0.50_dp
-  outdir = '/home/oem/Desktop/Unipamplona/Trabajo de grado/Códigos/datos/'
+  outdir = '../../datos/'
   filename = trim(outdir) // 'chi2_sin2theta.dat'
 
   ! Datos experimentales de CONUS+ (excesos en eventos por kg)

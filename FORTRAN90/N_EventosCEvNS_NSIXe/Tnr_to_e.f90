@@ -35,7 +35,7 @@ contains
     real(dp) :: T_temp, Qy_temp, F_temp
     character(len=200) :: archivo_datos
 
-    archivo_datos = '/home/oem/Desktop/Unipamplona/Trabajo de grado/Códigos/datos/nest_218V_dense.txt'
+    archivo_datos = '../../datos/nest_218V_dense.txt'
 
     open(newunit=u_in, file=trim(archivo_datos), status='old', iostat=iostat)
     if (iostat /= 0) then

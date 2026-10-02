@@ -1,15 +1,9 @@
-!=======================================================================
-! Programa: mainred100_nest (Asimov Dataset Absoluto - Flujo Explícito)
-!   + bloque de VALIDACION para contrastar con arXiv:2411.18641
-! Rol     : espectro SM absoluto de eventos CE$\nu$NS por bin de N_e
-!           RECONSTRUIDO en la ROI 4..7 (PE/27; migracion desde N_e verdadero
-!           k=1..15 via prob_migracion), con exposicion real (192 kg*dia FV).
-! Pipeline: integra flux x xsections_nest x binomial(k) x P(k->j) x eff_ROI(j) ->
-!           datos/eventos_sm_xe.dat y la tabla de validacion vs el paper.
-! Tesis   : metodologia.tex Sec. 3.3 (Ec. 19) y Sec. 4.
-! Decision metodologica clave: Asimov dN_i = R_i; eff_ROI se aplica al bin
-!   reconstruido (NO un 0.25 plano); ventana N_e reconstruido = 4..7.
-!=======================================================================
+! Espectro SM absoluto (Asimov) de eventos CEvNS por bin de N_e
+! RECONSTRUIDO en la ROI 4..7 (PE/27; migracion desde N_e verdadero k=1..15
+! via prob_migracion), a la exposicion real (192 kg*dia FV): integra
+! flujo x seccion_eficaz x binomial(k) x P(k->j) x eff_ROI(j) (aplicada al
+! bin reconstruido, no un 0,25 plano) -> datos/eventos_sm_xe.dat, mas un
+! bloque de validacion contra arXiv:2411.18641.
 program mainred100_nest
   use constants
   use mod_tnr_to_e
@@ -35,7 +29,7 @@ program mainred100_nest
   t_ref  = (/ 0.21_dp, 0.30_dp, 0.50_dp, 1.00_dp, 2.00_dp /)   ! keV, para dR/dT
   tn_ref = (/ 0.30_dp, 0.50_dp, 1.00_dp, 2.00_dp, 3.00_dp, 5.00_dp /) ! keV, para NEST
 
-  outdir = '/home/oem/Desktop/Unipamplona/Trabajo de grado/Códigos/datos/'
+  outdir = '../../datos/'
   filename = trim(outdir) // 'eventos_sm_xe.dat'
 
   call inicializar_nest()
@@ -101,7 +95,7 @@ program mainred100_nest
   !                    BLOQUE DE VALIDACION
   ! ====================================================================
   write(*,'(/,A)') '=================== VALIDACION (vs arXiv:2411.18641) ==================='
-  write(*,'(A,F12.5,A)')  ' Q_w = N - (1-4 s2w) Z            = ', QW_SM, '   (N=A-Z=77,293, Z=54, Ec.2 con 1/2)'
+  write(*,'(A,F12.5,A)')  ' Q_w = N - (1-4 s2w) Z            = ', QW_SM, '   (N=<A>-Z=77,3879, Z=54, Ec.2 con 1/2)'
   write(*,'(A,F12.3)')    ' Q_w^2 (en dsigma_dT)             = ', QW_SM**2
   write(*,'(A,ES12.4,A)') ' Flujo total phi                 = ', phi_total, ' nu/cm2/s'
   write(*,'(A,F10.4,A)')  ' Integral espectro (~nubar/fis)  = ', spectrum_integral, '   (paper: 6.75)'

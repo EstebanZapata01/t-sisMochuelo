@@ -1,15 +1,9 @@
-!=======================================================================
-! Módulo: mod_tnr_to_e (NEST 218 V/cm - ARGON - lectura robusta y dinámica)
-! Rol     : traduce retroceso T [keV] -> electrones via la tabla
-!           datos/nest_Ar_218V_dense.txt  (3 col: T, Qy, F), generada con
-!           python/nest_Ar.py usando el modelo LArNEST (NR de argon).
-! Pipeline: etapa "retroceso -> ionizacion"; misma interfaz que la de Xe
-!           (obtener_electrones_creados / obtener_fano / obtener_nest_binomial).
-! Tesis   : metodologia.tex Sec. 3.2 y Sec. 9.
-! Decision metodologica clave: LArNEST es sub-Poissoniano para NR
-!   (F ~ 0.11-0.15 en la ROI, ~0.65 en el umbral); mismo modelo binomial
-!   de Fano que Xe. NO se usa F=1.
-!=======================================================================
+! Traduce retroceso T [keV] a electrones de ionizacion via la tabla
+! datos/nest_Ar_218V_dense.txt (3 col: T, Qy, F), generada por
+! python/nest_Ar.py con el modelo LArNEST. Misma interfaz que la version
+! de Xe (obtener_electrones_creados / obtener_fano / obtener_nest_binomial).
+! LArNEST es sub-Poissoniano para retrocesos nucleares (F ~ 0,11-0,15 en la
+! ROI, ~0,65 en el umbral): mismo modelo binomial de Fano que Xe, no F=1.
 module mod_tnr_to_e
   use constants
   implicit none
@@ -31,7 +25,7 @@ contains
     real(dp) :: T_temp, Qy_temp, F_temp
     character(len=200) :: archivo_datos
 
-    archivo_datos = '/home/oem/Desktop/Unipamplona/Trabajo de grado/Códigos/datos/nest_Ar_218V_dense.txt'
+    archivo_datos = '../../datos/nest_Ar_218V_dense.txt'
 
     open(newunit=u_in, file=trim(archivo_datos), status='old', iostat=iostat)
     if (iostat /= 0) then

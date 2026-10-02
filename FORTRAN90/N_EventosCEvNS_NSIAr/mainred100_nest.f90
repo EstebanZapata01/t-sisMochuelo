@@ -1,12 +1,8 @@
-!=======================================================================
-! Programa: mainred100_nest (Asimov Dataset Absoluto - Flujo Explícito)
-!   + bloque de VALIDACION para contrastar con arXiv:2411.18641
-!   CLON de la carpeta de Xe; rutas de salida *_ar.dat.
-! Pipeline: espectro SM absoluto de eventos por bin de N_e.
-! Tesis   : metodologia.tex Sec. 3.3 (Ec. 19) y Sec. 9.
-! OJO: la ventana N_e=4..7 y la validacion vs Fig. 3 son propias del
-!   analisis de Xe; para la comparacion Xe-Ar usar chi2_ideal_nest.f90.
-!=======================================================================
+! Espectro SM absoluto (Asimov) de eventos por bin de N_e, con bloque de
+! validacion contra arXiv:2411.18641. Clon de la carpeta de Xe, rutas de
+! salida *_Ar.dat. La ventana N_e=4..7 y la validacion contra la Fig. 3 del
+! paper son propias del analisis de Xe; para la comparacion Xe-Ar usar
+! chi2_ideal_nest.f90.
 program mainred100_nest
   use constants
   use mod_tnr_to_e
@@ -31,7 +27,7 @@ program mainred100_nest
   t_ref  = (/ 0.21_dp, 0.30_dp, 0.50_dp, 1.00_dp, 2.00_dp /)   ! keV, para dR/dT
   tn_ref = (/ 0.30_dp, 0.50_dp, 1.00_dp, 2.00_dp, 3.00_dp, 5.00_dp /) ! keV, para NEST
 
-  outdir = '/home/oem/Desktop/Unipamplona/Trabajo de grado/Códigos/datos/'
+  outdir = '../../datos/'
   filename = trim(outdir) // 'eventos_sm_ar.dat'
 
   call inicializar_nest()

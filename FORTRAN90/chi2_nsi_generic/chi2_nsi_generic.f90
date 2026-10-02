@@ -1,49 +1,22 @@
-!=======================================================================
-! Archivo : chi2_nsi_generic.f90
-! Rol     : motor GENERICO chi2(A,alpha) + reduccion NSI a A_amp(eps),
-!           independiente del experimento (Z, N y los datos de entrada
-!           son parametros leidos de archivo, no constantes de modulo).
-! Pipeline: NO forma parte de la cadena de simulacion fisica (no calcula
-!           flujo, seccion eficaz ni NEST). Consume la SALIDA de esa
-!           cadena (dN/R_exp, sigma, R_pred por bin, ya integrados) que
-!           chi2.f90 (Xe) y 2pchi2.f90 (CONUS+) escriben con un bloque
-!           write() puramente aditivo (ver Sec. de validacion cruzada,
-!           metodologia.tex).
-! Tesis   : doc/metodologia.tex, seccion "Validacion cruzada: el mismo
-!           codigo con datos de Xe y de CONUS+". Objetivo: demostrar,
-!           corriendo UN SOLO binario dos veces, que el motor
-!           chi2(A,alpha)+NSI es agnostico al experimento.
-! Decision metodologica clave:
-!   - El bloque select case(ipar) (15 casos) y el chi2 se copian VERBATIM
-!     de chi2red100_nest.f90 y 2pchi2.f90 (ya validados contra el paper de
-!     RED-100 y contra la Tabla II de CONUS+). No se rederiva ni se
-!     "mejora" nada: es deliberadamente el mismo algoritmo, solo con Z, N
-!     y los datos de entrada parametrizados en vez de hardcodeados.
-!   - El termino de nuisance de flujo (prior gaussiano con sigma_alpha)
-!     se activa solo si sigma_alpha > 0 (caso CONUS+: 0.169). Con
-!     sigma_alpha <= 0 (centinela; caso RED-100/Xe) el ajuste es de un
-!     solo parametro: chi2(A) = S3 - 2*A*S1 + A^2*S2.
-!   - chi2.f90 y 2pchi2.f90 NO se modifican en su logica: solo reciben
-!     un bloque write() adicional al final que no altera ningun valor ya
-!     calculado ni ningun archivo de salida existente.
-! Entradas: archivo de texto (ruta en el 1er argumento de linea de
-!           comandos) con el formato:
-!             # Z  N  sigma_alpha  n_bins  ipar
-!               <Z> <N> <sigma_alpha> <n_bins> <ipar>
-!             # bin  dN_o_Rexp   sigma   R_pred
-!               1    dN(1)       sigma(1) R_pred(1)
-!               ...
-!               n_bins ...
-! Salidas : <prefijo>_resumen.txt   (Z,N,ipar,A_best,A_90,chi2_min,s_best,banda)
-!           <prefijo>_sin2theta.dat (sin2theta_W  A(s)  chi2  dchi2)
-!           <prefijo>_perfil.dat    (A  chi2_sinNuisance  chi2_conNuisance;
-!                                    mismo formato que chi2_ON_OFF_perfil.dat
-!                                    de chi2.f90, para graficarlo con el
-!                                    mismo estilo -- fig9_chi2_perfil.pdf --
-!                                    pero con datos de otro experimento)
-!           <prefijo>_nsi2D.dat     (eps_x eps_y chi2 ; grilla 1000x1000)
-!           donde <prefijo> es el 2do argumento de linea de comandos.
-!=======================================================================
+! Motor GENERICO chi2(A,alpha) + reduccion NSI a A_amp(eps), independiente
+! del experimento: Z, N y los datos de entrada son parametros leidos de
+! archivo, no constantes de modulo. No calcula flujo, seccion eficaz ni
+! NEST; consume la salida ya integrada (dN/R_exp, sigma, R_pred por bin)
+! que escriben chi2.f90 (Xe) y 2pchi2.f90 (CONUS+). El bloque select
+! case(ipar) (15 casos) y el chi2 son el mismo algoritmo, verbatim, de esos
+! dos programas (ya validados contra RED-100 y CONUS+); demuestra, con un
+! solo binario corrido dos veces, que el motor es agnostico al experimento.
+! El nuisance de flujo (prior gaussiano, sigma_alpha) se activa solo si
+! sigma_alpha > 0 (CONUS+: 0,169); con sigma_alpha <= 0 (centinela,
+! RED-100/Xe) el ajuste es de un solo parametro: chi2(A) = S3-2AS1+A^2 S2.
+!
+! Entrada: archivo de texto (1er argumento) con cabecera
+!   "Z  N  sigma_alpha  n_bins  ipar" y filas "bin  dN_o_Rexp  sigma  R_pred".
+! Salidas (prefijo = 2do argumento): <prefijo>_resumen.txt (Z, N, ipar,
+! A_best, A_90, chi2_min, s_best, banda), <prefijo>_sin2theta.dat,
+! <prefijo>_perfil.dat (mismo formato que chi2_ON_OFF_perfil.dat, para
+! graficar con el mismo estilo pero datos de otro experimento),
+! <prefijo>_nsi2D.dat (grilla 1000x1000 de eps_x, eps_y, chi2).
 program chi2_nsi_generic
   implicit none
   integer, parameter :: dp = kind(1.0d0)

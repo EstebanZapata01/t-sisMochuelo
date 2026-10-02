@@ -7,7 +7,6 @@ Salida: 3 columnas   ->   datos/nest_Ar_218V_dense.txt
 
 Mismo formato y misma metodologia que la de Xe (nest.py -> nest_218V_dense.txt);
 lo lee  FORTRAN90/N_EventosCEvNS_NSIAr/Tnr_to_e.f90.
-Tesis: metodologia.tex Sec. 3.2 y Sec. 9.
 
 --------------------------------------------------------------------------
 MODELO: nestpy 2.4.5 trae la clase  `nestpy.LArNEST`  con el modelo NR de
@@ -50,13 +49,6 @@ y se mantiene plano fuera de ese rango. Por debajo de ~2 keV (el ROI CEvNS de
 RED-100, N_e<=5 <-> T_nr ~ 0.1-1 keV) NO HAY MEDIDA: es LArNEST reescalado =
 EXTRAPOLACION DE MODELO. Se marca como tal.
 
-Tabla ER (nueva, OUTPUT_ER): yield de RETROCESO ELECTRONICO de LArNEST, para el
-fondo beta de 39Ar (el 39Ar decae por beta -> retroceso electronico). Alimenta
-N_e directamente (beta -> N_e -> extraccion), SIN paso PE. El extremo de baja
-energia (E_er < 0.2 keV) es tambien extrapolacion de modelo.
-
-39Ar: este script da el yield de senal (NR) y el yield ER para el fondo. El
-espectro beta y la normalizacion (actividad) viven en chi2_bkg_nest.f90.
 --------------------------------------------------------------------------
 """
 import numpy as np
@@ -80,10 +72,8 @@ RED_E  = np.array([2.40, 3.53, 4.52, 5.48, 7.63])          # keV (E_r medio)
 RED_QY = np.array([7.42, 6.99, 6.24, 5.77, 5.08])          # e-/keV
 RED_DQY = np.array([0.42, 0.34, 0.30, 0.26, 0.22])         # incert. (stat (+) sist en cuadratura)
 
-XE_TABLE  = "/home/oem/Desktop/Unipamplona/Trabajo de grado/Códigos/datos/nest_218V_dense.txt"
-OUTPUT    = "/home/oem/Desktop/Unipamplona/Trabajo de grado/Códigos/datos/nest_Ar_218V_dense.txt"
-OUTPUT_ER = "/home/oem/Desktop/Unipamplona/Trabajo de grado/Códigos/datos/nest_Ar_ER_218V.txt"
-EER_MIN, EER_MAX, N_EER = 0.02, 30.0, 4000   # malla ER para el fondo de 39Ar
+XE_TABLE  = "../datos/nest_218V_dense.txt"
+OUTPUT    = "../datos/nest_Ar_218V_dense.txt"
 # -----------------------------------------------------------------------
 
 print(f"nestpy / NEST: {nestpy.__nest_version__}")
@@ -170,32 +160,3 @@ for Tt in [0.20, 0.25, 0.35, 0.50, 0.70, 1.0, 2.0, 3.5, 5.0]:
     flag = "  (medido)" if Tt >= 2.0 else ""
     print(f"  {T_vals[j]:6.3f}   {Qy_vals[j]:9.3f}   {Qy_vals[j]*T_vals[j]:6.2f}   "
           f"{F_vals[j]:.4f}{flag}")
-
-# --------------------- tabla ER (fondo beta de 39Ar) -----------------
-Eer_vals = np.geomspace(EER_MIN, EER_MAX, N_EER)
-Qy_er = np.array([lar.get_er_yields(float(E), DRIFT_V, DENSITY).Ne / E for E in Eer_vals])
-# F_er: get_fano_er si esta disponible; si no, sub-Poissoniano suave ~0.3
-try:
-    F_er = np.array([max(lar.get_fano_er(float(E), DENSITY), 1e-3) for E in Eer_vals])
-    fer_note = "F_er = get_fano_er(E, rho) de LArNEST"
-except Exception:
-    F_er = np.full(N_EER, 0.3)
-    fer_note = "F_er = 0.3 constante (get_fano_er no disponible) - sistematico"
-
-with open(OUTPUT_ER, "w") as f:
-    f.write("# Tabla NEST para RED-100 con ARGON  (Ar, retroceso ELECTRONICO)\n")
-    f.write("# Uso: fondo beta de 39Ar (39Ar -> 39K + e- + nubar).  El espectro\n")
-    f.write("#      beta y la actividad viven en chi2_bkg_nest.f90.\n")
-    f.write(f"# Modelo: nestpy.LArNEST get_er_yields, E_drift={DRIFT_V} V/cm, rho={DENSITY}\n")
-    f.write(f"# {fer_note}\n")
-    f.write("# E_er < 0.2 keV: EXTRAPOLACION DE MODELO (sin datos ER de LAr a esa energia)\n")
-    f.write("# E_er[keV]   Qy_er[e-/keV]   F_er\n")
-    f.write(f"# N_puntos = {N_EER}\n")
-    for E, Q, Fe in zip(Eer_vals, Qy_er, F_er):
-        f.write(f"{E:.6e}   {Q:.6f}   {Fe:.6f}\n")
-
-print(f"\n'{OUTPUT_ER}' creado ({N_EER} puntos). Verificacion ER (N_e ~ E*Qy_er):")
-print("  E_er[keV]  Qy_er[e-/keV]  <Ne>")
-for Ee in [0.03, 0.05, 0.08, 0.12, 0.20, 0.50, 1.0, 5.0]:
-    j = int(np.argmin(np.abs(Eer_vals - Ee)))
-    print(f"  {Eer_vals[j]:8.4f}   {Qy_er[j]:10.2f}   {Qy_er[j]*Eer_vals[j]:6.2f}")

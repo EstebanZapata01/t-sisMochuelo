@@ -1,19 +1,12 @@
-!=======================================================================
-! Programa: chi2_nsi_2D (Versión CONUS+ / Germanio)
-!   - Usa matriz de resolución gaussiana para Germanio[cite: 6].
-!   - Datos experimentales de excesos de CONUS+[cite: 2].
-!   - Eje X (eps_x): Primera columna, usualmente sabor electrónico (ee).
-!   - Eje Y (eps_y): Segunda columna, sabores mu o tau.
-!
-! Rol en la tesis: REFERENCIA validada. Reproduce el ajuste NSI 2D de
-!   V. De Romeri, D. K. Papoulias, G. Sanchez Garcia, Phys. Rev. D 111,
-!   075025 (2025) (Fig. 4). El analisis NSI de RED-100
-!   (chi2red100_nest.f90 / chi2_ideal_nest.f90) es este mismo metodo
-!   portado a Xe/Ar: mismos 15 casos ipar, misma carga efectiva Ec. (9),
-!   misma minimizacion analitica de alpha. Lo que cambia: aqui hay DATOS
-!   (senal a 3.7 sigma) -> region PERMITIDA; en RED-100 no -> sensibilidad.
-! Tesis   : metodologia.tex Sec. 6 (CONUS+ frente a RED-100).
-!=======================================================================
+! Ajuste NSI 2D para CONUS+/Germanio: matriz de resolucion gaussiana de Ge,
+! datos experimentales de excesos de CONUS+. Reproduce el ajuste de
+! V. De Romeri, D. K. Papoulias, G. Sanchez Garcia, Phys. Rev. D 111,
+! 075025 (2025). eps_x = primera columna (tipicamente sabor ee), eps_y =
+! segunda columna (mu o tau). Es el mismo metodo que chi2red100_nest.f90 /
+! chi2_ideal_nest.f90 de RED-100 (mismos 15 casos de ipar, misma carga
+! efectiva, misma minimizacion analitica de alpha); la diferencia es que
+! aqui hay datos (senal a 3,7 sigma, region PERMITIDA) y en RED-100 no
+! (solo sensibilidad).
 program chi2_nsi_2D
   use constants
   use quenching
@@ -44,18 +37,18 @@ program chi2_nsi_2D
   deps_y = (eps_y_max - eps_y_min) / (n_y - 1)
   deps_x = (eps_x_max - eps_x_min) / (n_x - 1)
 
-  outdir = '/home/oem/Desktop/Unipamplona/Trabajo de grado/Códigos/datos/'
+  outdir = '../../datos/'
   filename = trim(outdir) // 'chi2_nsi_2Dconus.dat'
   configfile = trim(outdir) // 'nsi_config_conus.txt'
 
-  ! Datos experimentales CONUS+ (Excesos)[cite: 2]
+  ! Datos experimentales CONUS+ (Excesos)
   R_exp = [13.27, 38.06, 29.09, 21.37, 12.27, 4.92, 4.29, 0.06, 9.15, &
            2.42, 3.92, -2.55, 0.56, -10.52, -4.29, -8.78, -0.56, -0.93, 13.52]
   sigma_exp = [22.99, 15.70, 12.64, 12.21, 11.52, 11.58, 11.27, 10.77, 11.02, &
                10.28, 10.34, 10.77, 10.34, 10.15, 10.09, 9.90, 9.84, 9.78, 9.59]
 
   ! ================== 1. PRECALCULAR R_unit (QV2 = 1) ==================
-  ! Para Germanio es obligatorio usar la matriz de resolución[cite: 6]
+  ! Para Germanio es obligatorio usar la matriz de resolución
   call compute_resolution_matrix(npts_Eer, Eer_min, Eer_max, Eer_vals, K_matrix)
   QV2 = 1.0_dp 
   do i = 1, npts_Eer
@@ -140,7 +133,7 @@ program chi2_nsi_2D
         q_eff2 = (QW_SM + q_nsi_ee)**2 + q_nsi_emu**2 + q_nsi_etau**2
         R_th(:) = R_unit(:) * q_eff2
 
-        ! Minimización analítica de alpha[cite: 1]
+        ! Minimización analítica de alpha
         sum1 = sum((R_exp * R_th) / sigma_exp**2); sum2 = sum(R_th**2 / sigma_exp**2)
         alpha_best = (sum1 - sum2) / (sum2 + 1.0_dp/sigma_alpha**2)
         chi2 = sum(((R_exp - (1.0_dp + alpha_best)*R_th)**2) / sigma_exp**2) + (alpha_best/sigma_alpha)**2
