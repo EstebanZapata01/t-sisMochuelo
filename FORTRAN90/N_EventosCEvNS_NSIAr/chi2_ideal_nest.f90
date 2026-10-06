@@ -36,7 +36,7 @@ program chi2_ideal_nest
   character(len=*), parameter :: TAG = 'Ar'   ! <-- unica diferencia con la copia de Ar
 
   ! ----- grilla de integracion -----
-  integer,  parameter :: n_T = 800, n_E = 1000
+  integer,  parameter :: n_T = 800, n_E = 2000
   real(dp) :: T_nr, T_nr_min, T_nr_max, dT, dT_keV, E_nu, dE, peso
   real(dp) :: tasa_Comb, QW_SM, lambda
   integer  :: i_T, i_E, k, n_F, im
