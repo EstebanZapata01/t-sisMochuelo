@@ -18,10 +18,13 @@ si: solo el calculo y su verificacion contra el paper.
 ## Estructura
 
 ```
+correr_todo.sh               compila y corre todo el pipeline, en orden
+.gitignore                   excluye resultados regenerables y binarios
 FORTRAN90/
   N_EventosCEvNS/          Ge/CONUS+ original (sin NSI), referencia de validacion
   N_EventosCEvNS_NSI/      Ge/CONUS+ con NSI 2D y barrido de sin²θ_W
-  N_EventosCEvNS_NSIXe/    pipeline RED-100, blanco de xenon
+  N_EventosCEvNS_NSIXe/    pipeline RED-100, blanco de xenon (incluye el ajuste
+                            real chi2.f90 contra el residuo publicado)
   N_EventosCEvNS_NSIAr/    pipeline RED-100, blanco de argon
   chi2_nsi_generic/        motor NSI/sin²θ_W generico (el mismo codigo
                             corre con los datos de Xe y de CONUS+)
