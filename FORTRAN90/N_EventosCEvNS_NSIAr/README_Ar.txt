@@ -49,8 +49,8 @@ blancos se copio sin tocar; los cambios estan acotados a:
             simulacion en PE contra el residuo ON-OFF REAL de RED-100
             (A_90 ~ 76.6 xSM). Solo Xe; requiere el dato publicado. En esa misma
             corrida chi2.f90 (Xe) imprime ahora tambien RED-100 §V
-            (sensibilidad esperada): A_90_esp = 1 + sqrt(2.706/S2) ~ 126,
-            /sqrt(3) ~ 73 (reproduce la Tabla I de RED-100: SM2018 58, KI 90,
+            (sensibilidad esperada): A_90_esp = 1 + sqrt(2.706/S2) ~ 73,
+            /sqrt(3) ~ 42 (reproduce la Tabla I de RED-100: SM2018 58, KI 90,
             DB 56, INR 64) -> valida el metodo §V que chi2_bkg_nest.f90 aplica
             a Ar con fondo simulado.
 
@@ -134,7 +134,7 @@ A_90 en Dchi2 = 2.706 (su columna "sensibilidad" de la Tabla I: SM2018 58, KI 90
 DB 56, INR 64 xSM).
 
   Para Xe: §V sale del S2 que `chi2.f90` ya calcula.
-           A_90_esp = 1 + sqrt(2.706/S2) ~ 126 ; /sqrt(3) ~ 73  (RED-100 ajusta
+           A_90_esp = 1 + sqrt(2.706/S2) ~ 73 ; /sqrt(3) ~ 42  (RED-100 ajusta
            3 histogramas, aqui 1). Del orden de su Tabla I -> VALIDA el metodo.
   Para Ar: `chi2_bkg_nest.f90`, mismo metodo §V. No hay medida de fondo de Ar
            ni se simula ningun proceso de fondo (ver decision mas abajo): se usa
