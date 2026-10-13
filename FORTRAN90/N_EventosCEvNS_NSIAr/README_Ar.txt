@@ -47,7 +47,7 @@ blancos se copio sin tocar; los cambios estan acotados a:
 
   chi2.f90  NO se clono. Es RED-100 §VI (limite OBSERVADO): compara la
             simulacion en PE contra el residuo ON-OFF REAL de RED-100
-            (A_90 ~ 111 xSM). Solo Xe; requiere el dato publicado. En esa misma
+            (A_90 ~ 76.6 xSM). Solo Xe; requiere el dato publicado. En esa misma
             corrida chi2.f90 (Xe) imprime ahora tambien RED-100 §V
             (sensibilidad esperada): A_90_esp = 1 + sqrt(2.706/S2) ~ 126,
             /sqrt(3) ~ 73 (reproduce la Tabla I de RED-100: SM2018 58, KI 90,
@@ -90,7 +90,7 @@ Reglas de la comparacion:
       A_amp(eps)  = q_eff2 / Q_W^2 ,  Dchi2 = (1 - A_amp)^2 * N_tot_ROI.
     Se hace para N_e >= 1 y para N_e >= 4 (F de NEST).
   - El limite OBSERVADO real de Xe (rama chi2.f90, datos ON-OFF 2024:
-    A_90 ~ 111 xSM con nuisance, ~107 sin el) se reporta APARTE, en su propia
+    A_90 ~ 76.6 xSM, sin nuisance de flujo -- RED-100 no lo usa) se reporta APARTE, en su propia
     caja, NO en la misma tabla que la comparacion ideal. La distancia
     ideal -> real (~x235 en A_90 - 1) es el coste de fondos + cortes +
     sistematicos + ajuste a 1 histograma, y le aplicaria igual a un Ar real.
@@ -119,8 +119,8 @@ Resultado (F de NEST, 192 kg*dia)   [R_tot en ev/(kg dia), A_90 en xSM]
     del plano |eps| <= 1: solo el anillo "punto ciego" (q_eff^2 = Q_W^2) queda
     dentro del margen +/- del SM. Motivo: la NSI de quark down entra x(Z+2N)
     (~208 Xe, ~62 Ar) frente a Q_W ~ -37/-11, asi que |eps| ~ 0.05 ya cambia la
-    tasa > 2x. Es un LIMITE OPTIMISTA: el analisis REAL de Xe (A_90 ~ 111 xSM,
-    y A_amp max en |eps|<=1 es ~74 < 111) NO distingue del SM NINGUN punto de la
+    tasa > 2x. Es un LIMITE OPTIMISTA: el analisis REAL de Xe (A_90 ~ 76.6 xSM,
+    y A_amp max en |eps|<=1 es ~74 < 76.6) NO distingue del SM NINGUN punto de la
     caja. El alcance real esta mucho mas cerca de "nada".
 
 
@@ -128,7 +128,7 @@ Resultado (F de NEST, 192 kg*dia)   [R_tot en ev/(kg dia), A_90 en xSM]
 RED-100 §V PARA Ar: SENAL SIMULADA + NIVEL DE FONDO DECLARADO  (chi2_bkg_nest.f90)
 ================================================================================
 RED-100 hace dos analisis: §VI (limite OBSERVADO) compara la simulacion contra el
-residuo ON-OFF REAL -> A_90 ~ 111 xSM (solo Xe, `chi2.f90`); y §V (sensibilidad
+residuo ON-OFF REAL -> A_90 ~ 76.6 xSM (solo Xe, `chi2.f90`); y §V (sensibilidad
 ESPERADA), ANTES de usar el reactor ON: fondo + senal CEvNS simulada -> Asimov ->
 A_90 en Dchi2 = 2.706 (su columna "sensibilidad" de la Tabla I: SM2018 58, KI 90,
 DB 56, INR 64 xSM).
