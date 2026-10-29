@@ -1,0 +1,13 @@
+# resumen chi2_nsi_generic
+# entrada = /home/oem/Desktop/Unipamplona/Trabajo de grado/Códigos/datos/generic_input_conus.dat
+Z            =     32.000
+N            =     41.000
+ipar         =      5
+QW_SM        =       -19.7685
+A_best       =       1.060000
+chi2_min     =       7.342398
+chi2_min_ndof=       0.386442
+A_90         =         1.7400
+# --- barrido sin^2(theta_W) ---
+s_best        =     0.247000
+s_90CL_band   = [     0.161000 ,     0.335333 ]

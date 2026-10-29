@@ -1,0 +1,54 @@
+module constants
+  implicit none
+  integer, parameter :: dp = kind(1.0d0)
+
+  ! Constantes fundamentales
+  real(dp), parameter :: pi = 3.14159265358979323846_dp
+  real(dp), parameter :: GF = 1.1663787d-11
+  real(dp), parameter :: hbarc = 197.3269804d0
+  real(dp), parameter :: conv = (hbarc*1.0d-13)**2
+  real(dp), parameter :: NA = 6.02214076d23
+  real(dp), parameter :: amu = 931.4940954_dp
+  real(dp), parameter :: MeV2keV = 1000.0_dp
+
+  ! Germanio
+  real(dp), parameter :: A_Ge = 72.6_dp
+  real(dp), parameter :: M_Ge = A_Ge * amu
+  integer, parameter :: Z_Ge = 32
+  real(dp), parameter :: N_Ge = 41.0_dp
+
+  ! Lindhard
+  real(dp), parameter :: k_lind = 0.163_dp
+  real(dp), parameter :: alpha = 11.5_dp * Z_Ge**(-7.0_dp/3.0_dp)
+
+  ! Resolución CONUS+
+  real(dp), parameter :: sigma0 = 20.38d-6
+  real(dp), parameter :: eta = 2.96d-6
+  real(dp), parameter :: Fano = 0.1096_dp
+
+  ! Flujo
+  real(dp), parameter :: phi_total = 1.5d13
+
+  ! Exposición – ahora variables globales (se asignan en main)
+  real(dp) :: total_mass_kg = 2.83_dp
+  real(dp) :: exposure_kg_s = 0.0_dp
+  real(dp) :: exposure_atoms_s = 0.0_dp
+
+  ! Bins experimentales
+  integer, parameter :: nbins = 19
+  real(dp), parameter :: Erec_min = 160.0d-6
+  real(dp), parameter :: Erec_width = 10.0d-6
+  real(dp) :: threshold = 160.0d-6      ! umbral (se cambia por detector)
+
+  ! Mallas de integración
+  integer, parameter :: npts_Eer = 3000
+  real(dp), parameter :: Eer_min = 2.96d-6
+  real(dp), parameter :: Eer_max = 0.001_dp
+  integer, parameter :: npts_nu = 2000
+  real(dp), parameter :: E_nu_max = 10.0_dp
+  real(dp), parameter :: E_nu_min_flux = 2.0_dp
+  integer, parameter :: npts_gauss = 1000
+
+  ! Variable global para escalonamiento de la Carga Débil
+  real(dp) :: QV2 = 1.0_dp
+end module constants

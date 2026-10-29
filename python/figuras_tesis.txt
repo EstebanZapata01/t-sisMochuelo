@@ -1,0 +1,22 @@
+# script                  figura (PNG en datos/; se copia a Proyecto_LaTeX/figuras_metodologia)
+tmax_kinematica           fig_tmax_kinematica.png
+dsigma_bare_XeAr          fig_dsigma_dT_bare.png
+fig_sigma_total           fig_sigma_total.png
+fig_dsigma_nsi            fig_dsigma_nsi.png
+flujo_antineutrinos       fig_flujo_antineutrinos.png
+recoil_spectrum_XeAr      fig_recoil_XeAr.png
+fig_nest_qy_fano          fig_nest_qy_fano.png
+red100Xe                  fig_ionizationXe.png
+ne_prediction_XeAr        fig_ne_prediction_XeAr.png
+fig_umbral_electrones     fig_umbral_electrones.png
+fig_pe_migracion          fig_pe_migracion.png
+roi_cuts_validacion_Xe    fig_roi_cuts_Xe.png
+fig_aamp_1d_2d            fig_aamp_1d_2d.png
+fig_xe_residuo_fondo      fig_xe_residuo_fondo.png
+fig_perfiles_xe           fig_perfiles_xe.png
+fig_conus_A_eps           fig_conus_A_eps.png
+fig_conus_planos          fig_conus_planos.png
+waterfall_XeAr            fig_waterfall_3_integrado.png
+fig_sensibilidad_mapa     fig_sensibilidad_mapa.png
+fig_lugares_ciegos_XeAr   fig_lugares_ciegos_XeAr.png
+fig_joint_xear            fig_joint_xear.png

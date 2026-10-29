@@ -1,0 +1,13 @@
+# resumen chi2_nsi_generic
+# entrada = /home/oem/Desktop/Unipamplona/Trabajo de grado/Códigos/datos/generic_input_Xe.dat
+Z            =     54.000
+N            =     77.388
+ipar         =      5
+QW_SM        =       -37.4595
+A_best       =       4.580000
+chi2_min     =      18.234418
+chi2_min_ndof=       1.215628
+A_90         =        79.1400
+# --- barrido sin^2(theta_W) ---
+s_best        =     0.500000
+s_90CL_band   = [     0.000000 ,     0.500000 ]
