@@ -1,0 +1,8 @@
+# Senal CEvNS simulada (SM2018) y fondo medido (reactor apagado) por bin de N_e reconstruido, antes y despues de los cortes,
+# en cuentas/(kg dia) (arXiv:2411.18641v1, pagina 6). Metodo: pdftocairo -svg; ejes calibrados con las marcas mayores de los ejes.
+# Generado por python/extrae_pdf_red100.py
+Ne,senal_antes,senal_despues,fondo_antes,fondo_despues
+4,1.455138e-02,2.000339e-03,7.293224e+02,3.436761e+00
+5,1.192308e-02,3.900048e-03,4.332540e+02,4.466956e+00
+6,2.080131e-03,1.255562e-03,4.144856e+01,1.489003e+00
+7,2.513003e-04,1.844070e-04,3.913162e+00,3.959266e-01

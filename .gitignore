@@ -1,0 +1,32 @@
+# Se versionan los programas, sus datos de entrada y los resultados.
+# Las graficas y los scripts que las hacen se quedan solo en el computador.
+*.o
+*.mod
+__pycache__/
+.claude/
+*.png
+*.pdf
+*.bak*
+datos/logs/
+
+# FORTRAN90: solo fuentes y notas (los ejecutables no tienen extension)
+FORTRAN90/**
+!FORTRAN90/**/
+!FORTRAN90/**/*.f90
+!FORTRAN90/**/*.txt
+
+# python: solo los modulos que no grafican
+python/*
+!python/exporta_datos_tutor.py
+!python/extrae_pdf_red100.py
+!python/leer_fortran.py
+!python/nest.py
+!python/nest_Ar.py
+!python/nsi_core.py
+!python/tabla_fondo_Ar.py
+!python/valida_conus.py
+
+# mallas chi2 2D (40-55 MB cada una): se regeneran con los programas Fortran
+datos/chi2_nsi_2D*.dat
+datos/chi2_nsi_conjunto.dat
+datos/*_nsi2D.dat
