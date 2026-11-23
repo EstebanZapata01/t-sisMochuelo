@@ -1,13 +1,7 @@
 !=======================================================================
-! Archivo : mod_detector.f90
-! Rol     : respuesta del detector en fotoelectrones (PE): ganancia
-!           SEG = 27 PE/e-, resolucion de un electron unico sig1, y
-!           conversion N_e -> PE.
-! Pipeline: etapa "extraccion / PE" -> la usan red100PE y mainred100_nest
-!           para el espectro en energia corregida [PE] que ajusta chi2.f90.
-! Tesis   : metodologia.tex Sec. 3.3 y Sec. 4 (ajuste 1D ON-OFF).
-! Decision metodologica clave: SEG/sig1 son de LXe; en la carpeta de Ar
-!   este modulo NO es fisico (solo diagnostico), ver Sec. 9.
+! Módulo: mod_detector (Xe)
+!   Respuesta en fotoelectrones: ganancia SEG = 27 PE/e-, ancho de un
+!   electron sig1, migracion N_e -> PE y eficiencia por bin reconstruido.
 !=======================================================================
 module mod_detector
   use constants, only: dp, eff_ROI
@@ -35,9 +29,8 @@ module mod_detector
 contains
 
   !-------------------------------------------------------------------
-  ! cargar_SE_data: mantiene el mismo nombre y firma que el original.
-  ! El argumento 'filename' se ignora — las gaussianas se calculan
-  ! analíticamente. El resto del código no necesita cambiar nada.
+  ! cargar_SE_data: calcula las gaussianas de k electrones (el argumento
+  ! 'filename' no se usa)
   !-------------------------------------------------------------------
   subroutine cargar_SE_data(filename)
     character(len=*), intent(in) :: filename
@@ -76,8 +69,7 @@ contains
   end subroutine cargar_SE_data
 
   !-------------------------------------------------------------------
-  ! respuesta_empirica: mismo nombre, misma firma, mismo resultado [PE^-1].
-  ! Ahora interpola sobre la gaussiana pre-calculada en lugar del PCHIP.
+  ! respuesta_empirica: densidad en PE de k electrones [PE^-1], interpolada
   !-------------------------------------------------------------------
   function respuesta_empirica(S, k) result(val)
     real(dp), intent(in) :: S
@@ -91,14 +83,14 @@ contains
     if (S <= x_grid(1))      then; val = y_gauss(1,      k); return; end if
     if (S >= x_grid(N_GRID)) then; val = y_gauss(N_GRID, k); return; end if
 
-    ! Búsqueda binaria (idéntica al original)
+    ! Búsqueda binaria
     lo = 1; hi = N_GRID
     do while (hi - lo > 1)
        mid = (lo + hi) / 2
        if (S >= x_grid(mid)) then; lo = mid; else; hi = mid; end if
     end do
 
-    ! Interpolación lineal (idéntica al original)
+    ! Interpolación lineal
     val = y_gauss(lo, k) + (y_gauss(hi, k) - y_gauss(lo, k)) &
           * (S - x_grid(lo)) / (x_grid(hi) - x_grid(lo))
 
@@ -116,8 +108,7 @@ contains
   end function respuesta_gauss
 
   !-------------------------------------------------------------------
-  ! N_e RECONSTRUIDO = PE corregido / SEG, al entero mas cercano, dentro de la
-  ! ROI (110-189 PE); 0 fuera. Es el N_e del eje de las senales del paper.
+  ! N_e reconstruido = PE / SEG redondeado, dentro de la ROI (110-189 PE); 0 fuera
   !-------------------------------------------------------------------
   function bin_ne_rec(S) result(n)
     real(dp), intent(in) :: S

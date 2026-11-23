@@ -1,12 +1,6 @@
 !=======================================================================
 ! Módulo: mod_stats
-! Propósito: Herramientas estadísticas para resolución de detectores.
-! Pipeline: expone binomial_prob(k, n, p) -> PMF de N_e extraidos
-!           (Ec. 18 de metodologia.tex); la usan red100_nest, red100PE,
-!           mainred100_nest y chi2_ideal_nest.
-! Tesis   : metodologia.tex Sec. 3.2 (modelo binomial de Fano).
-! Decision metodologica clave: el N_e no es Poisson; se propaga en forma
-!   cerrada como binomial (media, varianza de NEST) adelgazada por EEE.
+! Probabilidades de Poisson y binomial para el número de electrones.
 !=======================================================================
 module mod_stats
   use constants, only: dp
@@ -49,7 +43,7 @@ contains
     
   end function poisson_prob
 
-	! Dentro de mod_stats.f90, añade después de poisson_prob:
+  ! Probabilidad binomial de k éxitos en n intentos
   function binomial_prob(k, n, p) result(prob)
     integer, intent(in) :: k, n
     real(dp), intent(in) :: p

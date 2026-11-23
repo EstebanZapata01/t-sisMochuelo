@@ -1,18 +1,10 @@
 !=======================================================================
 ! Programa: chi2_nsi_2D (Versión CONUS+ / Germanio)
-!   - Usa matriz de resolución gaussiana para Germanio[cite: 6].
-!   - Datos experimentales de excesos de CONUS+[cite: 2].
+!   - Usa matriz de resolución gaussiana para Germanio.
+!   - Datos experimentales de excesos de CONUS+.
 !   - Eje X (eps_x): Primera columna, usualmente sabor electrónico (ee).
 !   - Eje Y (eps_y): Segunda columna, sabores mu o tau.
-!
-! Rol en la tesis: REFERENCIA validada. Reproduce el ajuste NSI 2D de
-!   V. De Romeri, D. K. Papoulias, G. Sanchez Garcia, Phys. Rev. D 111,
-!   075025 (2025) (Fig. 4). El analisis NSI de RED-100
-!   (chi2red100_nest.f90 / chi2_ideal_nest.f90) es este mismo metodo
-!   portado a Xe/Ar: mismos 15 casos ipar, misma carga efectiva Ec. (9),
-!   misma minimizacion analitica de alpha. Lo que cambia: aqui hay DATOS
-!   (senal a 3.7 sigma) -> region PERMITIDA; en RED-100 no -> sensibilidad.
-! Tesis   : metodologia.tex Sec. 6 (CONUS+ frente a RED-100).
+!   Reproduce el ajuste NSI 2D de De Romeri et al., PRD 111, 075025 (2025).
 !=======================================================================
 program chi2_nsi_2D
   use constants
@@ -37,13 +29,8 @@ program chi2_nsi_2D
   character(len=50)  :: xlabel, ylabel
 
   ! ================== CONFIGURACIÓN DEL BARRIDO ==================
-  ! ipar: 5 por defecto (sin argumentos, igual que siempre); opcionalmente
-  ! por linea de comandos (ej. para los otros planos de la Fig. 4 de
-  ! CONUS+). Con ipar!=5 el .dat/.txt de la grilla llevan el sufijo
-  ! _ipar<N> para no pisar los de ipar=5 que usa el resto del pipeline;
-  ! generic_input_conus.dat SI se sobreescribe siempre (es aditivo por
-  ! diseno) -- volver a correr con ipar=5 al final restaura la validacion
-  ! cruzada Xe<->CONUS+.
+  ! ipar = 5 por defecto, o el primer argumento. Con ipar /= 5 las salidas
+  ! llevan el sufijo _ipar<N>; generic_input_conus.dat se escribe siempre.
   block
     character(len=20) :: arg
     integer :: nargs
@@ -69,14 +56,14 @@ program chi2_nsi_2D
      write(configfile, '(A,A,I0,A)') trim(outdir), 'nsi_config_conus_ipar', ipar, '.txt'
   end if
 
-  ! Datos experimentales CONUS+ (Excesos)[cite: 2]
+  ! Datos experimentales CONUS+ (excesos)
   R_exp = [13.27, 38.06, 29.09, 21.37, 12.27, 4.92, 4.29, 0.06, 9.15, &
            2.42, 3.92, -2.55, 0.56, -10.52, -4.29, -8.78, -0.56, -0.93, 13.52]
   sigma_exp = [22.99, 15.70, 12.64, 12.21, 11.52, 11.58, 11.27, 10.77, 11.02, &
                10.28, 10.34, 10.77, 10.34, 10.15, 10.09, 9.90, 9.84, 9.78, 9.59]
 
   ! ================== 1. PRECALCULAR R_unit (QV2 = 1) ==================
-  ! Para Germanio es obligatorio usar la matriz de resolución[cite: 6]
+  ! Para Germanio es obligatorio usar la matriz de resolución
   call compute_resolution_matrix(npts_Eer, Eer_min, Eer_max, Eer_vals, K_matrix)
   QV2 = 1.0_dp 
   do i = 1, npts_Eer
@@ -89,17 +76,13 @@ program chi2_nsi_2D
 
   QW_SM = -N_Ge/2.0_dp + (1.0_dp - 4.0_dp*sin2th_SM)/2.0_dp * Z_Ge
 
-  ! ================== 1b. VOLCADO ADITIVO para chi2_nsi_generic ==================
-  ! Validacion cruzada Xe <-> CONUS+ con el MISMO motor chi2+NSI (ver
-  ! metodologia.tex). NO altera ningun calculo/archivo anterior: solo agrega
-  ! este archivo nuevo con los datos crudos de entrada. R_pred se guarda como
-  ! R_unit(bin)*QW_SM^2, es decir la prediccion SM completa (eps=0), en la
-  ! misma convencion que R_SM en chi2.f90 (Xe).
+  ! ================== 1b. ENTRADA PARA chi2_nsi_generic ==================
+  ! R_pred = R_unit*QW_SM^2 es la prediccion del SM por bin.
   block
     integer :: u_gen, ib
     open(newunit=u_gen, file=trim(outdir)//'generic_input_conus.dat', status='replace')
     write(u_gen,'(A)') '# Z  N  sigma_alpha  n_bins  ipar'
-    write(u_gen,'(F8.2,F8.2,F8.4,2I6)') real(Z_Ge,dp), N_Ge, sigma_alpha, nbins, ipar
+    write(u_gen,'(F8.2,F10.4,F8.4,2I6)') real(Z_Ge,dp), N_Ge, sigma_alpha, nbins, ipar
     write(u_gen,'(A)') '# bin  R_exp  sigma_exp  R_pred(=R_unit*QW_SM^2)'
     do ib = 1, nbins
        write(u_gen,'(I5,3ES16.7)') ib, R_exp(ib), sigma_exp(ib), R_unit(ib)*QW_SM**2
@@ -145,11 +128,7 @@ program chi2_nsi_2D
   close(u_out)
   write(*,*) 'Archivo CONUS+ generado para ipar=', ipar
 
-  ! ================== 4. CORTES 1D FINOS, el otro parametro EXACTO en 0 ==================
-  ! El corte 1D de la seccion 3 toma la fila/columna del grid 2D mas CERCANA
-  ! a 0 (resolucion deps~0.002), no el otro parametro EXACTAMENTE en 0; eso
-  ! da intervalos levemente asimetricos. Aqui se barre cada eje por separado
-  ! con el otro en 0.0 exacto, igual que la Tabla II de De Romeri et al.
+  ! ================== 4. CORTES 1D (el otro parametro en 0) ==================
   block
     integer, parameter :: n_1d = 4000
     integer :: k

@@ -1,41 +1,14 @@
 !=======================================================================
-! Programa: chi2_ON_OFF_1D.f90
-! Proposito: Leer los datos ON-OFF digitalizados de la Fig. 8 de
-!            arXiv:2411.18641 (paper de resultados de RED-100) y hacer
-!            el analisis chi2 1D sobre la amplitud de senal CEvNS.
+! Programa: chi2_ON_OFF_1D
+!   Ajuste chi2 de la amplitud A de CEvNS al residuo ON-OFF de RED-100
+!   (arXiv:2411.18641). Como en el articulo, A es el unico parametro:
+!     chi2(A) = Sum (dN_i - A R_i)^2/s_i^2 = S3 - 2 A S1 + A^2 S2
+!     A_best = S1/S2,   A_90 = A_best + sqrt(2.706/S2)
 !
-! Metodo (RED-100 SV/SVI: la amplitud A es el UNICO parametro del ajuste;
-!         "the amplitude ... the only parameter varied in a fit"):
-!   chi2(A) = Sum (dNi - A*Ri)^2/si^2  =  S3 - 2*A*S1 + A^2*S2
-!
-!   Donde:
-!     A      = amplitud de la senal CEvNS  (A=1 -> prediccion SM exacta)
-!     dNi    = residuo ON-OFF digitalizado del articulo [cuentas/kg/dia]
-!     si     = incertidumbre estadistica en cada bin  [cuentas/kg/dia]
-!     Ri     = prediccion CEvNS SM en bin i  [cuentas/kg/dia]
-!
-!   NO se anade nuisance de flujo: el 16.9% que usa el analisis de CONUS+
-!   (De Romeri et al., PRD 111, 075025, Ec. 33) es un presupuesto
-!   sistematico especifico de germanio (umbral de Ge 14.1%, quenching de
-!   Ge 7.3%, ...) y RED-100 no usa nuisance. Sus sistematicos se tratan
-!   como corridas de reemplazo discretas (ver metodologia.tex).
-!
-!   Solucion cerrada:
-!     A_best  = S1/S2 ;  chi2_min = S3 - S1^2/S2
-!     A_90    = A_best + sqrt(2.706/S2)   (test de una cola, 1 g.d.l.)
-!
-! Archivos de entrada:
-!   ionization_spectra_detallado.dat  ->  prediccion de red100PE.f90
-!
-! Archivos de salida:
-!   chi2_ON_OFF_perfil.dat  ->  A  chi2(A)
-!   chi2_ON_OFF_banda.dat   ->  PE R_SM banda_sup banda_inf datos sigma
-!
-! Pipeline: unica rama con DATOS REALES de RED-100. NO se clona a Ar.
-! Tesis   : metodologia.tex Sec. 4 (reproduccion del analisis de Xe, P1).
-!           Resultado A_90 ~ 76.6 xSM (observado); la diferencia con la
-!           Tabla I del paper viene de la migracion entre N_e verdadero y
-!           reconstruido, mas el conteo triple de los tres histogramas.
+!   Entrada: ionization_spectra_detallado.dat (de red100PE.f90) y
+!            red100_residuo_ONOFF_fig8.csv
+!   Salida : chi2_ON_OFF_perfil.dat, chi2_ON_OFF_banda.dat,
+!            generic_input_Xe.dat, sensib_real_Xe.dat
 !=======================================================================
 program chi2_ON_OFF_1D
   use constants, only: dp, Z_Ge, N_Ge
@@ -57,9 +30,7 @@ program chi2_ON_OFF_1D
 
   ! Parametros del analisis
   real(dp), parameter :: dchi2_90 = 2.706_dp
-  ! exposicion base 2024: volumen fiducial (arXiv:2411.18641: 331 kg*dia
-  ! totales, 192 en FV)
-  real(dp), parameter :: exposure_kgd = 192.0_dp
+  real(dp), parameter :: exposure_kgd = 192.0_dp   ! exposicion de 2024 en el volumen fiducial
   integer,  parameter :: N_scan   = 10000
 
   ! Cantidades intermedias
@@ -89,9 +60,7 @@ program chi2_ON_OFF_1D
   f_banda  = trim(datadir)//'chi2_ON_OFF_banda.dat'
 
   ! ==================================================================
-  ! 1. RESIDUO ON-OFF DE RED-100 (panel de energia): datos/red100_residuo_ONOFF_fig8.csv
-  !    (extraido de la geometria vectorial del PDF con python/extrae_pdf_red100.py).
-  !    Filas 'panel,x,dN,sigma,limite90'; aqui solo el panel E (energia corregida [PE]).
+  ! 1. RESIDUO ON-OFF DE RED-100 (panel E, en PE), leido del PDF del articulo
   ! ==================================================================
   n_datos = 0
   open(newunit=u_dat, file=trim(datadir)//'red100_residuo_ONOFF_fig8.csv', status='old', action='read')
@@ -108,13 +77,9 @@ program chi2_ON_OFF_1D
   write(*,'(A,I3,A)') '  [1] Cargados ', n_datos, ' bins ON-OFF (extraidos del PDF)'
 
   ! ==================================================================
-  ! 2. LEER PREDICCION SM (espectro teorico de red100PE.f90)
-  !    Formato (9 col): PE_center  Total(1SE..15SE)  1SE ... 7SE
-  !    La prediccion es el espectro TOTAL en PE (incluye la migracion desde
-  !    N_e verdadero < 4) por el eff_ROI del bin de N_e RECONSTRUIDO
-  !    (PE/27, ventanas +-0.5 e- recortadas a 110-189 PE; eff_ROI digitalizada
-  !    de la senal antes/despues de cortes de arXiv:2411.18641) y por el
-  !    cociente ancho de bin de datos / ancho de rejilla (5.27/5 PE).
+  ! 2. LEER PREDICCION SM (espectro en PE de red100PE.f90)
+  !    Se usa el total, por la eficiencia del bin reconstruido y por el
+  !    cociente de anchos de bin (datos / rejilla).
   ! ==================================================================
   n_pred = 0
   open(newunit=u_pred, file=f_pred, status='old', action='read')
@@ -182,17 +147,11 @@ program chi2_ON_OFF_1D
   end do
 
   ! ==================================================================
-  ! 3b. VOLCADO ADITIVO para chi2_nsi_generic (validacion cruzada
-  !     Xe <-> CONUS+ con el MISMO motor chi2+NSI, ver metodologia.tex).
-  !     NO altera ningun calculo/archivo anterior; solo agrega este
-  !     archivo nuevo con los datos crudos de entrada (dN, sigma, R_SM)
-  !     que ya se acaban de calcular arriba. Z, N = A-Z de constants.f90.
+  ! 3b. ENTRADA PARA chi2_nsi_generic
   ! ==================================================================
   block
     integer :: u_gen, ig
-    ! sigma_alpha = -1 => centinela "sin nuisance de flujo" para
-    ! chi2_nsi_generic (RED-100 ajusta solo la amplitud). CONUS+ escribe
-    ! 0.169 en su propio generic_input_conus.dat.
+    ! sigma_alpha = -1: sin parametro de molestia
     open(newunit=u_gen, file=trim(datadir)//'generic_input_Xe.dat', status='replace')
     write(u_gen,'(A)') '# Z  N  sigma_alpha  n_bins  ipar'
     write(u_gen,'(2F10.4,F8.4,2I6)') Z_Ge, N_Ge, -1.0_dp, n_datos, 5
@@ -218,15 +177,8 @@ program chi2_ON_OFF_1D
   end do
 
   ! ==================================================================
-  ! 5a. RESULTADO (analitico, sin nuisance)
-  !     chi2(A) = S3 - 2*A*S1 + A^2*S2   (parabola exacta)
-  !     El minimo sin restringir esta en S1/S2; como una amplitud CEvNS
-  !     es fisicamente >= 0 (es un reescalado de tasa), se toma
-  !       A_best = max(S1/S2, 0)
-  !     y el limite se mide desde ese A_best fisico:
-  !       Dchi2(A) = chi2(A) - chi2(A_best) = 2.706
-  !     Con A_best = 0 (dato negativo/compatible con cero senal):
-  !       A_90 = [ S1 + sqrt(S1^2 + 2.706*S2) ] / S2
+  ! 5a. RESULTADO. A_best = max(S1/S2, 0), porque la amplitud no puede
+  !     ser negativa; si A_best = 0, A_90 = [S1 + sqrt(S1^2 + 2.706 S2)]/S2
   ! ==================================================================
   block
     real(dp) :: A_best_raw
@@ -258,16 +210,8 @@ program chi2_ON_OFF_1D
   end block
 
   ! ==================================================================
-  ! 5c. SENSIBILIDAD ESPERADA  (RED-100 SV)
-  !   Asimov: el "dato" es la senal SM  =>  dN_i = R_i, A_best = 1.
-  !   chi2(A) = (1-A)^2 * sum_i R_i^2/sigma_i^2 = (1-A)^2 * S2
-  !   A_90_esperado = 1 + sqrt(2.706/S2).
-  !   Usa las MISMAS sigma_i del residuo ON-OFF publicado (que ya llevan la
-  !   estadistica del fondo); no se simula ningun fondo para Xe.
-  !   Reproduce (salvo el factor sqrt(3) por ajustar 1 histograma en vez de
-  !   los 3 de RED-100) la columna "sensibilidad" de la Tabla I de
-  !   arXiv:2411.18641 (SM2018 58, KI 90, DB 56, INR 64 xSM). Valida el
-  !   metodo SV que chi2_bkg_nest.f90 (Ar) aplica con fondo simulado.
+  ! 5c. SENSIBILIDAD ESPERADA (Asimov, dN_i = R_i): A_90 = 1 + sqrt(2.706/S2),
+  !     con las mismas sigma_i del residuo publicado
   ! ==================================================================
   write(*,'(/,A)')     '  +--------------------------------------------------+'
   write(*,'(A)')       '  |   SENSIBILIDAD ESPERADA (Asimov, RED-100 SV)     |'
@@ -278,8 +222,7 @@ program chi2_ON_OFF_1D
   write(*,'(A)')       '  +--------------------------------------------------+'
 
   ! ==================================================================
-  ! 5b. PERFIL chi2(A) (sin nuisance: RED-100 ajusta solo la amplitud)
-  !     chi2(A) = S3 - 2*A*S1 + A^2*S2   (parabola exacta en A)
+  ! 5b. PERFIL chi2(A)
   ! ==================================================================
   open(newunit=u_perfil, file=f_perfil, status='replace')
   write(u_perfil,'(A)') '# A   chi2(A)'
@@ -291,12 +234,12 @@ program chi2_ON_OFF_1D
   close(u_perfil)
 
   ! ==================================================================
-  !            VALIDACION EXTRA (vs arXiv:2411.18641)
+  ! VALIDACION: chi2 por bin y compatibilidad con el SM
   ! ==================================================================
   block
     real(dp) :: chi2_1, dchi2_SM, sumRSM, sumAbsdN, contrib
     integer  :: nb
-    chi2_1   = S3 - 2.0_dp*S1 + S2          ! chi2(A=1), sin nuisance
+    chi2_1   = S3 - 2.0_dp*S1 + S2          ! chi2(A=1)
     dchi2_SM = chi2_1 - chi2_min_sin
     sumRSM = sum(R_SM(1:n_datos)); sumAbsdN = sum(abs(dN_dat(1:n_datos)))
 
@@ -319,21 +262,8 @@ program chi2_ON_OFF_1D
   end block
 
   ! ==================================================================
-  ! 5d. PROYECCION de A_90 vs. EXPOSICION (rama esperada, Asimov, SIN
-  !     nuisance; aditivo, no altera nada de arriba).
-  !
-  !     Sustituyendo el residuo medido por la prediccion SM (dN_i -> R_i)
-  !     se tiene S1 = S2 = S3 y A_best = 1. Aumentar la exposicion un
-  !     factor mult equivale, en estadistica de conteo, a
-  !     sigma_i -> sigma_i/sqrt(mult), es decir S2 -> mult*S2, de modo que
-  !
-  !         A_90_esperado(mult) = 1 + sqrt(2.706 / (mult * S2)).
-  !
-  !     Monotona decreciente y -> 1 cuando mult -> infinito: la estadistica
-  !     sola NO impone piso. El limite real de RED-100 lo ponen los
-  !     sistematicos discretos (modelo de espectro 63-94, yield NEST
-  !     27-135, EEE 43-78 xSM; ver metodologia.tex "brecha ideal->real")
-  !     y la extrapolacion a 1 anio del propio SVII (15-20 xSM).
+  ! 5d. A_90 esperado frente a la exposicion: multiplicar la exposicion por
+  !     mult da S2 -> mult*S2, asi que A_90 = 1 + sqrt(2.706/(mult S2))
   ! ==================================================================
   block
     integer, parameter :: n_mult = 8
@@ -353,8 +283,7 @@ program chi2_ON_OFF_1D
   end block
 
   ! ==================================================================
-  ! 6. GUARDAR BANDA PARA LA FIGURA
-  !    Columnas: PE_center R_SM A90*R_SM -A90*R_SM delta_ON_OFF sigma
+  ! 6. GUARDAR LA BANDA A_90*R_SM JUNTO A LOS DATOS
   ! ==================================================================
   open(newunit=u_banda, file=f_banda, status='replace')
   write(u_banda,'(A)') &

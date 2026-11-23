@@ -1,26 +1,13 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-VALIDACION del motor NSI contra CONUS+ (De Romeri, Papoulias, Sanchez Garcia,
-Phys. Rev. D 111, 075025 (2025)).
+Compara los intervalos NSI de CONUS+ calculados con 2pchi2.f90 con los de
+la Tabla II de De Romeri et al., PRD 111, 075025 (2025).
 
-A diferencia de RED-100 (Xe: limite superior debil; Ar: proyeccion sin datos),
-CONUS+ TIENE datos reales con exceso a 3.7 sigma y publica cotas numericas
-(Tabla II). Reproducirlas con el mismo motor chi2 (analitico en alpha) que se
-uso para Xe es una validacion independiente de TODA la maquinaria NSI:
-prediccion (resolucion Ge + quenching Lindhard + seccion eficaz) + estadistica.
+Toma los cortes 1D de cada eje (el otro parametro en 0), calcula
+Dchi2 = chi2 - min(chi2) y saca los intervalos con Dchi2 <= 1.
 
-Metodo:
-  1. Se corre FORTRAN90/N_EventosCEvNS_NSI/chi2_nsi (2pchi2.f90) que escribe
-     datos/chi2_nsi_2Dconus.dat  (grilla eps_x eps_y chi2, ipar fijo).
-  2. Aqui se toma el corte 1D a lo largo de cada eje (el otro parametro = 0),
-     se calcula Dchi2 = chi2 - min(chi2) y se extraen los intervalos con
-     Dchi2 <= 1  (1 sigma, 1 g.d.l., que es como esta hecha la Tabla II).
-  3. Se comparan con los valores publicados.
-
-Uso:
-    python3 valida_conus.py                 # usa el .dat ya generado
-    (para otro ipar: editar 'ipar' en 2pchi2.f90, recompilar y re-correr)
+Uso: python3 valida_conus.py   (despues de correr 2pchi2.f90)
 """
 import numpy as np
 import os
@@ -139,8 +126,7 @@ def main():
     UMBRAL_90 = 2.706        # 1 g.d.l., 90 % C.L. (referencia)
 
     for eje, lab in (("x", xl), ("y", yl)):
-        # corte 1D FINO con el otro parametro EXACTO en 0 (no la fila/columna
-        # mas cercana del grid 2D, que deja intervalos levemente asimetricos).
+        # corte 1D fino, con el otro parametro en 0
         d1 = np.loadtxt(f"{BASE}/chi2_nsi_1Dconus_{eje}.dat", comments="#")
         x, z = d1[:, 0], d1[:, 1]
         dchi2 = z - z.min()

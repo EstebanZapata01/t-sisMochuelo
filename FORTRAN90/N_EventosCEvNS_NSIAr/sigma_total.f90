@@ -1,5 +1,5 @@
 !=======================================================================
-! Programa: sigma_total (Ar) -- gemelo de N_EventosCEvNS_NSIXe/sigma_total.f90
+! Programa: sigma_total (Ar), igual que el del xenon
 !=======================================================================
 program sigma_total
   use constants
@@ -29,7 +29,7 @@ program sigma_total
      sigma = 0.0_dp
      do i_T = 1, N_TMID
         T_MeV = (real(i_T,dp) - 0.5_dp) * dT
-        ! dsigma_dT da cm^2/keV; integrar en dT_keV, no en dT[MeV].
+        ! dsigma_dT esta en cm^2/keV: se integra en keV
         sigma = sigma + dsigma_dT(E_nu, T_MeV) * dT * 1000.0_dp
      end do
      sigma_lin = (GF**2 / pi) * QW_SM**2 * E_nu**2 * hbarc2

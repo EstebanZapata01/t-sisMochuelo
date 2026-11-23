@@ -1,45 +1,12 @@
 !=======================================================================
-! Programa: chi2_ideal_nest   (COMPARACION IDEAL SIMETRICA Xe vs Ar)
+! Programa: chi2_ideal_nest
+!   Comparacion ideal de Xe y Ar con el mismo codigo (solo cambia TAG).
+!   Sensibilidad de Asimov de conteo puro, sin fondo ni cortes:
+!       chi2(A) = (1 - A)^2 N_tot,   A_90 = 1 + sqrt(2.706 / N_tot).
+!   Se barre el umbral N_e >= 1..4, sin corte superior (NE_HI = 30), con
+!   la F de NEST y con F = 1. Con NSI, A_amp = q_eff^2/Q_W^2 y el plano
+!   lo fija ipar (por defecto 5: eps_ee^dV vs eps_emu^dV).
 !
-!   MISMO codigo para los dos blancos (solo cambia el parametro TAG y,
-!   por la carpeta, el modulo `constants` y la tabla NEST que lee
-!   `mod_tnr_to_e`). Sirve para una comparacion Xe-vs-Ar limpia:
-!
-!     - Sensibilidad ASIMOV DE CONTEO PURO en el ROI (sin fondo, sin
-!       sistematicos, sin eficiencia de seleccion: eff_ROI = 1):
-!           dN_k = R_k ,  sigma_k = sqrt(N_k)
-!           chi2(A) = (1 - A)^2 * N_tot_ROI ,  A_best = 1
-!           A_90 (1 gdl) : A_90 = 1 + sqrt(2.706 / N_tot_ROI)
-!       Mide la RESPUESTA INTRINSECA del blanco
-!       (sigma_CEvNS . N^2 . charge yield . umbral). NO es la
-!       sensibilidad experimental alcanzable.
-!
-!     - VENTANA SIMETRICA: se barre el umbral inferior N_e >= {1,2,3,4}
-!       (el corte N_e>=4 de RED-100 es fondo de electron unico, NO
-!       sensibilidad de los aparatos) y NO se pone corte superior
-!       (N_e <= NE_HI = 30; la cola dura del Ar llega a ~N_e 30-40 y no
-!       hay que tirarla). Cualquier corte comun es legitimo mientras sea
-!       el mismo para los dos blancos.
-!
-!     - FLUCTUACION F(T): se corre con la F de NEST propia del blanco
-!       (de la tabla, columna 3) y con F = 1 (Poisson) como sistematico.
-!
-!     - NSI 2D: la NSI entra solo por
-!           q_eff2(eps) = (Q_W + q_ee)^2 + q_emu^2 + q_etau^2
-!           A_amp(eps)  = q_eff2 / Q_W^2
-!           Delta chi2  = (1 - A_amp)^2 * N_tot_ROI
-!       El par de parametros lo fija `ipar` (1..15, mismo mapeo que
-!       chi2red100_nest.f90 / 2pchi2.f90 de CONUS+); por defecto ipar=5
-!       (eps_ee^dV vs eps_emu^dV). Se hace para N_e>=1 y para N_e>=4
-!       (F de NEST). Las etiquetas de los ejes se escriben en
-!       nsi_config_ideal_<TAG>.txt.
-!
-!   El limite OBSERVADO real de Xe (~76.6 xSM, rama chi2.f90 con datos
-!   ON-OFF 2024 y eff_ROI digitalizada) se reporta APARTE.
-!   Para Ar solo es fisico asumiendo ARGON DEPLETADO (UAr).
-!
-!   Entrada : nada (calcula el espectro SM internamente)
-!             lee la tabla NEST via mod_tnr_to_e
 !   Salidas (datos/):
 !     espectro_Ne_ideal_<TAG>.dat  : N_e  R_bin_Fnest  R_bin_F1   [ev/(kg dia)]
 !     sensib_ideal_<TAG>.dat       : NE_LO F_mode R_tot frac Ntot@192 A_90(x1..x335)
@@ -55,7 +22,7 @@ program chi2_ideal_nest
   use flux,        only: flujo_diferencial, E_nu_max
   implicit none
 
-  character(len=*), parameter :: TAG = 'Ar'   ! <-- unica diferencia con la copia de Ar
+  character(len=*), parameter :: TAG = 'Ar'
 
   ! ----- grilla de integracion -----
   integer,  parameter :: n_T = 800, n_E = 2000
@@ -79,7 +46,7 @@ program chi2_ideal_nest
   real(dp) :: qy_scale         ! perilla de sensibilidad: factor sobre <N_e> (banda de yield)
 
   ! ----- NSI 2D -----
-  integer,  parameter :: ipar = 5     ! <-- par de parametros NSI (1..15); ver select case
+  integer,  parameter :: ipar = 5     ! plano NSI (1..15)
   integer,  parameter :: n_u = 1000, n_d = 1000
   real(dp) :: eps_x, eps_y, eps_min, eps_max, deps
   real(dp) :: q_nsi_ee, q_nsi_emu, q_nsi_etau, q_eff2, A_amp, dchi2
@@ -138,11 +105,9 @@ program chi2_ideal_nest
   ! 1. ESPECTRO DE RETROCESO CEvNS SM   [ev/(kg dia keV)]
   ! ==================================================================
   T_nr_min = 0.20_dp / 1000.0_dp
-  T_nr_max = 3.5_dp  / 1000.0_dp     ! ref.[46] + cinematica E_nu=8 MeV (T_max=3.44 keV);
-                                     ! trunca la cola E_nu 8-10 MeV (<1 %). Antes 6.0. En Xe el
-                                     ! corte cinematico anula el integrando > ~1.6 keV
+  T_nr_max = 3.5_dp  / 1000.0_dp     ! T_max = 3.44 keV a E_nu = 8 MeV
 
-  ! ---- perillas de sensibilidad (variables de entorno; ausentes => base) ----
+  ! ---- variables de entorno opcionales para pruebas de sensibilidad ----
   qy_scale = 1.0_dp
   block
     character(len=32) :: env
@@ -176,7 +141,7 @@ program chi2_ideal_nest
   end do
 
   ! ==================================================================
-  ! 2. ESPECTRO EN N_e  (IDEAL: sin eff_ROI, sin livetime)
+  ! 2. ESPECTRO EN N_e (sin cortes)
   !    im=1 -> F de NEST (tabla) ; im=2 -> F = 1 (Poisson)
   ! ==================================================================
   R_bin = 0.0_dp
@@ -190,15 +155,12 @@ program chi2_ideal_nest
         else
            p_F = 0.02_dp                                           ! limite Poisson
         end if
-        ! perilla de yield: escala <N_e>=lambda por qy_scale y redondea UNA
-        ! sola vez (antes se redondeaba lambda/p_F a n_F y LUEGO se reescalaba
-        ! ese entero, lo que con n_F chico y qy_scale=1.08 casi nunca cambiaba
-        ! n_F). lambda se recalcula aqui (misma funcion que ya usa F=1).
+        ! escala <N_e> por qy_scale antes de redondear n_F
         lambda = obtener_electrones_creados(T_nr * 1000.0_dp)
         if (lambda <= 0.0_dp .and. im == 1) then
-           n_F = 0                                    ! igual que obtener_nest_binomial
+           n_F = 0
         else
-           n_F = max(1, nint(qy_scale * lambda / p_F))   ! im=2 ya floreaba a 1 en lambda<=0
+           n_F = max(1, nint(qy_scale * lambda / p_F))
         end if
         do k = 1, NE_HI
            R_bin(k, im) = R_bin(k, im) + array_tasa_Comb(i_T) * dT_keV * peso * &
@@ -216,19 +178,8 @@ program chi2_ideal_nest
   close(u)
 
   ! ==================================================================
-  ! 2b. VOLCADO DIAGNOSTICO para kappa_EEE (factor de amplificacion de la
-  !     incertidumbre de la eficiencia de extraccion EEE). ADITIVO Y
-  !     OPCIONAL: solo escribe el archivo si la variable de entorno
-  !     DUMP_EEE_KAPPA == "1"; sin ella el programa se comporta exactamente
-  !     igual que antes (salida bit-identica, verificado contra
-  !     sensib_ideal_<TAG>.dat).
-  !     Vuelca, por cada nodo de la malla en T_nr, el peso del espectro de
-  !     retroceso w_T y los parametros binomiales (n_F, p_F) que el paso
-  !     NEST ya calculo en la Sec. 2 -- son las MISMAS cantidades que
-  !     multiplican binomial_prob(k, n_F, p_F*EEE). Con esto
-  !     python/kappa_eee.py evalua la derivada exacta de la funcion de
-  !     supervivencia binomial d/dp Pr[Bin(n,p) >= n_thr] sin re-derivar
-  !     ni aproximar nada.
+  ! 2b. Opcional (DUMP_EEE_KAPPA=1): guarda el peso de cada T y sus
+  !     parametros binomiales, para estudiar la sensibilidad a la EEE
   ! ==================================================================
   block
     character(len=8) :: env_kappa
@@ -304,13 +255,8 @@ program chi2_ideal_nest
   close(u)
 
   ! ==================================================================
-  ! 3b. BARRIDO EN sin^2(theta_W)  (Asimov, proyeccion)
-  !   sin^2(theta_W) entra en la prediccion CEvNS solo via
-  !     Q_W(s) = -N/2 + (1-4s)/2 * Z ,
-  !   asi que la amplitud efectiva es A(s) = [Q_W(s)/Q_W(s0)]^2 y
-  !     Delta_chi2(s) = (1 - A(s))^2 * Ntot_ROI     (Asimov, A_best=1).
-  !   Se hace por cada umbral N_e >= {1,2,3,4} (F de NEST).
-  !   Salida: chi2_sin2theta_ideal_<TAG>.dat
+  ! 3b. BARRIDO EN sin^2(theta_W): A(s) = [Q_W(s)/Q_W(s0)]^2,
+  !     Delta_chi2(s) = (1 - A(s))^2 N_tot, para cada umbral
   ! ==================================================================
   block
     integer, parameter :: n_s = 3000
@@ -373,7 +319,7 @@ contains
           eps_x = eps_min + j * deps
           q_nsi_ee = 0.0_dp; q_nsi_emu = 0.0_dp; q_nsi_etau = 0.0_dp
 
-          ! mapeo eps -> carga NSI, IDENTICO a chi2red100_nest.f90 / 2pchi2.f90
+          ! carga NSI segun ipar (mismo mapeo que 2pchi2.f90)
           select case(ipar)
           case(1); q_nsi_ee   = (2.0_dp*eps_y + eps_x)*Z_Ge + (eps_y + 2.0_dp*eps_x)*N_Ge
           case(2); q_nsi_emu  = (2.0_dp*eps_y + eps_x)*Z_Ge + (eps_y + 2.0_dp*eps_x)*N_Ge

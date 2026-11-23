@@ -1,10 +1,6 @@
 !=======================================================================
-! Programa: cierre_pipeline (Ar) -- driver MINIMO para las pruebas de
-!   cierre de fig_cierres_pipeline.png y fig_cierre_factorizacion_nsi.png.
-!   Gemelo de N_EventosCEvNS_NSIXe/cierre_pipeline.f90 (sin PE/migracion:
-!   Ar no tiene esa rama, ver README_Ar.txt). Llama a las MISMAS rutinas
-!   de los programas de produccion (obtener_nest_binomial, binomial_prob,
-!   dsigma_dT).
+! Programa: cierre_pipeline (Ar)
+!   Las mismas pruebas de cierre que en el xenon, sin la parte en PE.
 ! Salidas: datos/cierre_binomial_Ar.dat, datos/cierre_dsigma_Ar.dat,
 !          datos/cierre_factorizacion_Ar.dat
 !=======================================================================
@@ -51,8 +47,7 @@ program cierre_pipeline
   end do
   close(u)
 
-  ! (c) C_sigma(E_nu) - 1, dsigma_dT REAL
-  ! F=1 a proposito: valida prefactores y T_max contra la aproximacion lineal.
+  ! (c) C_sigma(E_nu) - 1, con F = 1 como la aproximacion lineal
   call set_use_helm(.false.)
   open(newunit=u, file=trim(outdir)//'cierre_dsigma_Ar.dat', status='replace')
   write(u,'(A)') '# E_nu[MeV]  C_sigma-1'
@@ -70,8 +65,7 @@ program cierre_pipeline
   end do
   close(u)
 
-  ! cierre de factorizacion: R_k(eps) real, QV2 conmutado, N_e VERDADERO
-  ! Con Helm (el default de produccion).
+  ! (d) factorizacion: R_k(eps) = A_amp R_k(SM) en N_e verdadero (con Helm)
   call set_use_helm(.true.)
   open(newunit=u, file=trim(outdir)//'cierre_factorizacion_Ar.dat', status='replace')
   write(u,'(A)') '# A_target   k(Ne_verdadero)   R_k'

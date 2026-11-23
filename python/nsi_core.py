@@ -1,18 +1,12 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-nsi_core.py -- piezas reutilizables de la NSI vectorial (sola tasa) para las
-figuras de cierre y de combinacion Xe+Ar. Formulas identicas (mismos
-coeficientes Z, 2Z+N, Z+2N) a las 15 ramas 'select case(ipar)' de
-FORTRAN90/chi2_nsi_generic/chi2_nsi_generic.f90; se reimplementan aqui en
-Python solo para poder barrer planos que ese select case no cubre
-(dos sabores de quark sobre el MISMO par de leptones, p.ej. eps_ee^dV y
-eps_ee^uV a la vez).
+nsi_core.py -- funciones de la NSI vectorial (las mismas formulas que el
+select case(ipar) de los programas Fortran), para barrer tambien planos con
+dos sabores de quark del mismo par de leptones.
 
-Un blanco (Z, N) fija Q_W = -N/2 + (1-4 s2w)/2 * Z (constants.f90 de cada
-carpeta). Un eps_ee^{fV} (f=u,d) suma eps*(2Z+N) [uV] o eps*(Z+2N) [dV] a
-q_ee; analogo para eps_emu, eps_etau. La amplitud de tasa (misma para todo
-N_e, ver metodologia.tex Sec. NSI) es A_amp = q_eff^2/Q_W^2 con
+Q_W = -N/2 + (1-4 s2w)/2 Z. Un eps_ea^{fV} suma eps (2Z+N) [uV] o
+eps (Z+2N) [dV] a q_a, y A_amp = q_eff^2/Q_W^2 con
 q_eff^2 = (Q_W+q_ee)^2 + q_emu^2 + q_etau^2.
 """
 import numpy as np
@@ -22,6 +16,8 @@ S2W = 0.23857
 TARGET = {
     "Xe": dict(Z=54.0, N=77.3879, roi=(4, 7), expo_base=192.0),
     "Ar": dict(Z=18.0, N=22.0,    roi=(1, 5), expo_base=62.0),
+    # Ge natural de CONUS+ (abundancias de De Romeri et al.)
+    "Ge": dict(Z=32.0, N=0.2057 * 38 + 0.2745 * 40 + 0.0775 * 41 + 0.3650 * 42 + 0.0773 * 44),
 }
 for t in TARGET.values():
     t["QW"] = -t["N"] / 2.0 + (1.0 - 4.0 * S2W) / 2.0 * t["Z"]
@@ -65,22 +61,14 @@ def S2_roi(base, tag, roi=None, modo="Fnest"):
 
 
 def S2_ideal(base, tag, k, modo="Fnest"):
-    """S2 = Sum_{Ne>=k} R_k, SIN corte superior -- el mismo marco que
-    tab:ideal (sensib_ideal_{Xe,Ar}.dat, A_90(x1)): umbral N_e>=k, eps_ROI=1,
-    respuesta central, sin fondo."""
+    """S2 = Sum_{Ne>=k} R_k, sin corte superior ni fondo (como sensib_ideal_*.dat)."""
     Ne, R = leer_espectro_ideal(base, tag, modo)
     return float(R[Ne >= k].sum())
 
 
 def Rk_independiente(base, tag, A_amp=1.0, kmax=15):
-    """R_k [ev/(kg dia)] recalculado DESDE CERO en Python: lee
-    espectro_continuo{tag}.dat (dR/dT hibrido, de red100_nest.f90 -- un
-    programa Fortran DISTINTO del que genera espectro_Ne_ideal) y convoluciona
-    con el modelo binomial de Fano (tabla NEST propia, interpolada), escalando
-    dR/dT por A_amp (T-independiente, como exige el modelo NSI vectorial).
-    Es una segunda implementacion independiente (otro archivo fuente, otra
-    integracion) del mismo R_k que produce chi2_ideal_nest.f90; sirve como
-    cierre bin a bin, NO se usa en ningun resultado de la tesis."""
+    """R_k [ev/(kg dia)] calculado en Python desde espectro_continuo{tag}.dat
+    con el modelo binomial, para comparar bin a bin con chi2_ideal_nest.f90."""
     from scipy.stats import binom
     d = np.loadtxt(f"{base}/espectro_continuo{tag}.dat", comments="#")
     T, dRdT = d[:, 0], d[:, 3]
@@ -105,11 +93,8 @@ def Rk_independiente(base, tag, A_amp=1.0, kmax=15):
 
 
 def punto_en_circulo(A_target, QW, Z, N, angulo_deg, flavor="dV", lepton_x="ee", lepton_y="emu"):
-    """Un punto (ex,ey) analitico sobre A_amp(ex,ey)=A_target (q_etau=0), en la
-    direccion 'angulo_deg' del plano (q_x,q_y) medida desde el eje +q_x:
-    q_x = QW*(sqrt(A_target)*cos(a) - 1), q_y = QW*sqrt(A_target)*sin(a)
-    (verifica (QW+q_x)^2+q_y^2 = A_target*QW^2 por construccion), convertido
-    a (ex,ey) dividiendo por el coeficiente de cada sabor."""
+    """Punto (ex, ey) de la circunferencia A_amp = A_target en la direccion
+    angulo_deg del plano (q_x, q_y)."""
     a = np.radians(angulo_deg)
     qx = QW * (np.sqrt(A_target) * np.cos(a) - 1.0)
     qy = QW * np.sqrt(A_target) * np.sin(a)
@@ -131,10 +116,8 @@ def prob_migracion(j, k):
 
 
 def respuesta_Xe_roi(R_true, Ne_true, roi=(4, 7)):
-    """R_true(Ne_true) [ev/(kg dia)], espacio N_e VERDADERO -> R_j reconstruido
-    en la ROI real de Xe (migracion en PE + eff_ROI), misma cadena lineal que
-    red100PE.f90 / mod_detector.f90 (independiente de si R_true trae NSI o no:
-    es una transformacion LINEAL en k, por eso preserva la factorizacion)."""
+    """Pasa R(N_e verdadero) a R_j reconstruido en la ROI del xenon (migracion
+    en PE y eficiencia), como red100PE.f90."""
     lo, hi = roi
     Rj = np.zeros(hi - lo + 1)
     for idx, j in enumerate(range(lo, hi + 1)):

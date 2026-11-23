@@ -166,7 +166,7 @@ program eventos_conus
 
 contains
 
-  ! (Subrutinas compute_S, integrando_S, integral_trapecio sin cambios)
+  ! Integral de S(Eer) y regla del trapecio
   subroutine compute_S(Eer, S)
     real(dp), intent(in) :: Eer
     real(dp), intent(out) :: S

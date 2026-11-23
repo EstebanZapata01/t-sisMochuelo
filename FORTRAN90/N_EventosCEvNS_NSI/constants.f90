@@ -1,10 +1,6 @@
 !=======================================================================
-! Archivo : constants.f90   (carpeta CONUS+ / Germanio)
-! Rol     : parametros del experimento CONUS+ (reactor de Leibstadt,
-!           HPGe, umbral ~160 eVee, exposicion 119 kg*dia por detector).
-! Tesis   : REFERENCIA validada; metodologia.tex Sec. 6.
-! Nota    : los nombres *_Ge aqui SI son germanio (Z=32, N=41). En las
-!           carpetas de RED-100 los mismos nombres contienen Xe o Ar.
+! Parametros de CONUS+ (reactor de Leibstadt, detectores de HPGe,
+! umbral de 160 eVee, 119 kg*dia).
 !=======================================================================
 module constants
   implicit none
@@ -23,7 +19,9 @@ module constants
   real(dp), parameter :: A_Ge = 72.6_dp
   real(dp), parameter :: M_Ge = A_Ge * amu
   integer, parameter :: Z_Ge = 32
-  real(dp), parameter :: N_Ge = 41.0_dp
+  ! Ge natural: N promedio con las abundancias de De Romeri et al. (40,7053)
+  real(dp), parameter :: N_Ge = 0.2057_dp*38 + 0.2745_dp*40 + 0.0775_dp*41 &
+                              + 0.3650_dp*42 + 0.0773_dp*44
 
   ! Lindhard
   real(dp), parameter :: k_lind = 0.162_dp
@@ -34,11 +32,10 @@ module constants
   real(dp), parameter :: eta = 2.96d-6
   real(dp), parameter :: Fano = 0.1096_dp
 
-  ! Flujo (sin cambios)
+  ! Flujo
   real(dp), parameter :: phi_total = 1.5d13
 
-
-  ! Exposición: usar directamente 327 kg·d
+  ! Exposición
   real(dp), parameter :: exposure_kg_d = 119.0_dp          ! kg·d
   real(dp), parameter :: exposure_kg_s = exposure_kg_d * 86400.0_dp   ! kg·s
   real(dp), parameter :: total_mass_kg = 1.0_dp           ! masa total de los detectores
@@ -59,6 +56,6 @@ module constants
   real(dp), parameter :: E_nu_min_flux = 2.0_dp
   integer, parameter :: npts_gauss = 1000
 
-  ! Variable global para escalonamiento de la Carga Débil (se ajusta en main)
+  ! Carga débil al cuadrado (se fija en cada programa)
   real(dp) :: QV2 = 1.0_dp
 end module constants

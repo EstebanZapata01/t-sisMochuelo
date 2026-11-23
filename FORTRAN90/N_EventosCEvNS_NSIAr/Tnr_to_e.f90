@@ -1,23 +1,15 @@
 !=======================================================================
-! Módulo: mod_tnr_to_e (NEST 218 V/cm - ARGON - lectura robusta y dinámica)
-! Rol     : traduce retroceso T [keV] -> electrones via la tabla
-!           datos/nest_Ar_218V_dense.txt  (3 col: T, Qy, F), generada con
-!           python/nest_Ar.py usando el modelo LArNEST (NR de argon).
-! Pipeline: etapa "retroceso -> ionizacion"; misma interfaz que la de Xe
-!           (obtener_electrones_creados / obtener_fano / obtener_nest_binomial).
-! Tesis   : metodologia.tex Sec. 3.2 y Sec. 9.
-! Decision metodologica clave: LArNEST es sub-Poissoniano para NR
-!   (F ~ 0.11-0.15 en la ROI, ~0.65 en el umbral); mismo modelo binomial
-!   de Fano que Xe. NO se usa F=1.
+! Módulo: mod_tnr_to_e (LArNEST, 218 V/cm)
+!   Igual que el del xenon, pero lee datos/nest_Ar_218V_dense.txt
+!   (generada con python/nest_Ar.py).
 !=======================================================================
 module mod_tnr_to_e
   use constants
   implicit none
   
-  ! Arreglos dinámicos que se dimensionarán en tiempo de ejecución
   ! T_dense  : energia de retroceso [keV]
   ! Qy_dense : rendimiento de carga medio [e-/keV]
-  ! F_dense  : factor tipo Fano  Var(N_e)/<N_e>  (de GetQuanta de NEST; ~0.43-0.47)
+  ! F_dense  : factor de Fano, Var(N_e)/<N_e>
   real(dp), allocatable, dimension(:) :: T_dense, Qy_dense, F_dense
   integer :: n_puntos_actual = 0
   logical :: nest_inicializado = .false.

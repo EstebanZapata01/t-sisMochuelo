@@ -1,12 +1,7 @@
 !=======================================================================
-! Programa: red100_nest (Poisson → Binomial, solo creados y extraídos)
-! Rol     : espectro en N_e (creados vs extraidos) de diagnostico, para
-!           ver el efecto del adelgazado por EEE.
-! Pipeline: etapa "retroceso -> ionizacion" -> escribe
-!           datos/ionization_electrones*.dat.
-! Tesis   : metodologia.tex Sec. 3.2-3.3.
-! Decision metodologica clave: N_e creados ~ Binom(n_F, p_F);
-!   extraidos ~ Binom(n_F, p_F*EEE)  (Ecs. 16-18 de metodologia.tex).
+! Programa: red100_nest (Xe)
+!   Espectro de retroceso y espectro en N_e de electrones creados,
+!   Binom(n_F, p_F), y extraidos, Binom(n_F, p_F*EEE).
 !=======================================================================
 program red100_nest
   use constants
@@ -43,8 +38,8 @@ program red100_nest
 
   dummy = flujo_diferencial(1.0_dp)
 
-  T_nr_min = 0.20_dp / 1000.0_dp   ! 0.20 keV = suelo de NEST v2.4.0 (antes 0.21)
-  T_nr_max = 2.0_dp / 1000.0_dp    ! T_max fisico ~1.6 keV (E_nu<=10 MeV); con 10 keV la malla no resolvia
+  T_nr_min = 0.20_dp / 1000.0_dp   ! limite inferior de la tabla de NEST
+  T_nr_max = 2.0_dp / 1000.0_dp    ! T_max ~ 1,6 keV a E_nu = 10 MeV
   dT = (T_nr_max - T_nr_min) / (n_T - 1)
   dT_keV = dT * 1000.0_dp
   dE = E_nu_max / (n_E - 1)

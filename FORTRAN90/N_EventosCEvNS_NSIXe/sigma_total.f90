@@ -1,10 +1,8 @@
 !=======================================================================
-! Programa: sigma_total (Xe) -- seccion eficaz TOTAL sigma(E_nu), integral
-!   real de dsigma_dT (xsections_nest.f90) entre T=0 y T_max(E_nu), con la
-!   aproximacion lineal sigma_lin=(G_F^2/pi) Q_W^2 E_nu^2 al lado para
-!   comparar. Helm por defecto (la misma variable USE_HELM que lee
-!   dsigma_dT); correr el binario dos veces (con y sin USE_HELM=0) para
-!   tener las dos curvas.
+! Programa: sigma_total (Xe)
+!   Seccion eficaz total sigma(E_nu), integrando dsigma_dT hasta T_max, y
+!   la aproximacion sigma_lin = (G_F^2/pi) Q_W^2 E_nu^2. Con USE_HELM=0 se
+!   obtiene la curva sin factor de forma.
 ! Salida: datos/sigma_total_Xe.dat (Helm, default) o sigma_total_bare_Xe.dat
 !         (F^2=1, USE_HELM=0)
 !=======================================================================
@@ -36,8 +34,7 @@ program sigma_total
      sigma = 0.0_dp
      do i_T = 1, N_TMID
         T_MeV = (real(i_T,dp) - 0.5_dp) * dT
-        ! dsigma_dT da cm^2/keV (conv_cs ya trae el /1000 MeV->keV; ver
-        ! red100_nest.f90, dT_keV); hay que integrar en dT_keV, no en dT[MeV].
+        ! dsigma_dT esta en cm^2/keV: se integra en keV
         sigma = sigma + dsigma_dT(E_nu, T_MeV) * dT * 1000.0_dp
      end do
      sigma_lin = (GF**2 / pi) * QW_SM**2 * E_nu**2 * hbarc2

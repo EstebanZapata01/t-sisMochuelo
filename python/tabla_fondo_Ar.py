@@ -1,17 +1,12 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Tabla de A_90(Ar, N_e en 1-5, 62 kg dia) frente al NIVEL de fondo declarado
-por la ref.[46] (B_k de bkg_bins_Ar.dat, flat por bin) y a su normalizacion:
-misma formula de Asimov perfilada que fig_fondo_perfilado.py (nuisance
-gaussiano lineal beta, B_k(beta)=(1+beta) B_k^0),
+Tabla de A_90 del argon (N_e = 1..5, 62 kg dia) segun el nivel de fondo
+(0; 0,1; 1 y 10 veces el declarado) y la incertidumbre de su normalizacion
+(conocida, 1 % y libre). Con B_k(beta) = (1+beta) B_k:
     S2 = sum_k S_k^2/(S_k+B_k),  P = sum_k S_k B_k/(S_k+B_k),
-    Q = sum_k B_k^2/(S_k+B_k),   S2_eff(sigma_B) = S2 - P^2/(Q+1/sigma_B^2),
-    A_90 = 1 + sqrt(2.706/S2_eff),
-evaluada en tres normalizaciones (sigma_B=0: fondo conocido; sigma_B=1%;
-sigma_B->infinito: fondo libre) para cuatro niveles de fondo (0, 0.1, 1 y
-10 veces el nivel declarado). Nivel x0 = sin fondo (techo intrinseco); no
-depende de sigma_B, se reporta en una sola columna.
+    Q = sum_k B_k^2/(S_k+B_k),   S2_eff = S2 - P^2/(Q+1/sigma_B^2),
+    A_90 = 1 + sqrt(2.706/S2_eff)
 
 Entrada: datos/bkg_bins_Ar.dat (N_e, S_k, B_k, ev/(kg dia); chi2_bkg_nest.f90)
 Salida : stdout + datos/tabla_fondo_Ar.tex

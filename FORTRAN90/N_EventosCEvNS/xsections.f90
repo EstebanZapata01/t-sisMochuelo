@@ -1,6 +1,5 @@
 module xsections
-  ! Factor de forma de Helm ACTIVADO por defecto, mismo Lewin & Smith que
-  ! xsections_nest.f90 (RED-100 Xe/Ar); USE_HELM=0 lo apaga.
+  ! Factor de forma de Helm (Lewin y Smith), activo por defecto; USE_HELM=0 lo apaga.
   use constants, only: dp, GF, pi, M_Ge, QV2, conv, A_Ge, hbarc
   use quenching, only: QF, dQF_dT, T_from_Eer
   implicit none
@@ -36,7 +35,6 @@ contains
        use_helm = .not. (trim(env) == '0' .or. trim(env) == 'false' .or. trim(env) == 'FALSE')
        helm_init = .true.
     end if
-    ! CORRECCIÓN FÍSICA: Factor de 4 en el denominador
     prefactor = (GF**2 * M_Ge * QV2) / ( pi)
     if (T <= 0.0_dp .or. T >= 2.0_dp*E_nu**2/(M_Ge+2.0_dp*E_nu)) then
        dsdT = 0.0_dp

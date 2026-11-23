@@ -1,33 +1,11 @@
 !=======================================================================
-! Archivo : chi2_nsi_generic.f90
-! Rol     : motor GENERICO chi2(A,alpha) + reduccion NSI a A_amp(eps),
-!           independiente del experimento (Z, N y los datos de entrada
-!           son parametros leidos de archivo, no constantes de modulo).
-! Pipeline: NO forma parte de la cadena de simulacion fisica (no calcula
-!           flujo, seccion eficaz ni NEST). Consume la SALIDA de esa
-!           cadena (dN/R_exp, sigma, R_pred por bin, ya integrados) que
-!           chi2.f90 (Xe) y 2pchi2.f90 (CONUS+) escriben con un bloque
-!           write() puramente aditivo (ver Sec. de validacion cruzada,
-!           metodologia.tex).
-! Tesis   : doc/metodologia.tex, seccion "Validacion cruzada: el mismo
-!           codigo con datos de Xe y de CONUS+". Objetivo: demostrar,
-!           corriendo UN SOLO binario dos veces, que el motor
-!           chi2(A,alpha)+NSI es agnostico al experimento.
-! Decision metodologica clave:
-!   - El bloque select case(ipar) (15 casos) y el chi2 se copian VERBATIM
-!     de chi2red100_nest.f90 y 2pchi2.f90 (ya validados contra el paper de
-!     RED-100 y contra la Tabla II de CONUS+). No se rederiva ni se
-!     "mejora" nada: es deliberadamente el mismo algoritmo, solo con Z, N
-!     y los datos de entrada parametrizados en vez de hardcodeados.
-!   - El termino de nuisance de flujo (prior gaussiano con sigma_alpha)
-!     se activa solo si sigma_alpha > 0 (caso CONUS+: 0.169). Con
-!     sigma_alpha <= 0 (centinela; caso RED-100/Xe) el ajuste es de un
-!     solo parametro: chi2(A) = S3 - 2*A*S1 + A^2*S2.
-!   - chi2.f90 y 2pchi2.f90 NO se modifican en su logica: solo reciben
-!     un bloque write() adicional al final que no altera ningun valor ya
-!     calculado ni ningun archivo de salida existente.
-! Entradas: archivo de texto (ruta en el 1er argumento de linea de
-!           comandos) con el formato:
+! Programa: chi2_nsi_generic
+!   El mismo ajuste chi2(A, alpha) y la misma reduccion NSI a A_amp(eps)
+!   para cualquier experimento: Z, N y los datos por bin se leen de un
+!   archivo (lo escriben chi2.f90 para Xe y 2pchi2.f90 para CONUS+).
+!   Con sigma_alpha > 0 se perfila la normalizacion (CONUS+); con
+!   sigma_alpha <= 0 el ajuste es solo en A (RED-100).
+! Entrada : archivo del primer argumento, con el formato:
 !             # Z  N  sigma_alpha  n_bins  ipar
 !               <Z> <N> <sigma_alpha> <n_bins> <ipar>
 !             # bin  dN_o_Rexp   sigma   R_pred
@@ -36,13 +14,9 @@
 !               n_bins ...
 ! Salidas : <prefijo>_resumen.txt   (Z,N,ipar,A_best,A_90,chi2_min,s_best,banda)
 !           <prefijo>_sin2theta.dat (sin2theta_W  A(s)  chi2  dchi2)
-!           <prefijo>_perfil.dat    (A  chi2_sinNuisance  chi2_conNuisance;
-!                                    mismo formato que chi2_ON_OFF_perfil.dat
-!                                    de chi2.f90, para graficarlo con el
-!                                    mismo estilo -- fig9_chi2_perfil.pdf --
-!                                    pero con datos de otro experimento)
+!           <prefijo>_perfil.dat    (A  chi2_sinNuisance  chi2_conNuisance)
 !           <prefijo>_nsi2D.dat     (eps_x eps_y chi2 ; grilla 1000x1000)
-!           donde <prefijo> es el 2do argumento de linea de comandos.
+!           donde <prefijo> es el segundo argumento.
 !=======================================================================
 program chi2_nsi_generic
   implicit none
@@ -106,8 +80,6 @@ program chi2_nsi_generic
   QW_SM = -N/2.0_dp + (1.0_dp - 4.0_dp*0.23857_dp)/2.0_dp * Z
 
   ! -------------------------------------------------- perfil 1D en A
-  ! (identico en forma a chi2red100_nest.f90:155-169; util como chequeo
-  !  independiente de A_best/A_90 frente al programa especifico)
   chi2_1d_min = 1.0e30_dp; A_1d_min = 0.0_dp
   Aa = 0.0_dp
   do
@@ -148,9 +120,6 @@ program chi2_nsi_generic
   end block
 
   ! -------------------------------------------------- perfil fino chi2(A)
-  ! Mismo formato/resolucion que chi2_ON_OFF_perfil.dat (chi2.f90): permite
-  ! reusar el mismo estilo de figura (fig9_chi2_perfil.pdf) con datos de
-  ! CUALQUIER experimento que se le pase por generic_input_*.dat.
   block
     integer, parameter :: n_scan_p = 10000
     real(dp) :: A_min_p, A_max_p, dA_p, Ap, chi2_sin_p, al_p, chi2_con_p
@@ -179,13 +148,7 @@ program chi2_nsi_generic
   end block
 
   ! -------------------------------------------------- barrido en sin^2(theta_W)
-  ! Reparametrizacion: sin^2(theta_W) entra en la prediccion CEvNS SOLO via
-  !   Q_W(s) = -N/2 + (1-4s)/2 * Z ,
-  ! de modo que la amplitud efectiva respecto al SM es
-  !   A(s) = [Q_W(s)/Q_W(s0)]^2 ,  s0 = 0.23857 .
-  ! El perfil chi2(s) = chi2_of_A(A(s)) reutiliza la misma maquinaria ya
-  ! validada (sin rederivar nada). Con datos de CONUS+ debe reproducir el
-  ! programa chi2_sin2theta (validacion del metodo).
+  ! A(s) = [Q_W(s)/Q_W(s0)]^2 con s0 = 0.23857, y chi2(s) = chi2(A(s))
   block
     integer, parameter :: n_s = 3000
     real(dp) :: s0, smin, smax, s, QWs, As, cs, ds
@@ -227,8 +190,7 @@ program chi2_nsi_generic
   end block
 
   ! -------------------------------------------------- barrido NSI 2D
-  ! Bloque copiado VERBATIM de chi2red100_nest.f90:222-267 (mapeo ipar
-  ! y chi2 con alpha analitico), solo con Z,N,dN,sigma,R_pred genericos.
+  ! carga NSI segun ipar (mismo mapeo que 2pchi2.f90) y alpha analitico
   eps_min = -1.0_dp; eps_max = 1.0_dp
   deps = (eps_max - eps_min) / real(n_u - 1, dp)
 

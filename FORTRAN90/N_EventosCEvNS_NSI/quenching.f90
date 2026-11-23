@@ -1,9 +1,6 @@
 !=======================================================================
-! Archivo : quenching.f90   (carpeta CONUS+ / Germanio)
-! Rol     : factor de quenching de Lindhard QF(T) (k = 0.162) y su
-!           derivada; convierte retroceso nuclear T <-> ionizacion Eer.
-! Tesis   : REFERENCIA; metodologia.tex Sec. 6. Es el analogo de la etapa
-!           NEST de RED-100, pero analitico (Ge) en vez de tabulado.
+! Quenching de Lindhard QF(T) (k = 0.162) y su derivada; convierte el
+! retroceso nuclear T en energia de ionizacion Eer y al reves.
 !=======================================================================
 module quenching
   use constants, only: dp, k_lind, alpha, MeV2keV
@@ -35,7 +32,7 @@ contains
     real(dp) :: T, T_low, T_high, E_test
     integer :: iter
     
-    ! Búsqueda por bisección pura (sin impresiones lentas)
+    ! Búsqueda por bisección
     T_low = 0.0_dp
     T_high = Eer * 20.0_dp 
     

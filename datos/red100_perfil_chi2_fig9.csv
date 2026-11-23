@@ -1,6 +1,6 @@
 # Curvas Delta chi^2(A) de RED-100 (arXiv:2411.18641v1, pagina 8): observada (ON-OFF) y esperada (Asimov), SM2018.
 # Metodo: pdftocairo -svg; vertices de las dos curvas; ejes calibrados con sus marcas (A: 0-80 x SM; Dchi2: 0 y 2).
-# Generado por python/extrae_pdf_red100.py
+# Valores leidos de la figura vectorial del PDF.
 curva,A,dchi2
 observada,0.0000,0.03170
 observada,2.0007,0.01453

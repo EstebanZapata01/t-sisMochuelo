@@ -17,9 +17,6 @@ FORTRAN90/**
 
 # python: solo los modulos que no grafican
 python/*
-!python/exporta_datos_tutor.py
-!python/extrae_pdf_red100.py
-!python/leer_fortran.py
 !python/nest.py
 !python/nest_Ar.py
 !python/nsi_core.py

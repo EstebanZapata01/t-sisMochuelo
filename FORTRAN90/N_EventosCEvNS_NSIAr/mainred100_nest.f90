@@ -1,11 +1,7 @@
 !=======================================================================
-! Programa: mainred100_nest (Asimov Dataset Absoluto - Flujo Explícito)
-!   + bloque de VALIDACION para contrastar con arXiv:2411.18641
-!   CLON de la carpeta de Xe; rutas de salida *_ar.dat.
-! Pipeline: espectro SM absoluto de eventos por bin de N_e.
-! Tesis   : metodologia.tex Sec. 3.3 (Ec. 19) y Sec. 9.
-! OJO: la ventana N_e=4..7 y la validacion vs Fig. 3 son propias del
-!   analisis de Xe; para la comparacion Xe-Ar usar chi2_ideal_nest.f90.
+! Programa: mainred100_nest (Ar)
+!   Eventos del SM por bin de N_e (salida eventos_sm_ar.dat). La ventana
+!   4..7 es la del xenon; la comparacion Xe-Ar esta en chi2_ideal_nest.f90.
 !=======================================================================
 program mainred100_nest
   use constants
@@ -35,7 +31,7 @@ program mainred100_nest
   filename = trim(outdir) // 'eventos_sm_ar.dat'
 
   call inicializar_nest()
-  dummy = flujo_diferencial(1.0_dp)   ! dispara init del flujo
+  dummy = flujo_diferencial(1.0_dp)   ! inicializa el flujo
 
   QW_SM = -N_Ge/2.0_dp + (1.0_dp - 4.0_dp*s2w)/2.0_dp * Z_Ge
   QV2 = QW_SM**2
@@ -44,7 +40,7 @@ program mainred100_nest
   sec_per_day  = 86400.0_dp
 
   R_SM = 0.0_dp
-  T_nr_min = 0.20_dp / 1000.0_dp; T_nr_max = 3.0_dp / 1000.0_dp   ! 0.20 keV = suelo de NEST v2.4.0
+  T_nr_min = 0.20_dp / 1000.0_dp; T_nr_max = 3.0_dp / 1000.0_dp
   dT = (T_nr_max - T_nr_min) / (n_T - 1); dT_keV = dT * 1000.0_dp
   dE = E_nu_max / (n_E - 1)
 

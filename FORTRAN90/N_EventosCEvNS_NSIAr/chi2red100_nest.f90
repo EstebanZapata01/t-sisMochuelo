@@ -1,45 +1,10 @@
 !=======================================================================
-! Programa: chi2red100_nest  (ARGÓN - matriz NSI 2D)
+! Programa: chi2red100_nest (Ar)
+!   Sensibilidad de Asimov de conteo puro en la ventana N_e = 1..5:
+!       chi2(A) = (1 - A)^2 N_tot,   A_amp(eps) = q_eff^2 / Q_W^2
+!   y su escala con la exposicion. Plano NSI: ipar = 5.
 !
-!   Clon de ../N_EventosCEvNS_NSIXe/chi2red100_nest.f90 adaptado a Ar-40.
-!
-!   DIFERENCIA CLAVE con la versión de Xe: para Ar NO hay datos ON-OFF
-!   reales (ni fondo OFF medido ni fluctuación ON). Por eso la estadística
-!   es una SENSIBILIDAD ASIMOV DE CONTEO PURO en el ROI:
-!
-!       dN_k = R_k            (Asimov: el dato es la señal SM esperada)
-!       sigma_k = sqrt(N_k)   (Poisson de SEÑAL; SIN fondo, SIN sistemáticos)
-!       chi2(A) = sum_k (N_k - A*N_k)^2 / N_k = (1 - A)^2 * N_tot_ROI
-!       A_best = 1,  chi2_min = 0
-!
-!   La NSI entra solo por la carga efectiva:
-!       q_eff2(eps) = (Q_W + q_ee)^2 + q_emu^2 + q_etau^2
-!       A_amp(eps)  = q_eff2 / Q_W^2      (A=1 -> SM)
-!       Delta chi2(eps) = (1 - A_amp)^2 * N_tot_ROI
-!
-!   IDEALIZACIÓN (metodología acordada): esta rama mide la RESPUESTA
-!   INTRÍNSECA del blanco (sigma_CEvNS . N^2 . charge yield . umbral), NO la
-!   sensibilidad experimental alcanzable. Es la única fórmula que se puede
-!   aplicar de forma idéntica y honesta a Xe y a Ar (ninguno usa fondo real
-!   aquí). El límite OBSERVADO real de Xe (~111 ×SM) se reporta aparte y NO
-!   se compara directamente con este número.
-!   Para Ar solo es físico si se asume ARGÓN DEPLETADO (UAr): con Ar
-!   atmosférico el fondo de 39Ar (~1 Bq/kg) domina el ROI por ~1e6-1e7.
-!
-!   Entrada : nada (calcula el espectro SM internamente, como mainred100_nest)
-!             lee datos/nest_Ar_218V_dense.txt vía mod_tnr_to_e
-!   Salida  : datos/chi2_nsi_2DAr.dat   (eps_x  eps_y  Delta_chi2)
-!             datos/nsi_configAr.txt    (etiquetas de los ejes)
-!             datos/sensib_expo_Ar.dat  (multiplicador  exposicion_kgd  A_90)
-!
-!   Caso por defecto ipar=5: eps_ee^dV (x) vs eps_emu^dV (y)
-!
-! Pipeline: variante "ventana fisica de Ar" (N_e = 1..5, T_nr_max=6 keV).
-! Tesis   : metodologia.tex Sec. 5 (formalismo NSI), Sec. 6 (CONUS+ vs
-!           RED-100) y Sec. 9. El mapeo eps -> q_nsi (15 casos ipar) es
-!           IDENTICO a 2pchi2.f90 de CONUS+.
-! Decision metodologica clave: A_amp(eps) = q_eff2/Q_w^2; sin datos de Ar,
-!   la estadistica es Asimov de conteo puro (no residuo ON-OFF).
+!   Salidas (datos/): chi2_nsi_2DAr.dat, nsi_configAr.txt, sensib_expo_Ar.dat
 !=======================================================================
 program chi2red100_Ar
   use constants
@@ -56,11 +21,7 @@ program chi2red100_Ar
   integer  :: i_T, i_E, n_bin, n_F
   real(dp) :: p_F
 
-  ! ----- ROI en N_e (idealización común: eff_ROI = 1) -----
-  ! ROI de Ar según §VII de arXiv:2411.18641: "below five ionization electrons"
-  ! (ref. [46]) -> N_e = 1..5. (En Xe era 4..7, definido por el exceso de SE;
-  ! §VII dice que en Ar el fondo de SE es "unclear", por eso conviene correr
-  ! también 2..5 como variante — cambiar NE_LO a 2.)
+  ! ----- ROI en N_e (sin cortes) -----
   integer,  parameter :: NE_LO = 1, NE_HI = 5
   real(dp) :: R_roi(NE_LO:NE_HI)     ! tasa SM por bin  [eventos/(kg dia)]
   real(dp) :: N_roi(NE_LO:NE_HI)     ! cuentas SM absolutas (= R_roi * exposición)
@@ -78,7 +39,7 @@ program chi2red100_Ar
   real(dp) :: A90
   real(dp), parameter :: mult(7) = &
        (/ 1.0_dp, 2.0_dp, 5.0_dp, 10.0_dp, 50.0_dp, 100.0_dp, 335.0_dp /)
-  ! 335 x 192 kg*dia ~ 1 año astronómico a ~126 kg (comparar 15-20 ×SM, §VII)
+  ! 335 x 192 kg*dia ~ un año con 126 kg
 
   character(len=250) :: datadir, f_out, f_conf, f_sens
   character(len=60)  :: xlabel, ylabel
@@ -90,7 +51,7 @@ program chi2red100_Ar
   f_sens  = trim(datadir)//'sensib_expo_Ar.dat'
 
   call inicializar_nest()
-  dummy = flujo_diferencial(1.0_dp)         ! dispara init del flujo
+  dummy = flujo_diferencial(1.0_dp)         ! inicializa el flujo
 
   QW_SM = -N_Ge/2.0_dp + (1.0_dp - 4.0_dp*s2w)/2.0_dp * Z_Ge
   QV2   = QW_SM**2
@@ -100,10 +61,7 @@ program chi2red100_Ar
   ! ==================================================================
   R_roi = 0.0_dp
   T_nr_min = 0.20_dp / 1000.0_dp
-  ! Ar-40: T_max = 2 E_nu^2/(M + 2 E_nu) ~ 3.44 keV para E_nu = 8 MeV y
-  ! ~5.37 keV para E_nu = 10 MeV (= E_nu_max del flujo). 6.0 keV cubre con
-  ! margen; la tabla nest_Ar_218V_dense.txt tambien llega a 6 keV.
-  T_nr_max = 3.5_dp / 1000.0_dp   ! ref.[46] + cinematica E_nu=8 MeV (3.44 keV); antes 6.0
+  T_nr_max = 3.5_dp / 1000.0_dp   ! T_max = 3.44 keV a E_nu = 8 MeV
   dT = (T_nr_max - T_nr_min) / (n_T - 1); dT_keV = dT * 1000.0_dp
   dE = E_nu_max / (n_E - 1)
 
@@ -170,7 +128,7 @@ program chi2red100_Ar
   close(u_sens)
 
   ! ==================================================================
-  ! 3. ETIQUETAS DE EJES (solo ipar=5; para otros casos ver la versión Xe)
+  ! 3. ETIQUETAS DE EJES (ipar = 5)
   ! ==================================================================
   select case (ipar)
   case (5); xlabel = '$\epsilon_{ee}^{dV}$'; ylabel = '$\epsilon_{e\mu}^{dV}$'
@@ -198,7 +156,7 @@ program chi2red100_Ar
         eps_x = eps_min + j * deps
         q_nsi_ee = 0.0_dp; q_nsi_emu = 0.0_dp; q_nsi_etau = 0.0_dp
 
-        ! ipar = 5 : eps_ee^dV (x)  y  eps_emu^dV (y)   (mismas fórmulas que Xe)
+        ! ipar = 5 : eps_ee^dV (x)  y  eps_emu^dV (y)
         q_nsi_ee  = (eps_x)*Z_Ge + (2.0_dp*eps_x)*N_Ge
         q_nsi_emu = (eps_y)*Z_Ge + (2.0_dp*eps_y)*N_Ge
 

@@ -3,7 +3,7 @@
 # ejes calibrados con sus marcas (E: 110-190 PE; D: 2000-4000 ns; R: 0-15000 mm^2; y: 0.2, 0.0, -0.2 cuentas/(kg dia)).
 # limite90 = A_90 * R_i con A_90 = 63 (SM2018, Tabla I del paper): R_i = limite90/63.
 # Paneles: E energia corregida [PE], D duracion [ns], R radio^2 [mm^2]. sigma = semilongitud de la barra de error.
-# Generado por python/extrae_pdf_red100.py
+# Valores leidos de la figura vectorial del PDF.
 panel,x,dN,sigma,limite90
 E,112.6323,-0.181212,0.192755,0.055383
 E,117.9002,0.099632,0.172145,0.060049

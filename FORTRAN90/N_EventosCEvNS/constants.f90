@@ -29,7 +29,7 @@ module constants
   ! Flujo
   real(dp), parameter :: phi_total = 1.5d13
 
-  ! Exposición – ahora variables globales (se asignan en main)
+  ! Exposición (se asigna en main para cada detector)
   real(dp) :: total_mass_kg = 2.83_dp
   real(dp) :: exposure_kg_s = 0.0_dp
   real(dp) :: exposure_atoms_s = 0.0_dp

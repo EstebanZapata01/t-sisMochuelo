@@ -1,7 +1,6 @@
 !=======================================================================
 ! Programa principal: eventos_conus
 !   Calcula los eventos de CEvNS para CONUS+ y escribe los eventos por kg.
-!   Versión con diagnóstico extremo: imprime TODO lo posible.
 !=======================================================================
 program eventos_conus
   use constants

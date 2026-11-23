@@ -1,31 +1,18 @@
 #!/usr/bin/env python3
 """
-Genera la tabla NEST para RED-100 (Xe NR, 218 V/cm) con nestpy 2.4.5.
+Tabla de NEST para el xenon (retroceso nuclear, 218 V/cm) con nestpy.
+Salida: datos/nest_218V_dense.txt, que lee Tnr_to_e.f90 (carpeta Xe):
+    T_nr[keV]   Qy[e-/keV]   F = Var(N_e)/<N_e>
 
-Tesis: metodologia.tex Sec. 3.2 (modelo binomial de Fano). Salida ->
-       datos/nest_218V_dense.txt, leida por Tnr_to_e.f90 (carpeta Xe).
-
-
-Salida: 3 columnas
-    T_nr[keV]   Qy[e-/keV]   F = Var(N_e)/<N_e>   (factor tipo Fano)
-
-- Qy  : rendimiento de carga medio  (y.ElectronYield / T)
-- F   : ancho relativo de la distribucion REAL de N_e de NEST, obtenido
-        muestreando GetQuanta N_SAMP veces por energia. Para NR en LXe
-        F ~ 0.43-0.47 (sub-Poissoniano; Poisson seria F = 1).
-        El Fortran usa (Qy, F) para modelar N_e creados como
-        Binomial(n_F, p_F) con p_F = 1 - F, n_F = nint(<N_e>/p_F),
-        y los extraidos como Binomial(n_F, p_F * EEE).
-
-Parametros del paper arXiv:2411.18641 (Sec. II.B): NEST v2.4.0, 169 K,
-1.29 bar, 218 V/cm.  rho(LXe, 169 K) ~ 2.96 g/cm3.
-Los nr_parameters son los defaults de NEST v2.4.0 para NR en Xe.
+Qy es el rendimiento medio de carga y F se estima muestreando GetQuanta
+N_SAMP veces por energia. Condiciones de RED-100 (arXiv:2411.18641):
+169 K, 218 V/cm, densidad 2.96 g/cm3.
 """
 from pathlib import Path
 import nestpy
 import numpy as np
 
-# Semilla fija: nestpy no usa np.random (ver README.md). Da reproducibilidad bit a bit.
+# Semilla fija para que la tabla sea reproducible
 nestpy.RandomGen.rndm().set_seed(20260910)
 nestpy.RandomGen.rndm().lock_seed()
 
@@ -40,7 +27,7 @@ print(f"nestpy / NEST: {nestpy.__nest_version__}")
 detector = nestpy.detectors.DetectorExample_XENON10()
 nc = nestpy.NESTcalc(detector)
 
-# Defaults de NEST v2.4.0 para NR en Xe (sacados del mensaje de C++)
+# Parametros por defecto de NEST v2.4.0 para NR en Xe
 nr_params = [11.0, 1.1, 0.048, -0.0533, 12.6, 0.3, 2.0, 0.3, 2.0, 0.5, 1.0, 1.0]
 er_params = [-1.0] * 10
 

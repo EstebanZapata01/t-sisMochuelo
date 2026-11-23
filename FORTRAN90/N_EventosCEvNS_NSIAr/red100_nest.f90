@@ -1,10 +1,6 @@
 !=======================================================================
-! Programa: red100_nest (Poisson → Binomial, solo creados y extraídos)
-!   CLON de la carpeta de Xe; rutas de salida *_Ar.dat.
-! Pipeline: etapa "retroceso -> ionizacion" (diagnostico creados/extraidos).
-! Tesis   : metodologia.tex Sec. 3.2-3.3 y Sec. 9.
-! Decision metodologica clave: N_e creados ~ Binom(n_F, p_F);
-!   extraidos ~ Binom(n_F, p_F*EEE), con EEE=0.99 en Ar.
+! Programa: red100_nest (Ar)
+!   Igual que el del xenon; escribe las salidas *_Ar.dat.
 !=======================================================================
 program red100_nest
   use constants
@@ -41,7 +37,7 @@ program red100_nest
 
   dummy = flujo_diferencial(1.0_dp)
 
-  T_nr_min = 0.20_dp / 1000.0_dp   ! 0.20 keV = suelo de NEST v2.4.0 (antes 0.21)
+  T_nr_min = 0.20_dp / 1000.0_dp   ! limite inferior de la tabla
   T_nr_max = 10.0_dp / 1000.0_dp
   dT = (T_nr_max - T_nr_min) / (n_T - 1)
   dT_keV = dT * 1000.0_dp

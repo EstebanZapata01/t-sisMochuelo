@@ -1,24 +1,12 @@
 !=======================================================================
-! Programa: chi2_bkg_nest  (ARGON - sensibilidad esperada estilo RED-100 SV, con el
-!                           nivel de fondo que declara la ref. [46])
+! Programa: chi2_bkg_nest (Ar)
+!   Sensibilidad esperada con el fondo que declara RED-100, S/sqrt(B) ~ 4 a
+!   62 kg*dia, repartido igual en N_e = 1..5. El fondo se supone conocido:
+!       Dchi2(A) = (1-A)^2 W,   W = sum_k S_k^2/(S_k+B_k),
+!       A_90 = 1 + sqrt(2.706/W)
+!   Escenarios: (0) sin fondo; (1) con el fondo declarado.
 !
-!   Senal   S(N_e): flujo x seccion eficaz x binomial(N_e), ROI N_e = 1..5 (misma
-!                   cadena que chi2_ideal; yield NR = nest_Ar_218V_dense.txt).
-!   Fondo:  NO se simula. Se toma el unico numero publicado: la ref. [46] declara
-!           S/sqrt(B) ~ 4 a 62 kg*dia. B_k = B_ref es PLANO por bin (idealizacion:
-!           la ref. no da su forma) y se calibra para reproducir ese numero.
-!   Estadistica: el fondo solo entra a la varianza, sigma_k^2 = S_k + B_k, y se
-!           supone conocido:  Dchi2(A) = sum_k (1-A)^2 S_k^2/(S_k+B_k),
-!           A_90 = 1 + sqrt(2.706/W),  W = sum_k S_k^2/(S_k+B_k).
-!   EXPOSICION: una sola, la de la ref. [46]: 62 kg x 1 dia. No se barre.
-!   Dos escenarios: (0) sin fondo (techo intrinseco); (1) fondo de la ref. [46].
-!
-!   Todo en N_e (sin PE: el PE es solo el formato del residuo publicado de Xe).
-!
-!   Entrada : datos/nest_Ar_218V_dense.txt (via mod_tnr_to_e)
-!   Salidas : datos/sensib_bkg_Ar.dat  (escenario exposicion_kgd A_90 S_tot B_tot S/sqrtB)
-!             datos/bkg_bins_Ar.dat    (N_e  S_k  B_k  [ev/(kg dia)])
-! Tesis   : metodologia.tex, Sec. "Sensibilidad esperada para argon".
+!   Salidas (datos/): sensib_bkg_Ar.dat, bkg_bins_Ar.dat
 !=======================================================================
 program chi2_bkg_nest
   use constants
@@ -50,7 +38,7 @@ program chi2_bkg_nest
   ! ==================================================================
   S_bin    = 0.0_dp
   T_nr_min = 0.20_dp / 1000.0_dp
-  T_nr_max = 3.5_dp  / 1000.0_dp        ! ref.[46] + cinematica E_nu=8 MeV
+  T_nr_max = 3.5_dp  / 1000.0_dp        ! T_max = 3.44 keV a E_nu = 8 MeV
   dT = (T_nr_max - T_nr_min) / (n_T - 1); dT_keV = dT * 1000.0_dp
   dE = E_nu_max / (n_E - 1)
 
@@ -73,7 +61,7 @@ program chi2_bkg_nest
   end do
 
   ! ==================================================================
-  ! 2. FONDO DE LA REF. [46]: B_tot tal que S/sqrt(B) = SB_ref46, plano por bin
+  ! 2. FONDO: B_tot tal que S/sqrt(B) = SB_ref46, igual en cada bin
   ! ==================================================================
   expo_val = mass_Ar_kg * 1.0_dp
   S_tot    = expo_val * sum(S_bin)

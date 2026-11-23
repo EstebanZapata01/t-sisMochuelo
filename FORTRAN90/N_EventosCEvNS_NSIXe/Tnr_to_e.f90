@@ -1,27 +1,16 @@
 !=======================================================================
-! Módulo: mod_tnr_to_e (NEST 218 V/cm - lectura robusta y dinámica)
-! Rol     : traduce energia de retroceso T [keV] a electrones de
-!           ionizacion via la tabla NEST (3 col: T, Qy, F).
-! Pipeline: etapa "retroceso -> ionizacion". Expone:
-!             obtener_electrones_creados(T)      -> <N_e> = T * Qy(T)
-!             obtener_fano(T)                    -> F(T) = Var(N_e)/<N_e>
-!             obtener_nest_binomial(T, n_F, p_F) -> params binomiales
-!           con  p_F = 1 - F(T)  (recortado a [0.02,0.98]),
-!                n_F = nint(<N_e>/p_F).
-! Tesis   : metodologia.tex Sec. 3.2, Ecs. (14)-(18).
-! Decision metodologica clave: el N_e NO es Poisson (NEST es
-!   sub-Poissoniano); se modela como Binom(n_F, p_F) para creados y
-!   Binom(n_F, p_F*EEE) para extraidos (forma cerrada, sin doble suma).
-!   La carpeta de Ar lee nest_Ar_218V_dense.txt (LArNEST) en su lugar.
+! Módulo: mod_tnr_to_e (NEST, 218 V/cm)
+!   Pasa la energia de retroceso T [keV] a electrones con la tabla de NEST
+!   (columnas T, Qy, F). Los electrones creados siguen Binom(n_F, p_F),
+!   con p_F = 1 - F y n_F = <N_e>/p_F; los extraidos, Binom(n_F, p_F*EEE).
 !=======================================================================
 module mod_tnr_to_e
   use constants
   implicit none
   
-  ! Arreglos dinámicos que se dimensionarán en tiempo de ejecución
   ! T_dense  : energia de retroceso [keV]
   ! Qy_dense : rendimiento de carga medio [e-/keV]
-  ! F_dense  : factor tipo Fano  Var(N_e)/<N_e>  (de GetQuanta de NEST; ~0.43-0.47)
+  ! F_dense  : factor de Fano, Var(N_e)/<N_e>
   real(dp), allocatable, dimension(:) :: T_dense, Qy_dense, F_dense
   integer :: n_puntos_actual = 0
   logical :: nest_inicializado = .false.

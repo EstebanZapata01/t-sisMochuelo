@@ -1,12 +1,8 @@
 !=======================================================================
-! Programa: cierre_pipeline (Xe) -- driver MINIMO para las pruebas de
-!   cierre de fig_cierres_pipeline.png y fig_cierre_factorizacion_nsi.png.
-!   NO reimplementa nada: llama a las MISMAS rutinas que usan los
-!   programas de produccion (obtener_nest_binomial, binomial_prob,
-!   dsigma_dT, prob_migracion, eff_ROI, flujo_diferencial) y vuelca los
-!   resultados a texto; toda la aritmetica de cierre (sumas/cocientes) que
-!   no está ya en esas rutinas se hace tambien aqui, en Fortran, no en
-!   Python.
+! Programa: cierre_pipeline (Xe)
+!   Pruebas de cierre del calculo con las mismas rutinas de los demas
+!   programas: normalizacion de la binomial, seccion eficaz frente a la
+!   aproximacion lineal y factorizacion de la NSI.
 ! Salidas: datos/cierre_binomial_Xe.dat, datos/cierre_dsigma_Xe.dat,
 !          datos/cierre_factorizacion_Xe.dat
 !=======================================================================
@@ -62,10 +58,7 @@ program cierre_pipeline
   close(u)
 
   ! ================================================================
-  ! (c) C_sigma(E_nu) - 1, dsigma_dT REAL (QV2=QW_SM^2 fijo aqui)
-  ! F=1 a proposito: esta prueba valida prefactores y T_max contra la
-  ! aproximacion lineal, que tambien asume F=1 (no mezclar con el factor
-  ! de forma).
+  ! (c) C_sigma(E_nu) - 1, con F = 1 como la aproximacion lineal
   ! ================================================================
   call set_use_helm(.false.)
   open(newunit=u, file=trim(outdir)//'cierre_dsigma_Xe.dat', status='replace')
@@ -85,10 +78,8 @@ program cierre_pipeline
   close(u)
 
   ! ================================================================
-  ! cierre de factorizacion: R_k(eps) real, QV2 conmutado, N_e VERDADERO
-  ! y ROI reconstruida real (4-7), para A_target en {4.0, 0.3}
-  ! Con Helm (el default de produccion): la factorizacion en A_amp no
-  ! depende de F(q^2), asi que el cierre debe seguir dando |C_k-1|~0.
+  ! (d) factorizacion: R_k(eps) = A_amp R_k(SM) para A_amp = 4,0 y 0,3,
+  !     en N_e verdadero y en la ROI reconstruida (con Helm)
   ! ================================================================
   call set_use_helm(.true.)
   open(newunit=u, file=trim(outdir)//'cierre_factorizacion_Xe.dat', status='replace')

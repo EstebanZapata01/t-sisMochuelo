@@ -1,14 +1,8 @@
 !=======================================================================
-! Programa: mainred100_nest (Asimov Dataset Absoluto - Flujo Explícito)
-!   + bloque de VALIDACION para contrastar con arXiv:2411.18641
-! Rol     : espectro SM absoluto de eventos CE$\nu$NS por bin de N_e
-!           RECONSTRUIDO en la ROI 4..7 (PE/27; migracion desde N_e verdadero
-!           k=1..15 via prob_migracion), con exposicion real (192 kg*dia FV).
-! Pipeline: integra flux x xsections_nest x binomial(k) x P(k->j) x eff_ROI(j) ->
-!           datos/eventos_sm_xe.dat y la tabla de validacion vs el paper.
-! Tesis   : metodologia.tex Sec. 3.3 (Ec. 19) y Sec. 4.
-! Decision metodologica clave: Asimov dN_i = R_i; eff_ROI se aplica al bin
-!   reconstruido (NO un 0.25 plano); ventana N_e reconstruido = 4..7.
+! Programa: mainred100_nest (Xe)
+!   Eventos CEvNS del SM por bin de N_e reconstruido (4..7) a 192 kg*dia,
+!   con la migracion desde el N_e verdadero y la eficiencia de los cortes.
+!   Imprime ademas una tabla para comparar con arXiv:2411.18641.
 !=======================================================================
 program mainred100_nest
   use constants
@@ -39,7 +33,7 @@ program mainred100_nest
   filename = trim(outdir) // 'eventos_sm_xe.dat'
 
   call inicializar_nest()
-  dummy = flujo_diferencial(1.0_dp)   ! dispara init del flujo
+  dummy = flujo_diferencial(1.0_dp)   ! inicializa el flujo
 
   QW_SM = -N_Ge/2.0_dp + (1.0_dp - 4.0_dp*s2w)/2.0_dp * Z_Ge
   QV2 = QW_SM**2
@@ -53,7 +47,7 @@ program mainred100_nest
         M_mig(n_bin, k) = prob_migracion(n_bin, k)
      end do
   end do
-  T_nr_min = 0.20_dp / 1000.0_dp; T_nr_max = 3.0_dp / 1000.0_dp   ! 0.20 keV = suelo de NEST v2.4.0
+  T_nr_min = 0.20_dp / 1000.0_dp; T_nr_max = 3.0_dp / 1000.0_dp
   dT = (T_nr_max - T_nr_min) / (n_T - 1); dT_keV = dT * 1000.0_dp
   dE = E_nu_max / (n_E - 1)
 

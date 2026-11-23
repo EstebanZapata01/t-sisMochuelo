@@ -1,62 +1,22 @@
 #!/usr/bin/env python3
 """
-Genera la tabla NEST para RED-100 con ARGON liquido (Ar NR, 218 V/cm).
-
-Salida: 3 columnas   ->   datos/nest_Ar_218V_dense.txt
+Tabla de LArNEST para el argon (retroceso nuclear, 218 V/cm), con el mismo
+formato que la del xenon (nest.py):
     T_nr[keV]   Qy[e-/keV]   F = Var(N_e)/<N_e>
+Salida: datos/nest_Ar_218V_dense.txt, que lee Tnr_to_e.f90 (carpeta Ar).
 
-Mismo formato y misma metodologia que la de Xe (nest.py -> nest_218V_dense.txt);
-lo lee  FORTRAN90/N_EventosCEvNS_NSIAr/Tnr_to_e.f90.
-Tesis: metodologia.tex Sec. 3.2 y Sec. 9.
+Qy sale de lar.get_nr_yields y F se estima muestreando
+lar.get_yield_fluctuations. LArNEST coincide con los cinco puntos de ReD 2025
+(arXiv:2510.16404) dentro de su error (-0,06 a -1,56 sigma).
 
---------------------------------------------------------------------------
-MODELO: nestpy 2.4.5 trae la clase  `nestpy.LArNEST`  con el modelo NR de
-argon liquido de NEST ("Global Analysis of Argon Yields"). NO hace falta un
-"detector de ejemplo" de Ar: el yield es fisica independiente del detector,
-basta el detector base VDetector().
-Parametros NR (get_nr_yields_parameters): alpha=11.1 beta=0.087 gamma=0.1
-delta=-0.0932 epsilon=2.998 eta=2.94 zeta=0.3.
-
-  Qy(T):  lar.get_nr_yields(T, E_drift, rho).Ne / T     (media analitica)
-  F(T) :  se MUESTREA  lar.get_yield_fluctuations(NR, y, rho).NeFluctuation
-          N_SAMP veces y se toma Var/media  --  EXACTAMENTE igual que nest.py
-          hace con nc.GetQuanta(...).electrons para el xenon.
-
-VALIDACION del Qy (218 V/cm) frente a ReD arXiv:2510.16404 Tabla 1:
-    E[keV]  ReD(e-/keV)  LArNEST   pull
-     2.40   7.42+/-0.42   7.09    -0.78 sigma
-     3.53   6.99+/-0.34   6.46    -1.56 sigma
-     4.52   6.24+/-0.30   6.02    -0.73 sigma
-     5.48   5.77+/-0.26   5.67    -0.38 sigma
-     7.63   5.08+/-0.22   5.07    -0.06 sigma
-=> compatible en 2-8 keV; LArNEST extrapola solo hasta el umbral (Lindhard
-   incorporado). 200 -> 218 V/cm mueve Qy < 1%.
-
-VALIDACION de F: la resolucion sigma(Ne)/Ne del modelo LArNEST (~12% a
-Ne~10, ~8% a Ne~15) reproduce la resolucion medida por ReD (12% a Ne=10,
-~7% a Ne>40). El modelo LArNEST es sub-Poissoniano para NR: F ~ 0.10-0.15
-en el ROI de RED-100 (T ~ 0.3-0.8 keV), sube cerca del umbral.
-
-F_MODE (para sistematicos):
-  'nest'      -> F muestreada de LArNEST         (BASELINE de la tesis)
-  'poisson'   -> F = 1                           (supuesto "sin fluctuacion")
-  'xe_like'   -> F copiada de la tabla de Xe
-  'const:<v>' -> F = v constante
-
-RED_ANCHOR: si True, el Qy de retroceso NUCLEAR se reescala con una correccion
-multiplicativa suave para que pase por los 5 puntos MEDIDOS de ReD 2025
-(arXiv:2510.16404 Tabla 1) en 2.4-7.6 keV. El cociente ReD/LArNEST se interpola
-y se mantiene plano fuera de ese rango. Por debajo de ~2 keV (el ROI CEvNS de
-RED-100, N_e<=5 <-> T_nr ~ 0.1-1 keV) NO HAY MEDIDA: es LArNEST reescalado =
-EXTRAPOLACION DE MODELO. Se marca como tal.
-
---------------------------------------------------------------------------
+F_MODE: 'nest' (el de la tesis), 'poisson', 'xe_like' o 'const:<v>'.
+RED_ANCHOR = True reescala Qy para que pase por los puntos de ReD.
 """
 from pathlib import Path
 import numpy as np
 import nestpy
 
-# Semilla fija (misma razon que nest.py); distinta a la de Xe.
+# Semilla fija para que la tabla sea reproducible
 nestpy.RandomGen.rndm().set_seed(20260911)
 nestpy.RandomGen.rndm().lock_seed()
 
@@ -65,9 +25,9 @@ DRIFT_V = 218.0       # V/cm  (RED-100; ReD midio a 200, diferencia < 1% en Qy)
 DENSITY = 1.40        # g/cm3, LAr ~87 K
 T_MIN, T_MAX, N_T = 0.15, 6.0, 4000   # malla densa para Qy (NR)
 F_MODE  = 'nest'      # 'nest' | 'poisson' | 'xe_like' | 'const:<valor>'
-N_FGRID = 220         # nodos donde se MUESTREA F (luego se interpola a la malla densa)
+N_FGRID = 220         # nodos donde se muestrea F (luego se interpola)
 N_SAMP  = 8000        # muestras de get_yield_fluctuations por nodo
-RED_ANCHOR = True     # reescalar Qy(NR) para pasar por los 5 puntos de ReD 2025
+RED_ANCHOR = False    # LArNEST sin reescalar, como NEST en el xenon
 
 # ReD 2025 (arXiv:2510.16404) Tabla 1: Qy de NR de Ar, medido, 200 V/cm.
 RED_E  = np.array([2.40, 3.53, 4.52, 5.48, 7.63])          # keV (E_r medio)
@@ -142,14 +102,10 @@ else:
 
 # ------------------------------ escribir NR ---------------------------
 with open(OUTPUT, "w") as f:
-    f.write("# Tabla NEST para RED-100 con ARGON  (Ar, retroceso NUCLEAR - senal CEvNS)\n")
+    f.write("# Tabla NEST para RED-100 con argon (retroceso nuclear)\n")
     f.write(f"# Modelo: nestpy.LArNEST (NEST {nestpy.__nest_version__}), "
             f"E_drift={DRIFT_V} V/cm, rho={DENSITY} g/cm3\n")
     f.write(f"# {qy_note}\n")
-    f.write("# ReD 2025 (arXiv:2510.16404) Tabla 1 = fuente primaria del yield NR "
-            "(2.4-7.6 keV, medido).\n")
-    f.write("# Bondar et al. 2017 (JINST 12, C05010): solo 80/233 keV; citado por "
-            "consistencia con ref.[46], NO usado.\n")
     f.write(f"# F_MODE = {F_MODE} : {f_note}\n")
     f.write("# T_nr[keV]   Qy[e-/keV]   F=Var(Ne)/<Ne>\n")
     f.write(f"# N_puntos = {N_T}\n")

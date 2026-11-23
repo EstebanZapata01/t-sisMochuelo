@@ -1,17 +1,8 @@
 !=======================================================================
-! Programa: red100PE_detallado (Plantillas PCHIP - Flujo Explícito)
-! Rol     : plantilla del espectro CE$\nu$NS SM en energia corregida [PE]
-!           (convoluciona N_e con SEG y sig1 de mod_detector).
-! Pipeline: etapa "N_e -> PE" -> escribe
-!           datos/ionization_spectra_detallado.dat, que es la entrada de
-!           chi2.f90 (ajuste 1D ON-OFF).
-! Tesis   : metodologia.tex Sec. 3.3 y Sec. 4.
-! Decision metodologica clave: dos espacios que no se mezclan. N_e VERDADERO
-!   (tasa_ion_extraidos) se valida contra la curva "extraidos" de la Fig. 3;
-!   N_e RECONSTRUIDO (PE/27, ventanas +-0.5 e- recortadas a 110-189 PE, via
-!   prob_migracion) contra las dos curvas de la Fig. 6. Total = suma de las
-!   plantillas k=1..15 (incluye la migracion desde k<4). En la carpeta de Ar
-!   este espectro en PE NO es fisico (mod_detector es de LXe).
+! Programa: red100PE_detallado (Xe)
+!   Espectro CEvNS del SM en PE (N_e convolucionado con SEG y sig1).
+!   Escribe datos/ionization_spectra_detallado.dat, la entrada de chi2.f90,
+!   y compara el N_e verdadero y el reconstruido con las curvas de RED-100.
 !=======================================================================
 program red100PE_detallado
   use constants
@@ -43,7 +34,7 @@ program red100PE_detallado
   call inicializar_nest()
   call cargar_SE_data(datafile)
   
-  ! Disparamos la inicialización automática del flujo
+  ! Inicializa el flujo
   dummy = flujo_diferencial(1.0_dp)
 
   QW_SM = -N_Ge/2.0_dp + (1.0_dp - 4.0_dp*s2w)/2.0_dp * Z_Ge
@@ -55,7 +46,7 @@ program red100PE_detallado
   allocate(array_tasa_Comb(n_T), tasa_ion_extraidos(n_ion), contribuciones(7))
   tasa_ion_extraidos(:) = 0.0_dp
 
-  T_nr_min = 0.20_dp / 1000.0_dp; T_nr_max = 3.0_dp / 1000.0_dp   ! 0.20 keV = suelo de NEST v2.4.0
+  T_nr_min = 0.20_dp / 1000.0_dp; T_nr_max = 3.0_dp / 1000.0_dp
   dT = (T_nr_max - T_nr_min) / (n_T - 1); dT_keV = dT * 1000.0_dp
   dE = E_nu_max / (n_E - 1)
 
@@ -84,8 +75,7 @@ program red100PE_detallado
      call obtener_nest_binomial(T_nr * 1000.0_dp, n_F, p_F)
      peso = merge(0.5_dp, 1.0_dp, i_T == 1 .or. i_T == n_T)
 
-     ! Espectro TEORICO (Fig. 3 del paper): sin cortes de seleccion (eff_ROI) y
-     ! sin livetime_frac. N_e extraidos ~ Binomial(n_F, p_F*EEE).
+     ! Espectro sin cortes; N_e extraidos ~ Binomial(n_F, p_F*EEE)
      do i_bin = 1, n_ion
         tasa_ion_extraidos(i_bin) = tasa_ion_extraidos(i_bin) + &
      (array_tasa_Comb(i_T) * dT_keV * peso * binomial_prob(i_bin, n_F, p_F * EEE))
@@ -133,11 +123,10 @@ program red100PE_detallado
   end do
   write(*,'(A,ES13.5)') '   Sum ROI (Ne 4-7, antes de eff_ROI)   = ', sum_ext_roi
 
-  ! ---- Comparacion contra las figuras digitalizadas del paper ----
-  ! pap  = Fig. 3  "N_e extraidos"                    (N_e VERDADERO)
-  ! f6_b = Fig. 6 (abajo) "CEvNS signal, before cuts" (N_e RECONSTRUIDO)
-  ! f6_a = Fig. 6 (abajo) "CEvNS signal, after cuts"  (N_e RECONSTRUIDO)
-  ! Todo en eventos/(kg dia), Ne = 4,5,6,7. eff_ROI(j) = f6_a(j)/f6_b(j).
+  ! ---- Comparacion con las curvas digitalizadas de RED-100 ----
+  ! pap  = electrones extraidos (N_e verdadero)
+  ! f6_b, f6_a = senal antes y despues de los cortes (N_e reconstruido)
+  ! En eventos/(kg dia), N_e = 4..7
   block
     real(dp) :: pap(4), f6_b(4), f6_a(4), sim(4), rec(4)
     integer  :: b, k_e
@@ -167,7 +156,7 @@ program red100PE_detallado
          sum(f6_a) / sum(f6_b)
     write(*,'(A)')      '   (0.2555 = el "75% signal loss in ROI" del texto; cociente de las dos curvas.)'
 
-    ! Volcado para python/roi_cuts_validacion_Xe.py y exporta_datos_tutor.py
+    ! Tabla de la comparacion
     block
       integer :: u_v, u_m
       open(newunit=u_m, file=trim(outdir)//'migracion_Xe.dat', status='replace')

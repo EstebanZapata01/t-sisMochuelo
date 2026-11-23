@@ -1,16 +1,7 @@
 !=======================================================================
-! Archivo : xsections.f90   (carpeta CONUS+ / Germanio)
-! Rol     : d(sigma)/dEer CE$\nu$NS ya cambiada de variable a energia de
-!           ionizacion Eer via el quenching de Lindhard (modulo quenching).
-! Tesis   : REFERENCIA; metodologia.tex Sec. 6. En RED-100 la conversion
-!           retroceso -> ionizacion la hace NEST (Tnr_to_e.f90), no un
-!           factor de quenching analitico.
-! Decision metodologica clave: la NSI entra solo por QV2 = q_eff^2, igual
-!   que en la version de RED-100.
-!   - factor de forma de Helm ACTIVADO por defecto (mismo Lewin & Smith que
-!     RED-100 Xe/Ar, xsections_nest.f90): F(q^2) = 3 j1(qR)/(qR) * exp(-(q
-!     s)^2/2), R^2 = c^2 + (7/3) pi^2 a^2 - 5 s^2, c = 1.23 A^{1/3} - 0.60 fm,
-!     a = 0.52 fm, s = 0.9 fm, q = sqrt(2 M T). USE_HELM=0 lo apaga.
+! d(sigma)/dT de CEvNS y su cambio de variable a Eer con el quenching.
+! La NSI entra solo por QV2 = q_eff^2. Factor de forma de Helm (Lewin y
+! Smith) activo por defecto; USE_HELM=0 lo apaga.
 !=======================================================================
 module xsections
   use constants, only: dp, GF, pi, M_Ge, QV2, conv, A_Ge, hbarc
@@ -48,7 +39,6 @@ contains
        use_helm = .not. (trim(env) == '0' .or. trim(env) == 'false' .or. trim(env) == 'FALSE')
        helm_init = .true.
     end if
-    ! CORRECCIÓN FÍSICA: Factor de 4 en el denominador
     prefactor = (GF**2 * M_Ge * QV2) / ( pi)
     if (T <= 0.0_dp .or. T >= 2.0_dp*E_nu**2/(M_Ge+2.0_dp*E_nu)) then
        dsdT = 0.0_dp
